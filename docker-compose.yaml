@@ -1,0 +1,40 @@
+services:
+  goatcounter:
+    image: arp242/goatcounter:latest
+    expose:
+      - "8080"
+    networks:
+      - analytics
+    volumes:
+      - goatcounter-data:/var/lib/goatcounter
+
+  redis:
+    image: redis:7-alpine
+    expose:
+      - "6379"
+    networks:
+      - analytics
+    volumes:
+      - redis-data:/data
+
+  gtcd:
+    build: .
+    environment:
+      GOATCOUNTER_URL: ${GOATCOUNTER_URL}
+      GOATCOUNTER_API_KEY: ${GOATCOUNTER_API_KEY}
+      SESSION_SECRET: ${SESSION_SECRET}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      - goatcounter
+      - redis
+    networks:
+      - analytics
+
+volumes:
+  goatcounter-data:
+  redis-data:
+
+networks:
+  analytics:
