@@ -27,10 +27,10 @@
 >
   <div>
     <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
       Campaigns
     </h1>
-    <p class="text-sm mt-1.5" style="color: var(--color-muted-foreground);">
+    <p class="text-sm mt-1.5 text-muted-foreground">
       Which campaigns drive traffic.
     </p>
   </div>
@@ -39,22 +39,32 @@
 
 {#if data.error}
   <div
-    class="rounded-2xl border p-5 animate-fade-in"
-    style="border-color: oklch(58% 0.24 25 / 0.2); background: oklch(58% 0.24 25 / 0.04);"
+    role="alert"
+    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
   >
-    <p class="text-sm font-medium" style="color: var(--color-error);">
+    <p class="text-sm font-medium text-error">
       {data.error}
     </p>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline btn-error"
+      onclick={() => location.reload()}
+    >
+      Retry
+    </button>
   </div>
-{:else if data.stats?.stats}
+{:else if data.stats?.stats && data.stats.stats.length > 0}
   <div class="card animate-fade-in">
     <BarChart data={data.stats.stats} maxItems={50} />
   </div>
 {:else}
-  <p
-    class="text-sm py-10 text-center"
-    style="color: var(--color-muted-foreground);"
-  >
-    No campaign data available.
-  </p>
+  <div class="card empty-state animate-fade-in">
+    <div class="empty-state-icon" aria-hidden="true">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
+      </svg>
+    </div>
+    <p class="empty-state-title">No campaign data</p>
+    <p class="empty-state-desc">No campaigns recorded for this time period.</p>
+  </div>
 {/if}

@@ -27,10 +27,10 @@
 >
   <div>
     <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
       Screen Sizes
     </h1>
-    <p class="text-sm mt-1.5" style="color: var(--color-muted-foreground);">
+    <p class="text-sm mt-1.5 text-muted-foreground">
       Which screen sizes your visitors use.
     </p>
   </div>
@@ -39,22 +39,32 @@
 
 {#if data.error}
   <div
-    class="rounded-2xl border p-5 animate-fade-in"
-    style="border-color: oklch(58% 0.24 25 / 0.2); background: oklch(58% 0.24 25 / 0.04);"
+    role="alert"
+    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
   >
-    <p class="text-sm font-medium" style="color: var(--color-error);">
+    <p class="text-sm font-medium text-error">
       {data.error}
     </p>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline btn-error"
+      onclick={() => location.reload()}
+    >
+      Retry
+    </button>
   </div>
-{:else if data.stats?.stats}
+{:else if data.stats?.stats && data.stats.stats.length > 0}
   <div class="card animate-fade-in">
     <BarChart data={data.stats.stats} maxItems={50} />
   </div>
 {:else}
-  <p
-    class="text-sm py-10 text-center"
-    style="color: var(--color-muted-foreground);"
-  >
-    No device data available.
-  </p>
+  <div class="card empty-state animate-fade-in">
+    <div class="empty-state-icon" aria-hidden="true">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+      </svg>
+    </div>
+    <p class="empty-state-title">No screen size data</p>
+    <p class="empty-state-desc">No device measurements recorded for this period.</p>
+  </div>
 {/if}

@@ -34,19 +34,18 @@
   <title>{title} — gtcd</title>
 </svelte:head>
 
-<div
-  class="min-h-screen flex items-center justify-center px-4"
-  style="background: var(--color-background);"
+<main
+  id="main-content"
+  tabindex="-1"
+  class="min-h-screen flex items-center justify-center px-4 bg-background relative"
 >
   <!-- Background blobs -->
-  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
     <div
-      class="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full blur-3xl"
-      style="background: oklch(54% 0.27 265 / 0.04);"
+      class="absolute top-0 left-1/3 w-[500px] h-[500px] rounded-full blur-3xl bg-primary/5"
     ></div>
     <div
-      class="absolute bottom-0 right-1/3 w-[500px] h-[500px] rounded-full blur-3xl"
-      style="background: oklch(54% 0.27 265 / 0.04);"
+      class="absolute bottom-0 right-1/3 w-[500px] h-[500px] rounded-full blur-3xl bg-primary/5"
     ></div>
   </div>
 
@@ -58,25 +57,22 @@
 
     <div class="text-center">
       <!-- Status code -->
-      <div class="mb-6">
+      <div class="mb-6" aria-hidden="true">
         <span
-          class="text-7xl sm:text-8xl font-extrabold tracking-tighter"
-          style="color: var(--color-primary); opacity: 0.15; line-height: 1;"
+          class="text-7xl sm:text-8xl font-extrabold tracking-tighter text-primary/20 select-none"
         >
           {status}
         </span>
       </div>
 
       <!-- Icon -->
-      <div class="flex justify-center mb-6">
+      <div class="flex justify-center mb-6" aria-hidden="true">
         {#if is404}
           <div
-            class="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style="background: oklch(54% 0.27 265 / 0.08);"
+            class="w-16 h-16 rounded-2xl flex items-center justify-center bg-primary/10 text-primary"
           >
             <svg
               class="w-8 h-8"
-              style="color: var(--color-primary);"
               fill="none"
               viewBox="0 0 24 24"
               stroke-width="1.5"
@@ -91,12 +87,10 @@
           </div>
         {:else if status === 403}
           <div
-            class="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style="background: oklch(58% 0.24 25 / 0.08);"
+            class="w-16 h-16 rounded-2xl flex items-center justify-center bg-error/10 text-error"
           >
             <svg
               class="w-8 h-8"
-              style="color: var(--color-error);"
               fill="none"
               viewBox="0 0 24 24"
               stroke-width="1.5"
@@ -111,12 +105,10 @@
           </div>
         {:else if status >= 500}
           <div
-            class="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style="background: oklch(58% 0.24 25 / 0.08);"
+            class="w-16 h-16 rounded-2xl flex items-center justify-center bg-error/10 text-error"
           >
             <svg
               class="w-8 h-8"
-              style="color: var(--color-error);"
               fill="none"
               viewBox="0 0 24 24"
               stroke-width="1.5"
@@ -131,12 +123,10 @@
           </div>
         {:else}
           <div
-            class="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style="background: oklch(78% 0.16 80 / 0.08);"
+            class="w-16 h-16 rounded-2xl flex items-center justify-center bg-warning/10 text-warning"
           >
             <svg
               class="w-8 h-8"
-              style="color: var(--color-warning);"
               fill="none"
               viewBox="0 0 24 24"
               stroke-width="1.5"
@@ -153,18 +143,12 @@
       </div>
 
       <!-- Title -->
-      <h1
-        class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3"
-        style="color: var(--color-foreground);"
-      >
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3 text-foreground">
         {title}
       </h1>
 
       <!-- Description -->
-      <p
-        class="text-sm sm:text-base leading-relaxed mb-8 max-w-sm mx-auto"
-        style="color: var(--color-muted-foreground);"
-      >
+      <p class="text-sm sm:text-base leading-relaxed mb-8 max-w-sm mx-auto text-muted-foreground">
         {description}
       </p>
 
@@ -172,38 +156,34 @@
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
         <a
           href="/"
-          class="btn-primary-custom text-sm px-6 py-2.5 w-full sm:w-auto text-center no-underline"
+          class="btn btn-primary rounded-xl text-sm px-6 w-full sm:w-auto text-center no-underline"
         >
           Go Home
         </a>
         <button
-          class="btn-ghost-custom text-sm px-6 py-2.5 w-full sm:w-auto"
+          type="button"
+          class="btn btn-outline rounded-xl text-sm px-6 w-full sm:w-auto cursor-pointer"
           onclick={() => history.back()}
         >
           Go Back
         </button>
       </div>
 
-      <!-- Debug info (only in dev) -->
+      <!-- Debug info (only when available) -->
       {#if message && message !== "Not Found" && !is404}
         <div
-          class="mt-8 rounded-xl p-4 text-left"
-          style="background: var(--color-base-200); border: 1px solid var(--color-border);"
+          class="mt-8 rounded-xl p-4 text-left bg-base-200 border border-border"
         >
           <p
-            class="text-[0.6875rem] font-semibold uppercase tracking-wider mb-2"
-            style="color: var(--color-muted-foreground);"
+            class="text-[0.6875rem] font-semibold uppercase tracking-wider mb-2 text-muted-foreground"
           >
             Details
           </p>
-          <p
-            class="text-xs font-mono"
-            style="color: var(--color-muted-foreground);"
-          >
+          <p class="text-xs font-mono text-muted-foreground">
             {message}
           </p>
         </div>
       {/if}
     </div>
   </div>
-</div>
+</main>

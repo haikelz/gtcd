@@ -23,8 +23,8 @@
 >
   <div>
     <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Pages</h1>
-    <p class="text-sm mt-1.5" style="color: var(--color-muted-foreground);">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Pages</h1>
+    <p class="text-sm mt-1.5 text-muted-foreground">
       Which pages your visitors view.
     </p>
   </div>
@@ -33,27 +33,35 @@
 
 {#if data.error}
   <div
-    class="rounded-2xl border p-5 animate-fade-in"
-    style="border-color: oklch(58% 0.24 25 / 0.2); background: oklch(58% 0.24 25 / 0.04);"
+    role="alert"
+    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
   >
-    <p class="text-sm font-medium" style="color: var(--color-error);">
+    <p class="text-sm font-medium text-error">
       {data.error}
     </p>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline btn-error"
+      onclick={() => location.reload()}
+    >
+      Retry
+    </button>
   </div>
 {:else if data.hits?.hits && data.hits.hits.length > 0}
   <div class="card animate-fade-in">
     <ul
-      class="list-none p-0 m-0"
-      style="border-top: 1px solid var(--color-border);"
+      class="list-none p-0 m-0 border-t border-border"
+      aria-label="Pages list"
     >
       {#each data.hits.hits as hit, i}
-        <li style="border-bottom: 1px solid var(--color-border);">
+        <li class="border-b border-border">
           <a
             href="/dashboard/pages/{hit.path_id}"
             class="list-row no-underline group"
+            aria-label="{hit.path}, {hit.count.toLocaleString()} visits"
           >
             <div class="flex items-center gap-2.5 min-w-0 flex-1">
-              <span class="list-index">{i + 1}</span>
+              <span class="list-index" aria-hidden="true">{i + 1}</span>
               <span
                 class="list-name font-mono group-hover:text-primary transition-colors"
                 >{hit.path}</span
@@ -66,10 +74,13 @@
     </ul>
   </div>
 {:else}
-  <p
-    class="text-sm py-10 text-center"
-    style="color: var(--color-muted-foreground);"
-  >
-    No page data available.
-  </p>
+  <div class="card empty-state animate-fade-in">
+    <div class="empty-state-icon" aria-hidden="true">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+      </svg>
+    </div>
+    <p class="empty-state-title">No page data</p>
+    <p class="empty-state-desc">No pages tracked for this time period.</p>
+  </div>
 {/if}

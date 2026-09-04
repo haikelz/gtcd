@@ -35,14 +35,15 @@
   <div>
     <a
       href="/dashboard/pages"
-      class="text-sm font-medium mb-2 inline-block"
-      style="color: var(--color-primary);">← Back to Pages</a
+      class="text-sm font-medium mb-2 inline-flex items-center gap-1 text-primary hover:underline"
     >
+      <span aria-hidden="true">←</span> Back to Pages
+    </a>
     <p class="eyebrow mb-1.5">Page Detail</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-foreground">
       {pageTitle}
     </h1>
-    <p class="text-sm mt-1.5" style="color: var(--color-muted-foreground);">
+    <p class="text-sm mt-1.5 text-muted-foreground">
       Referrers driving traffic to this page.
     </p>
   </div>
@@ -51,23 +52,33 @@
 
 {#if data.error}
   <div
-    class="rounded-2xl border p-5 animate-fade-in"
-    style="border-color: oklch(58% 0.24 25 / 0.2); background: oklch(58% 0.24 25 / 0.04);"
+    role="alert"
+    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
   >
-    <p class="text-sm font-medium" style="color: var(--color-error);">
+    <p class="text-sm font-medium text-error">
       {data.error}
     </p>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline btn-error"
+      onclick={() => location.reload()}
+    >
+      Retry
+    </button>
   </div>
 {:else if data.refs?.refs && data.refs.refs.length > 0}
   <div class="card animate-fade-in">
-    <h3 class="section-title mb-4">Referrers</h3>
+    <h2 class="section-title mb-4">Referrers</h2>
     <BarChart data={data.refs.refs} maxItems={30} />
   </div>
 {:else}
-  <p
-    class="text-sm py-10 text-center"
-    style="color: var(--color-muted-foreground);"
-  >
-    No referrer data available for this page.
-  </p>
+  <div class="card empty-state animate-fade-in">
+    <div class="empty-state-icon" aria-hidden="true">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+      </svg>
+    </div>
+    <p class="empty-state-title">No referrers</p>
+    <p class="empty-state-desc">No incoming referrers recorded for this page in this time window.</p>
+  </div>
 {/if}

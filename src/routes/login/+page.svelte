@@ -11,11 +11,13 @@
   <title>Sign In — gtcd</title>
 </svelte:head>
 
-<div
-  class="min-h-screen flex items-center justify-center px-4 py-8 bg-background"
+<main
+  id="main-content"
+  tabindex="-1"
+  class="min-h-screen flex items-center justify-center px-4 py-8 bg-background relative"
 >
   <!-- Background blobs -->
-  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
     <div
       class="absolute top-0 left-1/3 w-[500px] h-[500px] bg-primary/[0.04] rounded-full blur-3xl"
     ></div>
@@ -33,11 +35,11 @@
     <!-- Header -->
     <header class="text-center mb-6 sm:mb-8">
       <div
-        class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-5 shadow-lg shadow-primary/25"
+        class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-5 shadow-lg shadow-primary/20"
       >
         <span class="text-primary-content font-bold text-xl">G</span>
       </div>
-      <h1 class="text-2xl font-extrabold tracking-tight mb-2">
+      <h1 class="text-2xl font-extrabold tracking-tight mb-2 text-foreground">
         Sign in to Dashboard
       </h1>
       <p class="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
@@ -47,7 +49,7 @@
 
     <!-- Form card -->
     <div
-      class="bg-base-100 rounded-2xl border border-border shadow-xl shadow-black/[0.04] overflow-hidden dark:shadow-black/20"
+      class="bg-base-100 rounded-2xl border border-border shadow-xl shadow-black/[0.04] overflow-hidden"
     >
       <form
         method="POST"
@@ -74,7 +76,7 @@
               name="email"
               type="email"
               placeholder="you@example.com"
-              class="w-full text-foreground text-sm rounded-lg border border-border bg-background px-3.5 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/40"
+              class="input input-bordered w-full rounded-xl"
               required
               autocomplete="email"
             />
@@ -91,7 +93,7 @@
               name="password"
               type="password"
               placeholder="Your GoatCounter password"
-              class="w-full text-foreground text-sm rounded-lg border border-border bg-background px-3.5 py-2.5 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/40"
+              class="input input-bordered w-full rounded-xl"
               required
               autocomplete="current-password"
             />
@@ -99,28 +101,26 @@
 
           {#if form?.error}
             <div
-              class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg p-3"
+              role="alert"
+              class="bg-error/10 border border-error/30 rounded-xl p-3 text-error text-sm font-medium flex items-center gap-2"
             >
-              <p class="text-red-600 dark:text-red-400 text-sm font-medium">
-                {form.error}
-              </p>
+              <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{form.error}</span>
             </div>
           {/if}
 
           <button
             type="submit"
-            class="btn-primary-custom w-full"
+            class="btn btn-primary w-full rounded-xl text-base"
             disabled={loading}
           >
             {#if loading}
-              <span class="flex items-center justify-center gap-2">
-                <div
-                  class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-                ></div>
-                Signing in…
-              </span>
+              <span class="loading loading-spinner loading-sm" aria-hidden="true"></span>
+              <span>Signing in…</span>
             {:else}
-              Sign in →
+              Sign in <span aria-hidden="true">→</span>
             {/if}
           </button>
         </div>
@@ -136,4 +136,4 @@
       </p>
     </div>
   </div>
-</div>
+</main>

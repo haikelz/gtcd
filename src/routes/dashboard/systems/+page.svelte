@@ -27,10 +27,10 @@
 >
   <div>
     <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
       Operating Systems
     </h1>
-    <p class="text-sm mt-1.5" style="color: var(--color-muted-foreground);">
+    <p class="text-sm mt-1.5 text-muted-foreground">
       Which operating systems your visitors use.
     </p>
   </div>
@@ -39,22 +39,32 @@
 
 {#if data.error}
   <div
-    class="rounded-2xl border p-5 animate-fade-in"
-    style="border-color: oklch(58% 0.24 25 / 0.2); background: oklch(58% 0.24 25 / 0.04);"
+    role="alert"
+    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
   >
-    <p class="text-sm font-medium" style="color: var(--color-error);">
+    <p class="text-sm font-medium text-error">
       {data.error}
     </p>
+    <button
+      type="button"
+      class="btn btn-sm btn-outline btn-error"
+      onclick={() => location.reload()}
+    >
+      Retry
+    </button>
   </div>
-{:else if data.stats?.stats}
+{:else if data.stats?.stats && data.stats.stats.length > 0}
   <div class="card animate-fade-in">
     <BarChart data={data.stats.stats} maxItems={50} />
   </div>
 {:else}
-  <p
-    class="text-sm py-10 text-center"
-    style="color: var(--color-muted-foreground);"
-  >
-    No OS data available.
-  </p>
+  <div class="card empty-state animate-fade-in">
+    <div class="empty-state-icon" aria-hidden="true">
+      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 7.41A2.25 2.25 0 012.25 5.496V5.25" />
+      </svg>
+    </div>
+    <p class="empty-state-title">No operating system data</p>
+    <p class="empty-state-desc">No OS statistics recorded for this period.</p>
+  </div>
 {/if}

@@ -1,4 +1,4 @@
-import { getRedis } from "$lib/server/auth/session-store.js";
+import { pingRedis } from "$lib/server/auth/session-store.js";
 import { getMe } from "$lib/server/goatcounter/stats.js";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
@@ -20,21 +20,16 @@ export const GET: RequestHandler = async () => {
   }
 
   // Check Redis
-  try {
-    const client = getRedis();
-    const pong = await client.ping();
-    health.redis = pong === "PONG" ? "connected" : "disconnected";
-  } catch {
-    health.redis = "disconnected";
-    health.status = "unhealthy";
+  const isRedisUp = await pingRedis();
+  health.redis = isRedisUp ? "connected" : "disconnected";
+
+  if (!isRedisUp && health.status === "healthy") {
+    // Redis offline but memory fallback active: degraded
+    health.status = "degraded";
   }
 
-  const status =
-    health.status === "healthy"
-      ? 200
-      : health.status === "degraded"
-      ? 200
-      : 503;
+  const statusCode =
+    health.goatcounter === "connected" ? 200 : 503;
 
-  return json(health, { status });
+  return json(health, { status: statusCode });
 };
