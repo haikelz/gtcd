@@ -80,21 +80,21 @@ src/
 
 ## GoatCounter API Endpoints Used
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/v0/me` | Verify connection |
-| `GET /api/v0/stats/total` | Total visitors + time series |
-| `GET /api/v0/stats/hits` | Top pages with visitor counts |
-| `GET /api/v0/stats/hits/{id}` | Per-page referrer breakdown |
-| `GET /api/v0/stats/browsers` | Browser breakdown |
-| `GET /api/v0/stats/browsers/{id}` | Browser version drill-down |
-| `GET /api/v0/stats/systems` | OS breakdown |
-| `GET /api/v0/stats/systems/{id}` | OS version drill-down |
-| `GET /api/v0/stats/locations` | Country breakdown |
-| `GET /api/v0/stats/locations/{id}` | Region drill-down |
-| `GET /api/v0/stats/languages` | Language breakdown |
-| `GET /api/v0/stats/sizes` | Screen size breakdown |
-| `GET /api/v0/stats/campaigns` | Campaign breakdown |
+| Endpoint                           | Purpose                       |
+| ---------------------------------- | ----------------------------- |
+| `GET /api/v0/me`                   | Verify connection             |
+| `GET /api/v0/stats/total`          | Total visitors + time series  |
+| `GET /api/v0/stats/hits`           | Top pages with visitor counts |
+| `GET /api/v0/stats/hits/{id}`      | Per-page referrer breakdown   |
+| `GET /api/v0/stats/browsers`       | Browser breakdown             |
+| `GET /api/v0/stats/browsers/{id}`  | Browser version drill-down    |
+| `GET /api/v0/stats/systems`        | OS breakdown                  |
+| `GET /api/v0/stats/systems/{id}`   | OS version drill-down         |
+| `GET /api/v0/stats/locations`      | Country breakdown             |
+| `GET /api/v0/stats/locations/{id}` | Region drill-down             |
+| `GET /api/v0/stats/languages`      | Language breakdown            |
+| `GET /api/v0/stats/sizes`          | Screen size breakdown         |
+| `GET /api/v0/stats/campaigns`      | Campaign breakdown            |
 
 ## Design
 
