@@ -1,4 +1,21 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - analytics
+    depends_on:
+      - gtcd
+      - goatcounter
+
   goatcounter:
     image: arp242/goatcounter:latest
     expose:
@@ -20,12 +37,12 @@ services:
   gtcd:
     build: .
     environment:
-      GOATCOUNTER_URL: ${GOATCOUNTER_URL}
-      GOATCOUNTER_API_KEY: ${GOATCOUNTER_API_KEY}
-      SESSION_SECRET: ${SESSION_SECRET}
-      REDIS_URL: redis://redis:6379
-    ports:
-      - "3000:3000"
+      GOATCOUNTER_URL: ${GOATCOUNTER_URL:-http://goatcounter:8080}
+      GOATCOUNTER_API_KEY: ${GOATCOUNTER_API_KEY:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    expose:
+      - "3000"
     depends_on:
       - goatcounter
       - redis
@@ -35,6 +52,8 @@ services:
 volumes:
   goatcounter-data:
   redis-data:
+  caddy-data:
+  caddy-config:
 
 networks:
   analytics:

@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goatcounter
+  labels:
+    app: goatcounter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goatcounter
+  template:
+    metadata:
+      labels:
+        app: goatcounter
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: goatcounter
+          image: arp242/goatcounter:latest
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          args:
+            - serve
+            - -listen
+            - ":8080"
+            - -automigrate
+          env:
+            - name: GOATCOUNTER_DB
+              value: "sqlite+/data/db.sqlite3"
+          volumeMounts:
+            - name: goatcounter-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: goatcounter-data
+          persistentVolumeClaim:
+            claimName: goatcounter-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goatcounter
+  labels:
+    app: goatcounter
+spec:
+  type: ClusterIP
+  selector:
+    app: goatcounter
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: goatcounter-data
+  labels:
+    app: goatcounter
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

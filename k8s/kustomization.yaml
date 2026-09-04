@@ -4,4 +4,5 @@ resources:
   - secret.yaml
   - services.yaml
   - deployment.yaml
+  - goatcounter.yaml
   - ingress.yaml

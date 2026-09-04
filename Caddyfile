@@ -1,0 +1,27 @@
+{$DOMAIN:localhost} {
+	# GoatCounter tracking endpoint — proxy to GoatCounter directly
+	handle /count {
+		reverse_proxy goatcounter:8080
+	}
+
+	# GoatCounter admin UI (optional — remove if you don't want public access)
+	handle /admin/* {
+		reverse_proxy goatcounter:8080
+	}
+
+	# Everything else → gtcd dashboard
+	handle {
+		reverse_proxy gtcd:3000
+	}
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Enable compression
+	encode gzip zstd
+}
