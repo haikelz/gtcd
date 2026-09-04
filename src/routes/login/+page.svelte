@@ -1,6 +1,5 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
-  import { goto } from "$app/navigation";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
   let { form } = $props();
@@ -56,10 +55,11 @@
         action="?/login"
         use:enhance={() => {
           loading = true;
-          return async ({ result }) => {
-            loading = false;
-            if (result.type === "redirect") {
-              goto(result.location);
+          return async ({ update }) => {
+            try {
+              await update();
+            } finally {
+              loading = false;
             }
           };
         }}
