@@ -1,4 +1,4 @@
-# 🐐 gtcd — Enterprise Privacy-First Analytics Platform
+# 🐐 gtcd — Modern Web Dashboard for GoatCounter
 
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.x-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Svelte](https://img.shields.io/badge/Svelte-5_Runes-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://svelte.dev/)
@@ -6,198 +6,198 @@
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![DaisyUI](https://img.shields.io/badge/DaisyUI-v5-1AD1A5?style=flat-square)](https://daisyui.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-Cloud--Native-326CE5?style=flat-square&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![WCAG](https://img.shields.io/badge/WCAG-2.1_AA-success?style=flat-square)](https://www.w3.org/WAI/standards-guidelines/wcag/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
-> **Next-generation web analytics intelligence platform.** High-speed, privacy-first analytics powered by [GoatCounter](https://www.goatcounter.com/), engineered on **Svelte 5 Runes**, and architected for mission-critical enterprise Kubernetes environments.
-
----
-
-## ⚡ Executive Summary & Value Proposition
-
-Traditional enterprise web analytics platforms force an unacceptable compromise: bloated tracking scripts (40kB+), invasive tracking cookies, legal headaches under GDPR/ePrivacy/CCPA, and clunky, slow user interfaces.
-
-**`gtcd` bridges the gap between privacy compliance and actionable product intelligence:**
-
-* **100% Privacy Compliant Out-of-the-Box**: Zero tracking cookies. No intrusive consent banners required. Full GDPR, CCPA, and PECR compliance without sacrificing funnel visibility.
-* **Sub-Millisecond Reactive Interface**: Engineered with **SvelteKit 2 and Svelte 5 fine-grained Runes** (`$state`, `$derived`, `$props`), delivering immediate state transitions, smooth micro-animations, and instant SSR loads.
-* **Enterprise-Grade Upstream Protection**: Built-in request pacing queue ($\le 3.5$ req/sec), smart exponential backoff with jitter, and 30-second multi-tier caching that guarantees zero 429 rate-limit exhaustion against your GoatCounter backend.
-* **Dual-Tier Resilient Session Layer**: Distributed Redis session cluster with automatic, zero-downtime fallback to an in-memory session engine if Redis encounters network partitioning.
-* **Universal Accessibility (WCAG 2.1 AA)**: Fully accessible data visualizations with SVG titles, screen-reader fallback tables, high-contrast focus rings, and reduced-motion compliance.
-* **Turnkey Cloud-Native Delivery**: Hardened non-root multi-stage Docker containers and production-grade Kubernetes Kustomize manifests with Traefik Ingress and automated health probes.
+A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter](https://www.goatcounter.com/) analytics. Built with **Svelte 5 Runes**, **Tailwind CSS v4**, and **DaisyUI v5**.
 
 ---
 
-## 📐 Enterprise Solution Architecture
+## 💡 What is gtcd?
+
+[GoatCounter](https://github.com/arp242/goatcounter) is an incredible privacy-friendly web analytics platform: it is lightweight, tracks page views without invasive cookies or GDPR consent popups, and is very easy to self-host.
+
+**`gtcd` is a custom frontend dashboard for your GoatCounter instance.** It connects to your GoatCounter server via its REST API and provides an alternative, modern web UI with:
+
+* **Svelte 5 Runes**: Fast, reactive client-side navigation with zero bundle bloat.
+* **Curated Dark & Light Modes**: Clean UI built on DaisyUI v5 and Tailwind CSS v4 design tokens.
+* **Power-User Ergonomics**: Collapsible desktop sidebar with `Cmd+B` / `Ctrl+B` toggle, mobile drawer, and date-range presets (Today, 7d, 30d, 90d, This Month).
+* **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses encrypted HTTP-only session cookies against your GoatCounter login.
+* **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
+* **Resilient Session Store**: Distributed Redis session layer with automatic fallback to an in-memory store if Redis is unavailable.
+* **Accessible Visualizations (WCAG 2.1 AA)**: Interactive charts with SVG `<title>`, `<desc>`, semantic `role="meter"`, high-contrast focus rings, and screen-reader accessible data tables.
+
+---
+
+## 🏗️ Architecture
+
+`gtcd` acts as a secure presentation and caching layer in front of your GoatCounter instance:
 
 ```mermaid
 flowchart TD
-    subgraph Users["End Users & Operators"]
-        Client["Browser / Desktop / Mobile<br/>(WCAG 2.1 AA Accessible UI)"]
+    subgraph Client["Client Browser"]
+        UI["gtcd UI (Svelte 5 + Tailwind v4)<br/>Accessible Charts & Ergonomic Nav"]
     end
 
-    subgraph Edge["Ingress & Edge Routing"]
-        Ingress["Traefik Ingress / Reverse Proxy<br/>TLS Termination (Let's Encrypt)"]
-    end
-
-    subgraph AppCluster["gtcd Application Tier (Pod)"]
+    subgraph Backend["gtcd Backend (SvelteKit / Node 20)"]
         direction TB
-        SSR["SvelteKit Node 20 Runtime<br/>(Hardened Non-Root Container)"]
-        
-        subgraph CoreEngine["Internal Resilience Layer"]
-            Pacer["Outbound Request Pacer<br/>(280ms Interval Queue)"]
-            Cache["In-Memory Query Cache<br/>(30s Read Deduplication)"]
-            Backoff["Exponential Backoff Engine<br/>(429 Jitter Handler)"]
-            Normalizer["Data Normalizer<br/>(Heuristic 'Unknown' Resolver)"]
-        end
+        Auth["Session Gate<br/>(HTTP-only Cookie)"]
+        Cache["In-Memory Query Cache<br/>(30s Read Deduplication)"]
+        Pacer["Outbound Request Pacer<br/>(280ms Spacing Queue)"]
+        Backoff["429 Backoff & Jitter Handler"]
     end
 
-    subgraph DataTier["Data & State Infrastructure"]
-        Redis[("Redis 7 Session Store<br/>(Fallback: Local Memory Map)")]
-        GoatCounter[("GoatCounter Core Engine<br/>(Private Analytics Cluster)")]
+    subgraph Storage["External Services"]
+        Redis[("Redis 7<br/>(Sessions & Fallback)")]
+        GC[("GoatCounter Instance<br/>(Tracking Engine & SQLite/Postgres)")]
     end
 
-    Client -->|HTTPS / WSS| Ingress
-    Ingress -->|ClusterIP :3000| SSR
-    SSR <-->|Session Handshake| Redis
-    SSR --> Normalizer
-    Normalizer --> Cache
+    UI <-->|HTTP / Session Cookie| Auth
+    Auth <-->|Session Store| Redis
+    Auth --> Cache
     Cache --> Pacer
     Pacer --> Backoff
-    Backoff -->|Protected REST API| GoatCounter
-```
-
-### Key Architectural Highlights
-
-1. **Air-Gapped API Key Isolation**: The client browser never receives or stores the `GOATCOUNTER_API_KEY`. All upstream analytics calls are mediated and authorized strictly server-side through encrypted HTTP-only session cookies.
-2. **Dynamic 12-Factor Configuration**: Environment variables are resolved dynamically at runtime via `$env/dynamic/private`, eliminating security risks of baking secrets into Docker layers during CI/CD build stages.
-3. **Graceful Degradation**: If Redis drops or encounters network blips, the app automatically transitions to in-memory session tracking without dropping user connections or hanging HTTP responses.
-
----
-
-## 🚀 Key Feature Matrix
-
-| Capability | Technical Implementation | Business & Operator Benefit |
-| :--- | :--- | :--- |
-| **Real-Time Traffic KPI** | Total Visitors, Pageviews, Bounce Velocity & Trends | Instant situational awareness for marketing, growth, and engineering teams. |
-| **Time-Series Traffic Chart** | Responsive SVG Area Chart with dynamic gradient fills | Smooth visual traffic trend analysis with high-contrast tooltips and screen-reader tables. |
-| **Content Drill-Down** | Path hierarchy, top landing pages, and visitor breakdown | Pinpoint highest-performing content and traffic drop-offs instantly. |
-| **Referrer Attribution** | Origin tracking with deep-link source discovery | Understand exact traffic acquisition channels without UTM link bloat. |
-| **Hardware & Platform Telemetry** | Operating system, browser, screen size, and device type | Guide frontend optimization decisions with accurate device distribution. |
-| **Global Geo & Localization** | Country, region, and locale breakdown | Inform localization roadmaps and regional infrastructure sizing. |
-| **Campaign Tracking** | URL campaign parameter attribution | Evaluate multi-channel marketing campaigns with zero tracking cookies. |
-| **Ergonomic Workspace** | Collapsible desktop sidebar (`Cmd+B` / `Ctrl+B`) + mobile drawer | Maximal data density for analytics power users on ultra-wide monitors or laptops. |
-| **Dual Theme Design System** | Curated light/dark mode palettes via DaisyUI tokens | Reduces visual fatigue during round-the-clock operations monitoring. |
-
----
-
-## 🛠️ Technology Stack
-
-```
-Frontend:          SvelteKit 2 + Svelte 5 (Runes) + TypeScript
-Styling:           Tailwind CSS v4 + DaisyUI v5
-Backend Runtime:   Node.js 20 LTS (@sveltejs/adapter-node)
-State & Sessions:  Redis 7 via ioredis (with local in-memory fallback)
-Container:         Docker Engine (multi-stage, BuildKit caching, USER node)
-Orchestration:     Kubernetes (Kustomize, Traefik IngressRoute, Cert-Manager)
-Accessibility:     WCAG 2.1 AA Compliant (Semantic HTML, ARIA, Skip Links)
+    Backoff <-->|Authorized REST API| GC
 ```
 
 ---
 
-## 🏁 Quickstart & Deployment
+## 📊 Features & Views
 
-### Option A: Local Evaluation with Docker Compose (Recommended)
+* **Overview Dashboard**: Instant KPIs (total visitors, total pageviews) and an interactive SVG traffic time-series chart with date-range filters.
+* **Top Content & Pages**: List of tracked paths with visitor counts, percentage bars, search filtering, and per-path drill-downs.
+* **Referrer Attribution**: Per-page breakdown of referring domains and external links.
+* **Client Telemetry**:
+  * **Browsers**: Browser breakdown with version drill-downs.
+  * **Operating Systems**: OS distribution with version drill-downs.
+  * **Devices & Sizes**: Screen resolutions and device classification.
+* **Audience Geography & Localization**:
+  * **Locations**: Visitor distribution by country and region.
+  * **Languages**: Browser locale and language breakdown.
+* **Campaign Tracking**: Monitor marketing campaigns via URL query parameters.
+* **Data Normalization**: Empty or null metric names are automatically normalized to `"Unknown"` for clean chart display.
 
-Run the full stack (GoatCounter + Redis + `gtcd`) locally in under 60 seconds:
+---
+
+## 🚀 Quickstart
+
+### 1. Run with Docker Compose (Easiest)
+
+The fastest way to spin up the whole stack (GoatCounter + Redis + `gtcd`):
 
 ```bash
-# 1. Clone repository
+# Clone the repository
 git clone https://github.com/haikelz/gtcd.git
 cd gtcd
 
-# 2. Configure environment
+# Copy environment template
 cp .env.example .env
 
-# 3. Launch the container cluster
+# Edit .env with your GoatCounter API key
+# nano .env
+
+# Start all services
 docker compose up -d --build
 ```
 
-Access your services:
+Services will be accessible at:
 * **gtcd Dashboard**: [http://localhost:3000](http://localhost:3000)
-* **GoatCounter Core**: [http://localhost:8080](http://localhost:8080)
+* **GoatCounter**: [http://localhost:8080](http://localhost:8080)
 * **Health Check**: [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
 ---
 
-### Option B: Local Bare-Metal Development
+### 2. Local Bare-Metal Development
+
+Requirements: Node.js 20+ and [pnpm](https://pnpm.io/) 9+.
 
 ```bash
-# Install dependencies using pnpm
+# Install dependencies
 pnpm install
 
-# Start development server with live HMR
+# Set up local .env
+cp .env.example .env
+
+# Run development server with hot-reload
 pnpm dev
 
-# Type check and build validation
+# Run TypeScript & Svelte type checking
 pnpm check
+
+# Production build
 pnpm build
 ```
 
 ---
 
-### Option C: Enterprise Kubernetes Deployment
+### 3. Self-Hosting with Kubernetes
 
-Production-ready Kustomize manifests are located in `k8s/`:
+Production Kustomize manifests are included in [`k8s/`](k8s/):
 
 ```bash
-# Validate manifests using kustomize
+# Inspect the rendered manifests
 kubectl kustomize k8s/
 
 # Deploy to your Kubernetes cluster
 kubectl apply -k k8s/
 ```
 
-#### Kubernetes Architecture Highlights:
-* **Security Context**: `runAsNonRoot: true`, `runAsUser: 1000`, `allowPrivilegeEscalation: false`, `RuntimeDefault` seccomp.
-* **High Availability Probes**: Liveness and readiness probes integrated directly with `/api/health`.
-* **Zero-Downtime Rolling Updates**: Configured with `maxSurge: 1` and `maxUnavailable: 0`.
-* **Traefik Ingress**: Preconfigured SSL redirection, TLS Let's Encrypt certificates, and HTTP security headers.
+The Kubernetes setup features:
+* Non-root hardened container (`USER node:1000`, `RuntimeDefault` seccomp).
+* Health and readiness probes wired to `/api/health`.
+* Traefik Ingress with automatic Let's Encrypt TLS and security headers.
 
 ---
 
-## 🔐 Configuration Reference
+## ⚙️ Environment Variables
 
-All configuration is managed via environment variables adhering to the 12-Factor App methodology:
+Configure these in your `.env` file or container environment:
 
-| Variable | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `GOATCOUNTER_URL` | String | `http://goatcounter:8080` | Base URL of the GoatCounter backend instance |
-| `GOATCOUNTER_API_KEY` | String | *(Required)* | API token with read permissions to statistics |
-| `REDIS_URL` | String | `redis://localhost:6379` | Connection string for distributed session management |
-| `SESSION_SECRET` | String | *(Optional)* | Secret salt used for session entropy |
-| `PORT` | Number | `3000` | HTTP port exposed by the Node.js adapter |
-| `NODE_ENV` | String | `production` | Environment mode (`development` or `production`) |
+| Variable | Required | Default | Purpose |
+| :--- | :---: | :--- | :--- |
+| `GOATCOUNTER_URL` | **Yes** | `http://goatcounter:8080` | URL of your GoatCounter instance |
+| `GOATCOUNTER_API_KEY` | **Yes** | — | API token with read permissions (Settings → API) |
+| `REDIS_URL` | No | `redis://localhost:6379` | Redis connection for session storage (falls back to memory) |
+| `SESSION_SECRET` | No | — | Optional salt for session management |
+| `PORT` | No | `3000` | Port for the Node.js server to listen on |
+| `NODE_ENV` | No | `production` | Environment mode |
 
 ---
 
-## ♿ Accessibility & Universal Design (WCAG 2.1 AA)
+## 🔒 How Authentication Works
 
-`gtcd` is built from the ground up for full keyboard navigation and screen reader parity:
+`gtcd` separates user authentication from API access:
 
-* **Landmark Navigation**: Global skip link (`<a href="#main-content">`) allowing keyboard users to bypass navigation sidebars.
-* **Semantic Visualizations**: All SVG chart graphics include descriptive `<title>` and `<desc>` tags alongside hidden screen-reader summary tables (`.sr-only`).
-* **ARIA Radiogroups**: Custom date-range selectors and theme toggles implement standard `role="radiogroup"` keyboard arrow controls.
-* **Reduced Motion Compliance**: Seamless transitions automatically respect `prefers-reduced-motion: reduce`.
+1. **User Login**: Users sign in on `/login` using their GoatCounter account email and password. `gtcd` verifies the credentials against GoatCounter's `/user/requestlogin` endpoint.
+2. **Session Creation**: On success, `gtcd` issues an encrypted, HTTP-only, `SameSite=Lax` session cookie and stores the session in Redis (or in-memory fallback).
+3. **API Access**: All dashboard requests are made server-side using the `GOATCOUNTER_API_KEY` defined in the environment. Your API key is never leaked to the browser.
+
+---
+
+## ♿ Accessibility (WCAG 2.1 AA)
+
+* **Keyboard Navigation**: Full keyboard tab order, skip link (`<a href="#main-content">`), and `Cmd+B` / `Ctrl+B` sidebar toggle.
+* **Charts & Screen Readers**: Area and bar charts include accessible SVG `<title>`, `<desc>`, and hidden fallback tables (`.sr-only`) for screen-reader users.
+* **Controls**: Theme toggles and date-range pickers use standard `role="radiogroup"` with keyboard arrow navigation.
+* **Reduced Motion**: All animations and transitions respect `prefers-reduced-motion: reduce`.
+
+---
+
+## 🤝 Contributing
+
+Contributions, bug reports, and suggestions are welcome!
+1. Fork the repo and create your branch: `git checkout -b feature/cool-idea`.
+2. Ensure types and checks pass: `pnpm check && pnpm build`.
+3. Commit your changes and open a Pull Request.
+
+---
+
+## 🙏 Acknowledgements
+
+* [Martin Tournoij (arp242)](https://github.com/arp242) for creating [GoatCounter](https://github.com/arp242/goatcounter) — a true gem in the open-source privacy analytics space.
+* The [SvelteKit](https://kit.svelte.dev/) and [DaisyUI](https://daisyui.com/) teams for fantastic tooling.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
-
----
-
-<div align="center">
-  <sub>Engineered with precision for modern privacy-conscious engineering teams.</sub>
-</div>
+[MIT](LICENSE) © 2026 Haikel
