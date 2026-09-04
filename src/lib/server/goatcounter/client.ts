@@ -4,6 +4,8 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
 const MIN_REQUEST_INTERVAL_MS = 280; // GoatCounter allows 4 req/sec; 280ms keeps throughput under ~3.5 req/sec.
 const DEFAULT_CACHE_TTL_MS = 30_000; // 30 seconds cache for dashboard read queries
+const REQUEST_TIMEOUT_MS = 15_000;
+const CACHE_MAX_ENTRIES = 500; // Hard cap so unique query URLs cannot grow without bound.
 
 interface CacheEntry<T> {
   data: T;
@@ -14,6 +16,11 @@ const memoryCache = new Map<string, CacheEntry<unknown>>();
 
 let lastRequestTime = 0;
 let pacerQueue: Promise<void> = Promise.resolve();
+
+// Last observed upstream health, used by /api/health without issuing blocking requests.
+const UPSTREAM_STATUS_WINDOW_MS = 5 * 60_000;
+let lastUpstreamSuccessAt = 0;
+let lastUpstreamFailureAt = 0;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -36,6 +43,20 @@ async function paceRequest(): Promise<void> {
   return pacerQueue;
 }
 
+function sweepCache(now: number): void {
+  if (memoryCache.size < CACHE_MAX_ENTRIES) return;
+
+  for (const [key, entry] of memoryCache) {
+    if (entry.expiresAt <= now) memoryCache.delete(key);
+  }
+
+  // Still full after removing expired entries: drop the oldest half.
+  if (memoryCache.size >= CACHE_MAX_ENTRIES) {
+    const keys = [...memoryCache.keys()].slice(0, Math.floor(CACHE_MAX_ENTRIES / 2));
+    for (const key of keys) memoryCache.delete(key);
+  }
+}
+
 export function getApiKey(): string {
   return env.GOATCOUNTER_API_KEY || process.env.GOATCOUNTER_API_KEY || "";
 }
@@ -47,6 +68,32 @@ export function getBaseUrl(): string {
 
 export function clearClientCache(): void {
   memoryCache.clear();
+}
+
+/**
+ * Report the last observed GoatCounter reachability without performing I/O.
+ * "unknown" means no request has completed (successfully or not) recently.
+ */
+export function getUpstreamStatus(): "up" | "down" | "unknown" {
+  const now = Date.now();
+
+  if (lastUpstreamSuccessAt > lastUpstreamFailureAt) {
+    return now - lastUpstreamSuccessAt <= UPSTREAM_STATUS_WINDOW_MS ? "up" : "unknown";
+  }
+
+  if (lastUpstreamFailureAt > 0) {
+    return now - lastUpstreamFailureAt <= UPSTREAM_STATUS_WINDOW_MS ? "down" : "unknown";
+  }
+
+  return "unknown";
+}
+
+/**
+ * Trigger a background refresh of the upstream status. Never await this from a
+ * liveness path: it must not block health probes when GoatCounter is slow.
+ */
+export function refreshUpstreamStatus(): void {
+  gcFetch("/api/v0/me", {}, undefined, { bypassCache: true }).catch(() => {});
 }
 
 export async function gcFetch<T>(
@@ -84,6 +131,7 @@ export async function gcFetch<T>(
 
       const response = await fetch(url.toString(), {
         ...init,
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getApiKey()}`,
@@ -108,7 +156,6 @@ export async function gcFetch<T>(
         lastError = new Error(
           `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`,
         );
-        lastRequestTime = Date.now() + waitMs;
 
         await sleep(waitMs);
         continue;
@@ -123,8 +170,11 @@ export async function gcFetch<T>(
 
       const result = (await response.json()) as T;
 
+      lastUpstreamSuccessAt = Date.now();
+
       if (isGet) {
         const ttl = options.ttlMs ?? DEFAULT_CACHE_TTL_MS;
+        sweepCache(Date.now());
         memoryCache.set(cacheKey, {
           data: result,
           expiresAt: Date.now() + ttl,
@@ -133,6 +183,8 @@ export async function gcFetch<T>(
 
       return result;
     } catch (error) {
+      lastUpstreamFailureAt = Date.now();
+
       if (error instanceof Error) {
         lastError = error;
         if (
@@ -161,12 +213,16 @@ export async function gcFetchRaw(
 
   const url = `${getBaseUrl()}${path}`;
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...init,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${getApiKey()}`,
       ...init.headers,
     },
   });
+
+  lastUpstreamSuccessAt = Date.now();
+  return response;
 }

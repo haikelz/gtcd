@@ -1,35 +1,36 @@
 import { pingRedis } from "$lib/server/auth/session-store.js";
-import { getMe } from "$lib/server/goatcounter/stats.js";
+import {
+  getUpstreamStatus,
+  refreshUpstreamStatus,
+} from "$lib/server/goatcounter/client.js";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
+/**
+ * Health endpoint for orchestrator probes and monitoring.
+ *
+ * It always answers 200 as long as this process can serve: GoatCounter and
+ * Redis outages degrade the dashboard gracefully (error states, in-memory
+ * session fallback), so they must not fail liveness or restart healthy pods.
+ * Dependency states are reported in the body as eventual status: a background
+ * refresh updates GoatCounter reachability without ever blocking the probe,
+ * and Redis is probed with a short-cooldown fast-fail while it is down.
+ */
 export const GET: RequestHandler = async () => {
-  const health = {
-    status: "healthy" as "healthy" | "degraded" | "unhealthy",
-    goatcounter: "unknown" as "connected" | "disconnected",
-    redis: "unknown" as "connected" | "disconnected",
-  };
+  refreshUpstreamStatus();
 
-  // Check GoatCounter API
-  try {
-    await getMe();
-    health.goatcounter = "connected";
-  } catch {
-    health.goatcounter = "disconnected";
-    health.status = "degraded";
-  }
+  // Bounded probe: a health check must never block longer than the probe timeout.
+  const isRedisUp = await pingRedis(400);
+  const goatcounter = getUpstreamStatus();
 
-  // Check Redis
-  const isRedisUp = await pingRedis();
-  health.redis = isRedisUp ? "connected" : "disconnected";
+  const degraded = isRedisUp === false || goatcounter === "down";
 
-  if (!isRedisUp && health.status === "healthy") {
-    // Redis offline but memory fallback active: degraded
-    health.status = "degraded";
-  }
-
-  const statusCode =
-    health.goatcounter === "connected" ? 200 : 503;
-
-  return json(health, { status: statusCode });
+  return json(
+    {
+      status: degraded ? "degraded" : "healthy",
+      goatcounter,
+      redis: isRedisUp ? "connected" : "disconnected",
+    },
+    { status: 200 },
+  );
 };

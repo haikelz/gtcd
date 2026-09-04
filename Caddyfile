@@ -1,10 +1,10 @@
-{$DOMAIN:localhost} {
-	# GoatCounter tracking endpoint — proxy to GoatCounter directly
+localhost {
+	# GoatCounter tracking endpoint
 	handle /count {
 		reverse_proxy goatcounter:8080
 	}
 
-	# GoatCounter admin UI (optional — remove if you don't want public access)
+	# GoatCounter admin UI (optional)
 	handle /admin/* {
 		reverse_proxy goatcounter:8080
 	}

@@ -36,9 +36,9 @@ services:
 
   gtcd:
     build: .
+    env_file: .env
     environment:
       GOATCOUNTER_URL: ${GOATCOUNTER_URL:-http://goatcounter:8080}
-      GOATCOUNTER_API_KEY: ${GOATCOUNTER_API_KEY:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     expose:

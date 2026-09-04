@@ -15,6 +15,24 @@ function normalizeName(name: string | null | undefined): string {
   return name.trim();
 }
 
+const STATS_PAGES: readonly StatsPage[] = [
+  "browsers",
+  "systems",
+  "locations",
+  "languages",
+  "sizes",
+  "campaigns",
+  "toprefs",
+];
+
+/**
+ * Validate an untrusted stats page name before it is ever interpolated into
+ * an upstream URL. Prevents path traversal into other GoatCounter endpoints.
+ */
+export function isStatsPage(value: string): value is StatsPage {
+  return (STATS_PAGES as readonly string[]).includes(value);
+}
+
 export async function getMe(): Promise<GoatCounterUser> {
   return gcFetch<GoatCounterUser>("/api/v0/me");
 }
@@ -120,7 +138,7 @@ export async function getStatsDetail(
   limit?: number,
 ): Promise<StatsResponse> {
   const res = await gcFetch<StatsResponse>(
-    `/api/v0/stats/${page}/${id}`,
+    `/api/v0/stats/${page}/${encodeURIComponent(id)}`,
     {},
     {
       start,

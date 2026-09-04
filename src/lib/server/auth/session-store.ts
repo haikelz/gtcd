@@ -2,7 +2,15 @@ import { building } from "$app/environment";
 import Redis from "ioredis";
 
 let redis: Redis | null = null;
+// null = never probed, true = last interaction succeeded, false = last interaction failed.
 let redisAvailable: boolean | null = null;
+let lastRedisFailureAt = 0;
+
+const REDIS_RETRY_COOLDOWN_MS = 5_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const memorySessions = new Map<string, { email: string; expiresAt: number }>();
 
@@ -20,37 +28,54 @@ export function getRedis(): Redis {
   const client = new Redis(url, {
     lazyConnect: true,
     maxRetriesPerRequest: 1,
-    connectTimeout: 1000,
+    connectTimeout: 2000,
     enableOfflineQueue: false,
-    retryStrategy: () => null,
+    // Keep retrying in the background with bounded backoff so a recovered
+    // Redis is picked up again instead of being abandoned until process restart.
+    retryStrategy: (attempt) => Math.min(1000 * 2 ** Math.min(attempt, 4), 10_000),
   });
 
   client.on("error", () => {
-    redisAvailable = false;
-    try {
-      client.disconnect(false);
-    } catch {}
+    // Connection errors are surfaced through command rejections; swallow the
+    // event so an unavailable Redis degrades to the in-memory store silently.
   });
 
   redis = client;
   return redis;
 }
 
-export async function pingRedis(): Promise<boolean> {
-  if (redisAvailable === false) return false;
+/**
+ * Probe Redis with a cooldown so callers (e.g. health checks and session
+ * lookups) fail fast while Redis is down instead of paying a connect timeout
+ * on every request. The cooldown also gives the client's background reconnect
+ * attempts room to succeed before we probe again. `maxWaitMs` bounds how long
+ * a single probe may block; a timed-out probe reports "down" while the
+ * underlying attempt keeps running and converges the recorded state.
+ */
+export async function pingRedis(maxWaitMs = 1_000): Promise<boolean> {
+  const now = Date.now();
 
-  try {
-    const client = getRedis();
-    const result = await client.ping();
-    redisAvailable = result === "PONG";
-    return redisAvailable;
-  } catch {
-    redisAvailable = false;
-    try {
-      redis?.disconnect(false);
-    } catch {}
+  if (redisAvailable === false && now - lastRedisFailureAt < REDIS_RETRY_COOLDOWN_MS) {
     return false;
   }
+
+  const attempt = (async () => {
+    try {
+      const client = getRedis();
+      const result = await client.ping();
+      redisAvailable = result === "PONG";
+      return redisAvailable;
+    } catch {
+      redisAvailable = false;
+      lastRedisFailureAt = Date.now();
+      return false;
+    }
+  })();
+
+  return Promise.race([
+    attempt,
+    sleep(maxWaitMs).then(() => false),
+  ]);
 }
 
 export async function createSession(
@@ -70,9 +95,7 @@ export async function createSession(
       return;
     } catch {
       redisAvailable = false;
-      try {
-        redis.disconnect(false);
-      } catch {}
+      lastRedisFailureAt = Date.now();
     }
   }
 
@@ -97,9 +120,7 @@ export async function getSession(
       return null;
     } catch {
       redisAvailable = false;
-      try {
-        redis.disconnect(false);
-      } catch {}
+      lastRedisFailureAt = Date.now();
     }
   }
 
@@ -123,9 +144,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
       await redis.del(`${SESSION_PREFIX}${sessionId}`);
     } catch {
       redisAvailable = false;
-      try {
-        redis.disconnect(false);
-      } catch {}
+      lastRedisFailureAt = Date.now();
     }
   }
 

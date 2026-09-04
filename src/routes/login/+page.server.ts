@@ -1,4 +1,4 @@
-import { createDashboardSession } from "$lib/server/auth/session.js";
+import { createDashboardSession, shouldUseSecureCookies } from "$lib/server/auth/session.js";
 import { authenticateWithGoatCounter } from "$lib/server/goatcounter/auth.js";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-  login: async ({ request, cookies }) => {
+  login: async ({ request, cookies, url }) => {
     const data = await request.formData();
     const email = data.get("email") as string;
     const password = data.get("password") as string;
@@ -40,7 +40,11 @@ export const actions: Actions = {
     }
 
     // Authentication successful — create dashboard session
-    await createDashboardSession(cookies, result.user.email);
+    await createDashboardSession(
+      cookies,
+      result.user.email,
+      shouldUseSecureCookies(request.headers, url),
+    );
 
     throw redirect(302, "/dashboard");
   },

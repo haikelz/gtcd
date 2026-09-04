@@ -12,9 +12,31 @@ export function generateSessionId(): string {
   return randomBytes(32).toString("hex");
 }
 
+/**
+ * Decide the cookie `secure` flag from the real client-facing protocol.
+ * Hardcoding `secure: true` silently breaks login on plain-HTTP deployments
+ * (e.g. local Docker), while hardcoding `false` weakens production. Reverse
+ * proxies are trusted here: spoofing X-Forwarded-Proto only changes the flag
+ * on the attacker's own session cookie, which gains them nothing.
+ */
+export function shouldUseSecureCookies(headers: Headers, url: URL): boolean {
+  const override = process.env.COOKIE_SECURE?.toLowerCase();
+
+  if (override === "true") return true;
+  if (override === "false") return false;
+
+  const forwardedProto = headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.split(",")[0].trim() === "https";
+  }
+
+  return url.protocol === "https:";
+}
+
 export async function createDashboardSession(
   cookies: Cookies,
   email: string,
+  secure: boolean,
 ): Promise<void> {
   const sessionId = generateSessionId();
 
@@ -23,7 +45,7 @@ export async function createDashboardSession(
   cookies.set(COOKIE_NAME, sessionId, {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });
