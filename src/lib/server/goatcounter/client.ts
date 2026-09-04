@@ -1,4 +1,4 @@
-import { GOATCOUNTER_API_KEY, GOATCOUNTER_URL } from "$env/static/private";
+import { env } from "$env/dynamic/private";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
@@ -36,8 +36,13 @@ async function paceRequest(): Promise<void> {
   return pacerQueue;
 }
 
+export function getApiKey(): string {
+  return env.GOATCOUNTER_API_KEY || process.env.GOATCOUNTER_API_KEY || "";
+}
+
 export function getBaseUrl(): string {
-  return GOATCOUNTER_URL.replace(/\/+$/, "");
+  const url = env.GOATCOUNTER_URL || process.env.GOATCOUNTER_URL || "";
+  return url.replace(/\/+$/, "");
 }
 
 export function clearClientCache(): void {
@@ -81,7 +86,7 @@ export async function gcFetch<T>(
         ...init,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${GOATCOUNTER_API_KEY}`,
+          Authorization: `Bearer ${getApiKey()}`,
           ...init.headers,
         },
       });
@@ -160,7 +165,7 @@ export async function gcFetchRaw(
     ...init,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GOATCOUNTER_API_KEY}`,
+      Authorization: `Bearer ${getApiKey()}`,
       ...init.headers,
     },
   });
