@@ -8,13 +8,20 @@ import type {
   StatsResponse,
 } from "./types.js";
 
+function normalizeName(name: string | null | undefined): string {
+  if (!name || name.trim() === "") {
+    return "Unknown";
+  }
+  return name.trim();
+}
+
 export async function getMe(): Promise<GoatCounterUser> {
   return gcFetch<GoatCounterUser>("/api/v0/me");
 }
 
 export async function getTotal(
   start?: string,
-  end?: string
+  end?: string,
 ): Promise<CountTotalResponse> {
   return gcFetch<CountTotalResponse>("/api/v0/stats/total", {}, { start, end });
 }
@@ -24,9 +31,9 @@ export async function getHits(
   end?: string,
   limit?: number,
   excludePaths?: string,
-  pathByName?: boolean
+  pathByName?: boolean,
 ): Promise<HitsResponse> {
-  return gcFetch<HitsResponse>(
+  const res = await gcFetch<HitsResponse>(
     "/api/v0/stats/hits",
     {},
     {
@@ -35,25 +42,47 @@ export async function getHits(
       limit: limit?.toString(),
       exclude_paths: excludePaths,
       path_by_name: pathByName ? "true" : undefined,
-    }
+    },
   );
+
+  return {
+    ...res,
+    hits: (res.hits || []).map((hit) => {
+      const path = normalizeName(hit.path);
+      const title = hit.title && hit.title.trim() !== "" ? hit.title.trim() : path;
+
+      return {
+        ...hit,
+        path,
+        title,
+      };
+    }),
+  };
 }
 
 export async function getReferrals(
   pathId: number,
   start?: string,
   end?: string,
-  limit?: number
+  limit?: number,
 ): Promise<RefsResponse> {
-  return gcFetch<RefsResponse>(
+  const res = await gcFetch<RefsResponse>(
     `/api/v0/stats/hits/${pathId}`,
     {},
     {
       start,
       end,
       limit: limit?.toString(),
-    }
+    },
   );
+
+  return {
+    ...res,
+    refs: (res.refs || []).map((ref) => ({
+      ...ref,
+      name: normalizeName(ref.name),
+    })),
+  };
 }
 
 export async function getStats(
@@ -61,9 +90,9 @@ export async function getStats(
   start?: string,
   end?: string,
   limit?: number,
-  offset?: number
+  offset?: number,
 ): Promise<StatsResponse> {
-  return gcFetch<StatsResponse>(
+  const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}`,
     {},
     {
@@ -71,8 +100,16 @@ export async function getStats(
       end,
       limit: limit?.toString(),
       offset: offset?.toString(),
-    }
+    },
   );
+
+  return {
+    ...res,
+    stats: (res.stats || []).map((item) => ({
+      ...item,
+      name: normalizeName(item.name),
+    })),
+  };
 }
 
 export async function getStatsDetail(
@@ -80,32 +117,57 @@ export async function getStatsDetail(
   id: string,
   start?: string,
   end?: string,
-  limit?: number
+  limit?: number,
 ): Promise<StatsResponse> {
-  return gcFetch<StatsResponse>(
+  const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}/${id}`,
     {},
     {
       start,
       end,
       limit: limit?.toString(),
-    }
+    },
   );
+
+  return {
+    ...res,
+    stats: (res.stats || []).map((item) => ({
+      ...item,
+      name: normalizeName(item.name),
+    })),
+  };
 }
 
 export async function getPaths(
   limit?: number,
-  after?: number
+  after?: number,
 ): Promise<{
   paths: { id: number; path: string; title: string; event: boolean }[];
   more: boolean;
 }> {
-  return gcFetch(
+  const res = await gcFetch<{
+    paths: { id: number; path: string; title: string; event: boolean }[];
+    more: boolean;
+  }>(
     "/api/v0/paths",
     {},
     {
       limit: limit?.toString(),
       after: after?.toString(),
-    }
+    },
   );
+
+  return {
+    ...res,
+    paths: (res.paths || []).map((p) => {
+      const path = normalizeName(p.path);
+      const title = p.title && p.title.trim() !== "" ? p.title.trim() : path;
+
+      return {
+        ...p,
+        path,
+        title,
+      };
+    }),
+  };
 }

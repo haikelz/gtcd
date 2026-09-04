@@ -18,6 +18,7 @@
 
 <ul class="list-none p-0 m-0 space-y-1" aria-label="Breakdown chart">
   {#each items as item, i}
+    {@const label = item.name?.trim() ? item.name.trim() : "Unknown"}
     {@const pct = Math.max(Math.min((item.count / maxCount) * 100, 100), 0)}
     {@const share =
       total > 0 ? ((item.count / total) * 100).toFixed(1) : "0"}
@@ -26,12 +27,12 @@
         <button
           type="button"
           class="w-full cursor-pointer text-left rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-primary"
-          onclick={() => onItemClick(item.id, item.name)}
-          aria-label="{item.name}: {item.count.toLocaleString()} visitors ({share}%)"
+          onclick={() => onItemClick(item.id, label)}
+          aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
         >
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-sm font-medium truncate pr-3 text-foreground"
-              >{item.name}</span
+              >{label}</span
             >
             <div class="flex items-center gap-2 shrink-0">
               <span class="text-sm font-semibold tabular-nums text-foreground"
@@ -47,7 +48,7 @@
             aria-valuenow={item.count}
             aria-valuemin="0"
             aria-valuemax={maxCount}
-            aria-label="{item.name} share"
+            aria-label="{label} share"
             class="w-full h-1.5 rounded-full overflow-hidden bg-base-200"
           >
             <div
@@ -60,7 +61,7 @@
         <div class="w-full text-left rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-base-200/50">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-sm font-medium truncate pr-3 text-foreground"
-              >{item.name}</span
+              >{label}</span
             >
             <div class="flex items-center gap-2 shrink-0">
               <span class="text-sm font-semibold tabular-nums text-foreground"
@@ -76,7 +77,7 @@
             aria-valuenow={item.count}
             aria-valuemin="0"
             aria-valuemax={maxCount}
-            aria-label="{item.name}: {item.count.toLocaleString()} visitors ({share}%)"
+            aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
             class="w-full h-1.5 rounded-full overflow-hidden bg-base-200"
           >
             <div

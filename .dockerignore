@@ -1,0 +1,14 @@
+.git
+.agents
+.env*
+!*.example
+node_modules
+.svelte-kit
+build
+tests
+*.log
+.DS_Store
+.vscode
+Dockerfile*
+docker-compose*.yaml
+k8s

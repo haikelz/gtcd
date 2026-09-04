@@ -55,7 +55,7 @@ export async function pingRedis(): Promise<boolean> {
 
 export async function createSession(
   sessionId: string,
-  email: string
+  email: string,
 ): Promise<void> {
   const isUp = redisAvailable ?? (await pingRedis());
 
@@ -65,7 +65,7 @@ export async function createSession(
       await redis.setex(
         `${SESSION_PREFIX}${sessionId}`,
         SESSION_MAX_AGE_SEC,
-        data
+        data,
       );
       return;
     } catch {
@@ -84,7 +84,7 @@ export async function createSession(
 }
 
 export async function getSession(
-  sessionId: string
+  sessionId: string,
 ): Promise<{ email: string } | null> {
   const isUp = redisAvailable ?? (await pingRedis());
 

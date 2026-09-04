@@ -7,6 +7,7 @@
 
   let { children, data } = $props();
   let sidebarOpen = $state(false);
+  let desktopSidebarOpen = $state(true);
 
   const isDashboard = $derived(page.url.pathname.startsWith("/dashboard"));
   const isPublic = $derived(
@@ -60,15 +61,37 @@
     sidebarOpen = false;
   }
 
+  function toggleSidebar() {
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      desktopSidebarOpen = !desktopSidebarOpen;
+      localStorage.setItem("gtcd_desktop_sidebar", String(desktopSidebarOpen));
+    } else {
+      sidebarOpen = !sidebarOpen;
+    }
+  }
+
+  function toggleDesktopSidebar() {
+    desktopSidebarOpen = !desktopSidebarOpen;
+    localStorage.setItem("gtcd_desktop_sidebar", String(desktopSidebarOpen));
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape" && sidebarOpen) {
       closeSidebar();
+    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+      e.preventDefault();
+      toggleSidebar();
     }
   }
 
   onMount(() => {
     if (isDashboard && !data.authenticated) {
       goto("/login");
+    }
+
+    const savedDesktopSidebar = localStorage.getItem("gtcd_desktop_sidebar");
+    if (savedDesktopSidebar !== null) {
+      desktopSidebarOpen = savedDesktopSidebar === "true";
     }
 
     document.addEventListener("keydown", handleKeydown);
@@ -109,27 +132,46 @@
     <aside
       id="sidebar-nav"
       aria-label="Dashboard Sidebar"
-      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-screen w-64 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] {sidebarOpen
-        ? 'translate-x-0'
-        : '-translate-x-full lg:translate-x-0'}"
+      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-screen flex flex-col transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] {sidebarOpen
+        ? 'translate-x-0 w-64'
+        : '-translate-x-full w-64'} {desktopSidebarOpen
+        ? 'lg:translate-x-0 lg:w-64'
+        : 'lg:-translate-x-full lg:w-0 lg:opacity-0 lg:pointer-events-none lg:border-none'}"
     >
-      <!-- Logo -->
-      <div class="px-5 pt-5 pb-4">
+      <!-- Logo & Desktop Collapse Button -->
+      <div class="px-5 pt-5 pb-4 flex items-center justify-between">
         <a href="/" class="flex items-center gap-2.5 no-underline">
           <div
             class="w-8 h-8 rounded-xl flex items-center justify-center bg-primary shadow-sm"
           >
             <span class="text-primary-content font-bold text-sm">G</span>
           </div>
-          <div>
-            <span class="text-foreground font-bold text-sm tracking-tight"
-              >gtcd</span
-            >
-            <span class="text-[0.625rem] ml-1.5 text-muted-foreground"
-              >Dashboard</span
-            >
-          </div>
+          <span class="text-foreground font-bold text-sm tracking-tight"
+            >gtcd</span
+          >
         </a>
+        <button
+          type="button"
+          class="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-base-200 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
+          onclick={toggleDesktopSidebar}
+          aria-label="Close sidebar"
+          title="Close sidebar (Ctrl+B)"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5"
+            />
+          </svg>
+        </button>
       </div>
 
       <div class="gradient-line mx-5"></div>
@@ -157,11 +199,12 @@
             </li>
           {/each}
         </ul>
+      </nav>
 
-        <div class="mx-2 my-4 h-px bg-border"></div>
-
-        <p class="sidebar-section-label px-3 mb-2">Account</p>
-        <ul class="list-none p-0 m-0 space-y-0.5">
+      <!-- Footer -->
+      <div class="px-5 py-4 border-t border-border">
+        <ul class="list-none p-0 m-0 space-y-2">
+          <ThemeToggle />
           <li>
             <button
               type="button"
@@ -187,95 +230,79 @@
             </button>
           </li>
         </ul>
-      </nav>
-
-      <!-- Footer -->
-      <div class="px-5 py-4 border-t border-border">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-[0.6875rem] font-medium text-muted-foreground"
-            >Theme</span
-          >
-          <ThemeToggle />
-        </div>
-        <a
-          href="https://www.goatcounter.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-[0.6875rem] text-muted-foreground hover:text-foreground transition-colors no-underline flex items-center gap-1"
-        >
-          <span>Powered by GoatCounter</span>
-          <svg
-            class="w-3 h-3 shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
-            />
-          </svg>
-        </a>
       </div>
     </aside>
 
     <!-- Main content landmark (WCAG 1.3.1 / 2.4.1) -->
-    <main id="main-content" class="flex-1 min-w-0" tabindex="-1">
-      <!-- Mobile header -->
+    <main id="main-content" class="flex-1 min-w-0 transition-all duration-300" tabindex="-1">
+      <!-- Universal header (mobile + desktop toggle) -->
       <header
-        class="sticky top-0 z-20 lg:hidden bg-base-100/85 backdrop-blur-md border-b border-border"
+        class="sticky top-0 z-20 bg-base-100/85 backdrop-blur-md border-b border-border"
       >
-        <div class="flex items-center gap-3 px-4 h-14">
-          <button
-            type="button"
-            class="p-2 rounded-xl text-muted-foreground hover:bg-base-200 transition-colors cursor-pointer"
-            onclick={() => (sidebarOpen = !sidebarOpen)}
-            aria-expanded={sidebarOpen}
-            aria-controls="sidebar-nav"
-            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
+        <div class="flex items-center justify-between px-4 sm:px-6 h-14">
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-base-200 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
+              onclick={toggleSidebar}
+              aria-expanded={desktopSidebarOpen || sidebarOpen}
+              aria-controls="sidebar-nav"
+              aria-label={desktopSidebarOpen || sidebarOpen ? "Close navigation sidebar" : "Open navigation sidebar"}
+              title="Toggle sidebar (Ctrl+B)"
             >
-              {#if sidebarOpen}
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              {:else}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="1.5"
                   d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
                 />
-              {/if}
-            </svg>
-          </button>
-          <a href="/" class="flex items-center gap-2 no-underline">
-            <div
-              class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-xs"
-            >
-              <span class="text-primary-content font-bold text-xs">G</span>
+              </svg>
+            </button>
+
+            <!-- Brand indicator when desktop sidebar is closed -->
+            {#if !desktopSidebarOpen}
+              <a href="/" class="hidden lg:flex items-center gap-2 no-underline animate-fade-in">
+                <div
+                  class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-xs"
+                >
+                  <span class="text-primary-content font-bold text-xs">G</span>
+                </div>
+                <span class="font-bold text-sm tracking-tight text-foreground"
+                  >gtcd</span
+                >
+              </a>
+            {:else}
+              <a href="/" class="lg:hidden flex items-center gap-2 no-underline">
+                <div
+                  class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-xs"
+                >
+                  <span class="text-primary-content font-bold text-xs">G</span>
+                </div>
+                <span class="font-bold text-sm tracking-tight text-foreground"
+                  >gtcd</span
+                >
+              </a>
+            {/if}
+          </div>
+
+          <!-- Quick Theme Toggle in header when desktop sidebar is collapsed -->
+          {#if !desktopSidebarOpen}
+            <div class="hidden lg:block animate-fade-in">
+              <ThemeToggle />
             </div>
-            <span class="font-bold text-sm tracking-tight text-foreground"
-              >gtcd</span
-            >
-          </a>
+          {/if}
         </div>
       </header>
 
-      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+      <div class="mx-auto max-w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
         {@render children()}
       </div>
     </main>

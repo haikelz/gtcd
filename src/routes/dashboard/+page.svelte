@@ -98,7 +98,7 @@
 
     <StatCard
       label="Top Browser"
-      value={data.browsers?.stats?.[0]?.name ?? "—"}
+      value={data.browsers?.stats?.[0]?.name?.trim() ? data.browsers.stats[0].name.trim() : "Unknown"}
       subtext={data.browsers?.stats?.[0]
         ? `${data.browsers.stats[0].count.toLocaleString()} visitors`
         : undefined}
@@ -108,7 +108,7 @@
 
     <StatCard
       label="Top Country"
-      value={data.locations?.stats?.[0]?.name ?? "—"}
+      value={data.locations?.stats?.[0]?.name?.trim() ? data.locations.stats[0].name.trim() : "Unknown"}
       subtext={data.locations?.stats?.[0]
         ? `${data.locations.stats[0].count.toLocaleString()} visitors`
         : undefined}

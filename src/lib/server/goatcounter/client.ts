@@ -48,7 +48,7 @@ export async function gcFetch<T>(
   path: string,
   init: RequestInit = {},
   params?: Record<string, string | undefined>,
-  options: { bypassCache?: boolean; ttlMs?: number } = {}
+  options: { bypassCache?: boolean; ttlMs?: number } = {},
 ): Promise<T> {
   const url = new URL(`${getBaseUrl()}${path}`);
 
@@ -101,7 +101,7 @@ export async function gcFetch<T>(
           Math.max(1000, parsedSeconds * 1000, exponentialDelay) + jitter;
 
         lastError = new Error(
-          `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`
+          `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`,
         );
         lastRequestTime = Date.now() + waitMs;
 
@@ -150,7 +150,7 @@ export async function gcFetch<T>(
 
 export async function gcFetchRaw(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
 ): Promise<Response> {
   await paceRequest();
 
