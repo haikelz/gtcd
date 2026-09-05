@@ -58,6 +58,11 @@
   </div>
 {:else if data.hits?.hits && data.hits.hits.length > 0}
   <div class="panel animate-fade-in">
+    <div class="flex items-baseline justify-between gap-3 mb-6">
+      <h2 class="section-title">Page report</h2>
+      <span class="text-xs text-muted-foreground">{data.hits.hits.length} tracked paths</span>
+    </div>
+    <div class="flex justify-between text-xs text-muted-foreground pb-3" aria-hidden="true"><span>Page</span><span>Views</span></div>
     <ul
       class="list-none p-0 m-0 border-t border-border"
       aria-label="Pages list"

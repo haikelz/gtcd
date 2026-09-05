@@ -1,19 +1,19 @@
 <script lang="ts">
   import { goto, invalidateAll } from "$app/navigation";
-  import { page } from "$app/state";
+  import { navigating, page } from "$app/state";
+  import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import "../app.css";
 
   let { children, data } = $props();
   let sidebarOpen = $state(false);
   let desktopSidebarOpen = $state(true);
-
-  const isDashboard = $derived(page.url.pathname.startsWith("/dashboard"));
-  const isPublic = $derived(
-    page.url.pathname === "/" || page.url.pathname === "/login"
-  );
-
+  let wideViewport = $state(false);
+  let sidebarElement: HTMLElement | undefined = $state();
+  let toggleElement: HTMLButtonElement | undefined = $state();
+  const navigationOpen = $derived(wideViewport ? desktopSidebarOpen : sidebarOpen);
+  const isDashboard = $derived(page.url.pathname.startsWith("/dashboard") && page.status < 400);
   const navItems = [
     {
       label: "Overview",
@@ -56,54 +56,77 @@
       icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" /></svg>`,
     },
   ];
+  const activeLabel = $derived(navItems.find((item) => isActive(item.href))?.label ?? "Overview");
+
+  function isActive(href: string): boolean {
+    return href === "/dashboard" ? page.url.pathname === href : page.url.pathname.startsWith(href);
+  }
 
   function closeSidebar() {
     sidebarOpen = false;
   }
 
-  function toggleSidebar() {
-    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+  async function dismissSidebar() {
+    closeSidebar();
+    await tick();
+    toggleElement?.focus();
+  }
+
+  async function toggleSidebar() {
+    if (wideViewport) {
       desktopSidebarOpen = !desktopSidebarOpen;
       localStorage.setItem("gtcd_desktop_sidebar", String(desktopSidebarOpen));
-    } else {
-      sidebarOpen = !sidebarOpen;
+      return;
+    }
+    sidebarOpen = !sidebarOpen;
+    if (sidebarOpen) {
+      await tick();
+      sidebarElement?.querySelector<HTMLButtonElement>("button")?.focus();
     }
   }
 
-  function toggleDesktopSidebar() {
-    desktopSidebarOpen = !desktopSidebarOpen;
-    localStorage.setItem("gtcd_desktop_sidebar", String(desktopSidebarOpen));
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape" && sidebarOpen) {
-      closeSidebar();
-    } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
-      e.preventDefault();
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape" && sidebarOpen) {
+      dismissSidebar();
+    } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+      event.preventDefault();
       toggleSidebar();
+    } else if (event.key === "Tab" && sidebarOpen && !wideViewport) {
+      const controls = sidebarElement?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]):not([tabindex="-1"])');
+      const first = controls?.[0];
+      const last = controls?.[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     }
   }
-
-  $effect(() => {
-    if (isDashboard && !data.authenticated) {
-      goto("/login");
-    }
-  });
 
   onMount(() => {
-    const savedDesktopSidebar = localStorage.getItem("gtcd_desktop_sidebar");
-    if (savedDesktopSidebar !== null) {
-      desktopSidebarOpen = savedDesktopSidebar === "true";
+    desktopSidebarOpen = localStorage.getItem("gtcd_desktop_sidebar") !== "false";
+    const media = window.matchMedia("(min-width: 1024px)");
+    function handleResize() {
+      wideViewport = media.matches;
+      sidebarOpen = false;
     }
-
+    handleResize();
+    media.addEventListener("change", handleResize);
     document.addEventListener("keydown", handleKeydown);
-    return () => document.removeEventListener("keydown", handleKeydown);
+    return () => {
+      media.removeEventListener("change", handleResize);
+      document.removeEventListener("keydown", handleKeydown);
+    };
   });
 
-  function isActive(href: string): boolean {
-    if (href === "/dashboard") return page.url.pathname === "/dashboard";
-    return page.url.pathname.startsWith(href);
-  }
+  $effect(() => {
+    if (!sidebarOpen || wideViewport) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  });
 
   async function handleLogout() {
     await fetch("/logout", { method: "POST" });
@@ -112,189 +135,83 @@
   }
 </script>
 
-<!-- Skip to main content landmark (WCAG 2.4.1) -->
-<a href="#main-content" class="skip-link btn btn-primary text-xs shadow-lg">
-  Skip to main content
-</a>
+<a href="#main-content" class="skip-link btn btn-primary">Skip to main content</a>
 
-{#if isPublic}
-  {@render children()}
-{:else if data.authenticated}
-  <div class="flex min-h-screen bg-background">
-    <!-- Mobile overlay -->
-    {#if sidebarOpen}
-      <button
-        type="button"
-        class="fixed inset-0 z-30 lg:hidden bg-black/40 backdrop-blur-xs cursor-pointer border-none p-0 w-full h-full text-left"
-        onclick={closeSidebar}
-        aria-label="Close navigation sidebar"
-      ></button>
+{#if isDashboard && data.authenticated}
+  <div class="flex min-h-dvh bg-background">
+    {#if sidebarOpen && !wideViewport}
+      <button type="button" class="fixed inset-0 z-30 bg-neutral/30 lg:hidden" onclick={dismissSidebar} tabindex="-1" aria-label="Close navigation overlay"></button>
     {/if}
-
-    <!-- Sidebar -->
     <aside
       id="sidebar-nav"
-      aria-label="Dashboard Sidebar"
-      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-screen flex flex-col transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] {sidebarOpen
-        ? 'translate-x-0 w-64'
-        : '-translate-x-full w-64'} {desktopSidebarOpen
-        ? 'lg:translate-x-0 lg:w-64'
-        : 'lg:-translate-x-full lg:w-0 lg:opacity-0 lg:pointer-events-none lg:border-none'}"
+      bind:this={sidebarElement}
+      aria-label="Analytics navigation"
+      role={sidebarOpen && !wideViewport ? "dialog" : undefined}
+      aria-modal={sidebarOpen && !wideViewport ? true : undefined}
+      inert={!navigationOpen}
+      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-dvh flex shrink-0 flex-col w-60 transition-transform duration-200 {sidebarOpen ? 'translate-x-0' : '-translate-x-full'} {desktopSidebarOpen ? 'lg:translate-x-0' : 'lg:w-0 lg:overflow-hidden lg:invisible'}"
     >
-      <!-- Logo & Desktop Collapse Button -->
-      <div class="px-5 pt-5 pb-4 flex items-center justify-between">
-        <a href="/" class="flex items-center gap-2.5 no-underline">
-          <div
-            class="w-8 h-8 rounded-xl flex items-center justify-center bg-primary shadow-sm"
-          >
-            <span class="text-primary-content font-bold text-sm">G</span>
-          </div>
-          <span class="text-foreground font-bold text-sm tracking-tight"
-            >gtcd</span
-          >
-        </a>
+      <div class="flex items-center justify-between gap-3 px-5 h-20 shrink-0">
+        <Brand />
+        <button type="button" class="btn btn-ghost btn-square lg:hidden" onclick={dismissSidebar} aria-label="Close navigation">×</button>
       </div>
-
-      <div class="gradient-line mx-5"></div>
-
-      <!-- Navigation -->
-      <nav class="flex-1 py-4 px-3 overflow-y-auto" aria-label="Main Navigation">
-        <p class="sidebar-section-label px-3 mb-2">Analytics</p>
-        <ul class="list-none p-0 m-0 space-y-0.5">
-          {#each navItems as item}
+      <div class="mx-4 px-3 py-3 border border-border rounded-lg">
+        <p class="text-sm font-medium">Website analytics</p>
+        <p class="text-xs text-muted-foreground mt-1">GoatCounter workspace</p>
+      </div>
+      <nav class="flex-1 min-h-0 overflow-y-auto p-3 pt-6" aria-label="Reports">
+        <ul class="list-none p-0 m-0 space-y-1">
+          {#each navItems as item, i}
             <li>
-              <a
-                href={item.href}
-                class="sidebar-link {isActive(item.href) ? 'active' : ''}"
-                aria-current={isActive(item.href) ? "page" : undefined}
-                onclick={closeSidebar}
-              >
-                <span
-                  class="shrink-0 {isActive(item.href) ? 'text-primary' : 'text-muted-foreground'}"
-                  aria-hidden="true"
-                >
-                  {@html item.icon}
-                </span>
+              {#if i === 0 || i === 2 || i === 7}
+                <p class="sidebar-section-label px-3 pb-2 {i > 0 ? 'pt-5' : ''}">{i === 0 ? "Workspace" : i === 2 ? "Audience" : "Acquisition"}</p>
+              {/if}
+              <a href={item.href} class="sidebar-link {isActive(item.href) ? 'active' : ''}" aria-current={isActive(item.href) ? "page" : undefined} onclick={closeSidebar}>
+                <span class="shrink-0" aria-hidden="true">{@html item.icon}</span>
                 <span>{item.label}</span>
+                {#if isActive(item.href)}<span class="ml-auto text-xs" aria-hidden="true">⌁</span>{/if}
               </a>
             </li>
           {/each}
         </ul>
       </nav>
-
-      <!-- Footer -->
-      <div class="px-5 py-4 border-t border-border">
-        <ul class="list-none p-0 m-0 space-y-2">
-          <ThemeToggle />
-          <li>
-            <button
-              type="button"
-              class="sidebar-link w-full text-left text-muted-foreground hover:text-error hover:bg-error/10 cursor-pointer"
-              onclick={handleLogout}
-            >
-              <span class="shrink-0" aria-hidden="true">
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke-width="1.5"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-                  />
-                </svg>
-              </span>
-              <span>Sign out</span>
-            </button>
-          </li>
-        </ul>
+      <div class="border-t border-border p-4">
+        <p class="sidebar-section-label mb-3">Appearance</p>
+        <ThemeToggle compact />
+        <button type="button" class="sidebar-link w-full mt-3 cursor-pointer" onclick={handleLogout}>
+          <span aria-hidden="true">↗</span> Sign out
+        </button>
       </div>
     </aside>
-
-    <!-- Main content landmark (WCAG 1.3.1 / 2.4.1) -->
-    <main id="main-content" class="flex-1 min-w-0 transition-all duration-300" tabindex="-1">
-      <!-- Universal header (mobile + desktop toggle) -->
-      <header
-        class="sticky top-0 z-20 bg-base-100/85 backdrop-blur-md border-b border-border"
-      >
-        <div class="flex items-center justify-between px-4 sm:px-6 h-14">
-          <div class="flex items-center gap-3">
-            <button
-              type="button"
-              class="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-base-200 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary"
-              onclick={toggleSidebar}
-              aria-expanded={desktopSidebarOpen || sidebarOpen}
-              aria-controls="sidebar-nav"
-              aria-label={desktopSidebarOpen || sidebarOpen ? "Close navigation sidebar" : "Open navigation sidebar"}
-              title="Toggle sidebar (Ctrl+B)"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                />
-              </svg>
-            </button>
-
-            <!-- Brand indicator when desktop sidebar is closed -->
-            {#if !desktopSidebarOpen}
-              <a href="/" class="hidden lg:flex items-center gap-2 no-underline animate-fade-in">
-                <div
-                  class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-xs"
-                >
-                  <span class="text-primary-content font-bold text-xs">G</span>
-                </div>
-                <span class="font-bold text-sm tracking-tight text-foreground"
-                  >gtcd</span
-                >
-              </a>
-            {:else}
-              <a href="/" class="lg:hidden flex items-center gap-2 no-underline">
-                <div
-                  class="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-xs"
-                >
-                  <span class="text-primary-content font-bold text-xs">G</span>
-                </div>
-                <span class="font-bold text-sm tracking-tight text-foreground"
-                  >gtcd</span
-                >
-              </a>
-            {/if}
-          </div>
-
-          <!-- Quick Theme Toggle in header when desktop sidebar is collapsed -->
-          {#if !desktopSidebarOpen}
-            <div class="hidden lg:block animate-fade-in">
-              <ThemeToggle />
-            </div>
+    <div class="min-w-0 flex-1" inert={sidebarOpen && !wideViewport}>
+      <header class="workspace-header sticky top-0 z-20">
+        <div class="flex items-center gap-4 min-w-0">
+          <button bind:this={toggleElement} type="button" class="btn btn-ghost btn-square text-muted-foreground" onclick={toggleSidebar}
+            aria-expanded={navigationOpen} aria-controls="sidebar-nav" aria-label={navigationOpen ? "Close navigation sidebar" : "Open navigation sidebar"} title="Toggle sidebar (Ctrl+B / Cmd+B)">
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+          </button>
+          <nav aria-label="Breadcrumb" class="flex items-center gap-3 text-sm min-w-0">
+            <span class="hidden sm:inline text-muted-foreground">Workspace</span>
+            <span class="hidden sm:inline text-muted-foreground" aria-hidden="true">/</span>
+            <span class="truncate">{activeLabel}</span>
+          </nav>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-muted-foreground">
+          {#if navigating.to}
+            <span class="loading loading-spinner loading-xs text-primary" aria-hidden="true"></span>
+            <span role="status">Loading report</span>
+          {:else}
+            <span class="hidden sm:inline font-mono">WEBSITE ANALYTICS</span>
           {/if}
+          {#if !desktopSidebarOpen}<ThemeToggle />{/if}
         </div>
       </header>
-
-      <div class="mx-auto max-w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+      <main id="main-content" class="workspace-content" tabindex="-1" aria-busy={!!navigating.to}>
         {@render children()}
-      </div>
-    </main>
-  </div>
-{:else}
-  <div class="min-h-screen flex items-center justify-center bg-background">
-    <div class="flex items-center gap-3" role="status" aria-live="polite">
-      <span class="loading loading-spinner loading-md text-primary"></span>
-      <span class="text-sm font-medium text-muted-foreground"
-        >Redirecting to login…</span
-      >
+        <footer class="report-caption mt-8"><span>Powered by GoatCounter</span><span class="hidden sm:inline">Your website, in perspective.</span></footer>
+      </main>
     </div>
   </div>
+{:else}
+  {@render children()}
 {/if}

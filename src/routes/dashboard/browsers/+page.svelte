@@ -62,7 +62,11 @@
   </div>
 {:else if data.stats?.stats && data.stats.stats.length > 0}
   <div class="panel animate-fade-in">
-    <BarChart data={data.stats.stats} maxItems={50} />
+    <div class="flex flex-wrap items-baseline justify-between gap-3 mb-6">
+      <h2 class="section-title">Browser report</h2>
+      <span class="text-xs text-muted-foreground">{data.stats.stats.length} entries in this period</span>
+    </div>
+    <BarChart data={data.stats.stats} maxItems={50} label="Browser" />
   </div>
 {:else}
   <div class="panel empty-state animate-fade-in">

@@ -1,243 +1,132 @@
 <script lang="ts">
+  import AnalyticsPreview from "$lib/components/AnalyticsPreview.svelte";
+  import Brand from "$lib/components/Brand.svelte";
+  import SEO from "$lib/components/SEO.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
   let { data } = $props();
-
-  const features = [
-    {
-      icon: `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>`,
-      title: "Overview Dashboard",
-      description: "KPI cards, traffic charts, and breakdowns at a glance.",
-    },
-    {
-      icon: `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>`,
-      title: "Drill-Down Analytics",
-      description: "Click any item to see versions, regions, and referrers.",
-    },
-    {
-      icon: `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>`,
-      title: "Privacy-First",
-      description: "Self-hosted dashboard. No tracking scripts on your site.",
-    },
-    {
-      icon: `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z" /></svg>`,
-      title: "Dark Mode",
-      description: "Light, dark, and system themes built in.",
-    },
-    {
-      icon: `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>`,
-      title: "Date Filtering",
-      description: "Today, 7 days, 30 days, 90 days, or month views.",
-    },
-    {
-      icon: `<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" /></svg>`,
-      title: "Full Breakdowns",
-      description: "Browsers, OS, locations, languages, devices, campaigns.",
-    },
-  ];
-
-  const steps = [
-    {
-      num: "01",
-      title: "Sign In",
-      description: "Enter your GoatCounter email and password.",
-    },
-    {
-      num: "02",
-      title: "Explore",
-      description: "Browse your analytics across all dimensions.",
-    },
-    {
-      num: "03",
-      title: "Drill Down",
-      description: "Click any stat to see detailed breakdowns.",
-    },
-  ];
+  const destination = $derived(data.authenticated ? "/dashboard" : "/login");
 </script>
 
-<svelte:head>
-  <title>gtcd — Custom Dashboard for GoatCounter</title>
-  <meta
-    name="description"
-    content="A modern, self-hosted analytics dashboard for GoatCounter. Privacy-first, beautiful, and fast."
-  />
-</svelte:head>
+<SEO title="A clearer view of your website" description="Explore your GoatCounter analytics in a focused, self-hosted workspace. Follow traffic, understand your audience, and see which pages bring people back." />
 
-<div class="min-h-screen bg-background flex flex-col">
-  <!-- Nav -->
-  <nav
-    aria-label="Main Navigation"
-    class="border-b border-border bg-base-100/80 backdrop-blur-md sticky top-0 z-50"
-  >
-    <div
-      class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
-    >
-      <a href="/" class="flex items-center gap-2.5 no-underline">
-        <div
-          class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-xs"
-        >
-          <span class="text-primary-content font-bold text-sm">G</span>
-        </div>
-        <span class="text-foreground font-bold text-lg tracking-tight">gtcd</span>
-      </a>
-      <div class="flex items-center gap-3 sm:gap-4">
-        <ThemeToggle />
-        {#if data.authenticated}
-          <a href="/dashboard" class="btn btn-primary btn-sm rounded-xl">
-            Dashboard <span aria-hidden="true">→</span>
-          </a>
-        {:else}
-          <a href="/login" class="btn btn-primary btn-sm rounded-xl">
-            Sign In <span aria-hidden="true">→</span>
-          </a>
-        {/if}
+<div class="landing">
+  <nav class="landing-nav" aria-label="Main navigation">
+    <div class="landing-width nav-inner">
+      <Brand />
+      <div class="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+        <a href="#workspace">The workspace</a>
+        <a href="#approach">Our approach</a>
       </div>
+      <a href={destination} class="btn btn-outline">
+        {data.authenticated ? "Open dashboard" : "Sign in"} <span aria-hidden="true">↗</span>
+      </a>
     </div>
   </nav>
 
-  <!-- Main Content -->
-  <main id="main-content" class="flex-1" tabindex="-1">
-    <!-- Hero -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div
-          class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/10 rounded-full blur-3xl"
-        ></div>
+  <main id="main-content" tabindex="-1">
+    <section class="landing-width hero-section" aria-labelledby="hero-title">
+      <div class="hero-kicker">
+        <p class="eyebrow flex items-center gap-3"><span class="w-5 h-px bg-primary" aria-hidden="true"></span> A workspace for website analytics</p>
+        <span class="hidden sm:block font-mono text-xs text-muted-foreground">POWERED BY GOATCOUNTER</span>
       </div>
-      <div
-        class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12 sm:pt-24 sm:pb-20 text-center relative"
-      >
-        <div
-          class="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6"
-        >
-          <span class="w-2 h-2 rounded-full bg-primary" aria-hidden="true"></span>
-          Open Source Analytics Dashboard
-        </div>
-        <h1
-          class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6 text-foreground"
-        >
-          Your GoatCounter data,<br class="hidden sm:block" />
-          <span class="text-primary">beautifully presented</span>
-        </h1>
-        <p
-          class="text-muted-foreground text-base sm:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed"
-        >
-          A modern, self-hosted analytics dashboard for GoatCounter.
-          Privacy-first, dark mode, drill-down analytics — all in one place.
-        </p>
-        <div
-          class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
-        >
-          <a
-            href="/login"
-            class="btn btn-primary text-base px-6 py-3 w-full sm:w-auto rounded-xl"
-          >
-            Sign In <span aria-hidden="true">→</span>
-          </a>
-          <a
-            href="https://github.com/haikelz/gtcd"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-outline text-base px-6 py-3 w-full sm:w-auto rounded-xl"
-          >
-            View Source
-          </a>
+      <div class="hero-copy">
+        <h1 id="hero-title">A clearer view.<br /><span>Your next move.</span></h1>
+        <div class="hero-description">
+          <p>Understand where your visitors come from, what they read, and how they find you. Your GoatCounter data, in a workspace built for focus.</p>
+          <div class="flex flex-wrap items-center gap-5 mt-6">
+            <a href={destination} class="btn btn-primary px-5">Open your dashboard <span aria-hidden="true">↗</span></a>
+            <a href="#workspace" class="text-sm underline underline-offset-4">Explore the workspace</a>
+          </div>
+          <p class="mt-5 text-xs text-muted-foreground">Self-hosted. Open source. Yours to run.</p>
         </div>
       </div>
-    </section>
-
-    <!-- Features grid -->
-    <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20" aria-labelledby="features-heading">
-      <div class="text-center mb-10 sm:mb-12">
-        <p class="eyebrow mb-2">Features</p>
-        <h2 id="features-heading" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Everything you need
-        </h2>
+      <div id="workspace" class="scroll-mt-24">
+        <AnalyticsPreview />
       </div>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {#each features as feature}
-          <div class="panel-hover group">
-            <div
-              class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:bg-primary group-hover:text-primary-content transition-colors duration-200"
-            >
-              {@html feature.icon}
-            </div>
-            <h3 class="text-foreground font-semibold text-sm mb-1.5">
-              {feature.title}
-            </h3>
-            <p class="text-muted-foreground text-sm leading-relaxed">
-              {feature.description}
-            </p>
-          </div>
-        {/each}
+      <div class="under-preview">
+        <span>Less time finding the numbers. More time understanding them.</span>
+        <span class="font-mono text-xs">BUILT AROUND YOUR DATA</span>
       </div>
     </section>
 
-    <!-- How it works -->
-    <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20" aria-labelledby="how-it-works-heading">
-      <div class="text-center mb-10 sm:mb-12">
-        <p class="eyebrow mb-2">How it works</p>
-        <h2 id="how-it-works-heading" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-          Three steps
-        </h2>
+    <section id="approach" class="landing-width approach-section" aria-labelledby="approach-title">
+      <div>
+        <p class="eyebrow mb-5">From overview to understanding</p>
+        <h2 id="approach-title">Every visit has<br />a bigger picture.</h2>
+        <p class="text-muted-foreground text-base mt-6 max-w-sm leading-relaxed">Start with the trend. Follow it into the details. Keep the context that makes your numbers useful.</p>
+        <a href={destination} class="section-link mt-6">See your analytics <span aria-hidden="true">↗</span></a>
       </div>
-      <div class="grid sm:grid-cols-3 gap-8">
-        {#each steps as step}
-          <div class="text-center sm:text-left">
-            <span class="text-primary font-mono text-3xl font-extrabold"
-              >{step.num}</span
-            >
-            <h3 class="text-foreground font-bold text-lg mt-2 mb-1">
-              {step.title}
-            </h3>
-            <p class="text-muted-foreground text-sm leading-relaxed">
-              {step.description}
-            </p>
-          </div>
-        {/each}
+      <div class="approach-list">
+        <article>
+          <span class="font-mono text-xs text-primary">01</span>
+          <div><h3>Read the rhythm of your traffic</h3><p>Move between daily, weekly, and monthly views. See your totals and daily average alongside the full traffic trend.</p></div>
+        </article>
+        <article>
+          <span class="font-mono text-xs text-primary">02</span>
+          <div><h3>Know the audience behind the visits</h3><p>Explore browsers, operating systems, countries, languages, and screen sizes in consistent, readable reports.</p></div>
+        </article>
+        <article>
+          <span class="font-mono text-xs text-primary">03</span>
+          <div><h3>Follow the paths that matter</h3><p>Find your most-viewed pages, open their referrers, and see which campaigns bring visitors to your website.</p></div>
+        </article>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20" aria-labelledby="cta-heading">
-      <div
-        class="bg-primary/5 border border-primary/15 rounded-2xl p-6 sm:p-12 text-center"
-      >
-        <h2 id="cta-heading" class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3 text-foreground">
-          Ready to get started?
-        </h2>
-        <p class="text-muted-foreground text-base mb-6 sm:mb-8 max-w-lg mx-auto">
-          Sign in with your GoatCounter credentials. No separate sign-up required.
-        </p>
-        <a href="/login" class="btn btn-primary text-base px-6 py-3 rounded-xl">
-          Sign In <span aria-hidden="true">→</span>
-        </a>
+    <section class="ownership-section" aria-labelledby="ownership-title">
+      <div class="landing-width ownership-inner">
+        <div>
+          <p class="eyebrow mb-5">Your infrastructure. Your perspective.</p>
+          <h2 id="ownership-title">Good analytics.<br />On your terms.</h2>
+        </div>
+        <div>
+          <p class="text-muted-foreground text-base leading-relaxed max-w-md">A self-hosted interface for the GoatCounter you already use. Sign in with your existing account and explore your website from one considered workspace.</p>
+          <a href={destination} class="btn btn-primary mt-8 px-6">Get into the details <span aria-hidden="true">↗</span></a>
+        </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-border py-8 bg-base-100">
-    <div
-      class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4"
-    >
-      <p class="text-muted-foreground text-xs">
-        Built with SvelteKit + GoatCounter
-      </p>
-      <div class="flex items-center gap-4">
-        <a
-          href="https://www.goatcounter.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-muted-foreground text-xs hover:text-foreground transition-colors no-underline"
-          >GoatCounter</a
-        >
-        <a
-          href="/login"
-          class="text-muted-foreground text-xs hover:text-foreground transition-colors no-underline"
-          >Sign In</a
-        >
-      </div>
+  <footer class="landing-width landing-footer">
+    <div><Brand /><p class="text-xs text-muted-foreground mt-3">A little clarity goes a long way.</p></div>
+    <div class="flex flex-wrap items-center gap-6">
+      <a href="https://github.com/haikelz/gtcd" target="_blank" rel="noopener noreferrer" class="section-link">Source code ↗</a>
+      <a href="https://www.goatcounter.com/" target="_blank" rel="noopener noreferrer" class="section-link">GoatCounter ↗</a>
+      <ThemeToggle />
     </div>
   </footer>
 </div>
+
+<style>
+  .landing { background: var(--color-base-100); }
+  .landing-width { width: min(75rem, calc(100% - 4rem)); margin-inline: auto; }
+  .landing-nav { border-bottom: 1px solid var(--color-border); }
+  .nav-inner { height: 5rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; }
+  .nav-inner a:hover { color: var(--color-primary); }
+  .hero-section { padding-top: 4rem; }
+  .hero-kicker { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-bottom: 2rem; }
+  .hero-copy { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: end; gap: 4rem; margin-bottom: 4rem; }
+  h1 { font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 500; letter-spacing: -0.065em; line-height: 1.08; }
+  h1 span { color: var(--color-primary); }
+  .hero-description > p:first-child { color: var(--color-muted-foreground); font-size: 1rem; line-height: 1.8; max-width: 30rem; }
+  .under-preview { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding-block: 1.5rem; color: var(--color-muted-foreground); font-size: 0.75rem; }
+  .approach-section { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); gap: 6rem; padding-block: 6rem; }
+  h2 { font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.15; font-weight: 500; letter-spacing: -0.05em; }
+  .approach-list article { display: grid; grid-template-columns: 2rem 1fr; gap: 1rem; padding-block: 1.5rem; border-top: 1px solid var(--color-border); }
+  .approach-list article:last-child { border-bottom: 1px solid var(--color-border); }
+  .approach-list h3 { font-size: 1.125rem; font-weight: 500; margin-bottom: 0.75rem; }
+  .approach-list p { font-size: 0.875rem; line-height: 1.8; color: var(--color-muted-foreground); max-width: 32rem; }
+  .ownership-section { border-block: 1px solid var(--color-border); background: var(--color-base-200); padding-block: 5rem; }
+  .ownership-inner { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr); align-items: center; gap: 6rem; }
+  .landing-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem; padding-block: 2.5rem; }
+  @media (max-width: 767px) {
+    .landing-width { width: calc(100% - 2rem); }
+    .hero-section { padding-top: 2.5rem; }
+    .hero-copy { grid-template-columns: minmax(0,1fr); gap: 1.5rem; margin-bottom: 2.5rem; }
+    .hero-kicker { margin-bottom: 1.5rem; }
+    .approach-section, .ownership-inner { grid-template-columns: minmax(0,1fr); gap: 2rem; }
+    .approach-section { padding-block: 4rem; }
+    .ownership-section { padding-block: 3rem; }
+    .landing-footer { align-items: start; }
+  }
+</style>

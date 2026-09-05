@@ -21,10 +21,10 @@
   aria-label="{label}: {value}{subtext ? `, ${subtext}` : ''}"
 >
   <div class="flex items-start justify-between mb-3">
-    <p class="stat-label">{label}</p>
+    <p class="metric-label">{label}</p>
     {#if icon}
       <div
-        class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"
+        class="text-muted-foreground shrink-0"
         aria-hidden="true"
       >
         {@html icon}
@@ -33,7 +33,7 @@
   </div>
 
   <div class="flex items-baseline gap-3">
-    <p class="stat-value">{value}</p>
+    <p class="metric-value">{value}</p>
     {#if trend}
       <span
         class="stat-change {trend.direction === 'up'

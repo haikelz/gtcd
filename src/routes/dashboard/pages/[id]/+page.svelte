@@ -19,7 +19,7 @@
   }
 
   const pageTitle = $derived(
-    data.hits?.hits?.find((h: any) => h.path_id === data.pathId)?.path ||
+    data.hits?.hits?.find((hit) => hit.path_id === data.pathId)?.path ||
       `Page ${data.pathId}`
   );
 </script>
@@ -78,7 +78,7 @@
 {:else if data.refs?.refs && data.refs.refs.length > 0}
   <div class="panel animate-fade-in">
     <h2 class="section-title mb-4">Referrers</h2>
-    <BarChart data={data.refs.refs} maxItems={30} />
+    <BarChart data={data.refs.refs} maxItems={30} label="Referrer" />
   </div>
 {:else}
   <div class="panel empty-state animate-fade-in">

@@ -4,97 +4,66 @@
   let {
     data,
     maxItems = 15,
+    label = "Source",
     onItemClick,
   }: {
     data: HitStat[];
     maxItems?: number;
+    label?: string;
     onItemClick?: (id: string, name: string) => void;
   } = $props();
 
   const items = $derived(data.slice(0, maxItems));
-  const maxCount = $derived(Math.max(...items.map((d) => d.count), 1));
-  const total = $derived(data.reduce((sum, d) => sum + d.count, 0));
+  const maxCount = $derived(Math.max(...items.map((item) => item.count), 1));
+  const total = $derived(data.reduce((sum, item) => sum + item.count, 0));
 </script>
 
-<ul class="list-none p-0 m-0 space-y-1" aria-label="Breakdown chart">
-  {#each items as item, i}
-    {@const label = item.name?.trim() ? item.name.trim() : "Unknown"}
-    {@const pct = Math.max(Math.min((item.count / maxCount) * 100, 100), 0)}
-    {@const share =
-      total > 0 ? ((item.count / total) * 100).toFixed(1) : "0"}
-    <li class="group">
+<div class="flex justify-between border-b border-border pb-3 mb-2 text-xs text-muted-foreground" aria-hidden="true">
+  <span>{label}</span>
+  <span>Visitors <span class="inline-block w-16 text-right">Share</span></span>
+</div>
+<ul class="list-none p-0 m-0" aria-label="Breakdown chart">
+  {#each items as item}
+    {@const label = item.name?.trim() || "Unknown"}
+    {@const pct = Math.max(0, Math.min((item.count / maxCount) * 100, 100))}
+    {@const share = total > 0 ? ((item.count / total) * 100).toFixed(1) : "0"}
+    {#snippet row()}
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <span class="text-sm truncate text-foreground" title={label}>{label}</span>
+        <span class="flex shrink-0 gap-4 font-mono text-xs tabular-nums">
+          <span class="text-foreground">{item.count.toLocaleString()}</span>
+          <span class="w-12 text-right text-muted-foreground">{share}%</span>
+        </span>
+      </div>
+      <div
+        role="meter"
+        aria-valuenow={item.count}
+        aria-valuemin="0"
+        aria-valuemax={maxCount}
+        aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
+        class="h-1 overflow-hidden rounded-sm bg-base-200"
+      >
+        <div class="h-full bg-primary/65 rounded-sm" style:width="{pct}%"></div>
+      </div>
+    {/snippet}
+    <li class="border-b border-border last:border-0">
       {#if onItemClick}
         <button
           type="button"
-          class="w-full cursor-pointer text-left rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-primary"
+          class="w-full min-w-0 cursor-pointer text-left px-1 py-3 hover:bg-base-200 transition-colors"
           onclick={() => onItemClick(item.id, label)}
-          aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
+          aria-label="Explore {label}: {item.count.toLocaleString()} visitors ({share}%)"
         >
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm font-medium truncate pr-3 text-foreground"
-              >{label}</span
-            >
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="text-sm font-semibold tabular-nums text-foreground"
-                >{item.count.toLocaleString()}</span
-              >
-              <span class="text-xs tabular-nums w-10 text-right text-muted-foreground"
-                >{share}%</span
-              >
-            </div>
-          </div>
-          <div
-            role="meter"
-            aria-valuenow={item.count}
-            aria-valuemin="0"
-            aria-valuemax={maxCount}
-            aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
-            class="w-full h-1.5 rounded-full overflow-hidden bg-base-200"
-          >
-            <div
-              class="h-full rounded-full animate-slide-in-bar bg-primary"
-              style="width: {pct}%; animation-delay: {i * 25}ms;"
-            ></div>
-          </div>
+          {@render row()}
         </button>
       {:else}
-        <div class="w-full text-left rounded-xl px-3 py-2.5 transition-all duration-200 hover:bg-base-200/50">
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-sm font-medium truncate pr-3 text-foreground"
-              >{label}</span
-            >
-            <div class="flex items-center gap-2 shrink-0">
-              <span class="text-sm font-semibold tabular-nums text-foreground"
-                >{item.count.toLocaleString()}</span
-              >
-              <span class="text-xs tabular-nums w-10 text-right text-muted-foreground"
-                >{share}%</span
-              >
-            </div>
-          </div>
-          <div
-            role="meter"
-            aria-valuenow={item.count}
-            aria-valuemin="0"
-            aria-valuemax={maxCount}
-            aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
-            class="w-full h-1.5 rounded-full overflow-hidden bg-base-200"
-          >
-            <div
-              class="h-full rounded-full animate-slide-in-bar bg-primary"
-              style="width: {pct}%; animation-delay: {i * 25}ms;"
-            ></div>
-          </div>
-        </div>
+        <div class="min-w-0 px-1 py-3">{@render row()}</div>
       {/if}
     </li>
   {/each}
-
   {#if data.length > maxItems}
-    <li class="pt-2">
-      <p class="text-xs text-center font-medium text-muted-foreground">
-        +{data.length - maxItems} more
-      </p>
+    <li class="pt-4 text-xs text-muted-foreground">
+      Showing {maxItems} of {data.length} sources
     </li>
   {/if}
 </ul>

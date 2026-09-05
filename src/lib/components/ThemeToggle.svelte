@@ -2,9 +2,11 @@
   import { onMount } from "svelte";
 
   type Theme = "light" | "dark" | "system";
+  let { compact = false }: { compact?: boolean } = $props();
 
   let currentTheme = $state<Theme>("system");
   let mounted = $state(false);
+  const instanceId = $props.id();
 
   function getSystemTheme(): "light" | "dark" {
     if (typeof window === "undefined") return "light";
@@ -32,13 +34,13 @@
       e.preventDefault();
       const next = (index + 1) % themes.length;
       setTheme(themes[next].value);
-      const nextBtn = document.getElementById(`theme-opt-${themes[next].value}`);
+      const nextBtn = document.getElementById(`${instanceId}-theme-${themes[next].value}`);
       nextBtn?.focus();
     } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
       const prev = (index - 1 + themes.length) % themes.length;
       setTheme(themes[prev].value);
-      const prevBtn = document.getElementById(`theme-opt-${themes[prev].value}`);
+      const prevBtn = document.getElementById(`${instanceId}-theme-${themes[prev].value}`);
       prevBtn?.focus();
     }
   }
@@ -79,25 +81,25 @@
 <div
   role="radiogroup"
   aria-label="Color theme"
-  class="inline-flex items-center bg-base-200 rounded-lg p-0.5 gap-0.5 border border-base-300"
+  class="segment-control"
 >
   {#each themes as theme, i}
     {@const isSelected = mounted ? currentTheme === theme.value : theme.value === "system"}
     <button
       type="button"
-      id="theme-opt-{theme.value}"
+      id="{instanceId}-theme-{theme.value}"
       role="radio"
       aria-checked={isSelected}
       tabindex={isSelected ? 0 : -1}
-      class="relative flex items-center justify-center w-7 h-7 sm:w-auto sm:h-auto sm:gap-1.5 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-primary {isSelected
-        ? 'bg-base-100 text-base-content shadow-xs font-semibold'
+      class="relative flex items-center justify-center min-w-11 sm:gap-1.5 sm:px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary {isSelected
+        ? 'bg-base-200 text-base-content font-semibold'
         : 'text-muted-foreground hover:text-base-content'}"
       onclick={() => setTheme(theme.value)}
       onkeydown={(e) => handleKeydown(e, i)}
       aria-label="{theme.label} theme"
     >
       {@html theme.icon}
-      <span class="hidden sm:inline">{theme.label}</span>
+      <span class={compact ? "hidden" : "hidden sm:inline"}>{theme.label}</span>
     </button>
   {/each}
 </div>

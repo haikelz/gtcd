@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import SEO from "$lib/components/SEO.svelte";
+  import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
   let { form } = $props();
@@ -15,49 +16,29 @@
   });
 </script>
 
-<SEO
-  title="Sign In"
-  description="Sign in with your GoatCounter credentials to access your self-hosted analytics dashboard."
-/>
+<SEO title="Sign in" description="Sign in with your GoatCounter account to explore your website analytics." />
 
-<main
-  id="main-content"
-  tabindex="-1"
-  class="min-h-screen flex items-center justify-center px-4 py-8 bg-background relative"
->
-  <!-- Background blobs -->
-  <div class="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-    <div
-      class="absolute top-0 left-1/3 w-[500px] h-[500px] bg-primary/[0.04] rounded-full blur-3xl"
-    ></div>
-    <div
-      class="absolute bottom-0 right-1/3 w-[500px] h-[500px] bg-primary/[0.04] rounded-full blur-3xl"
-    ></div>
-  </div>
-
-  <div class="w-full max-w-md relative">
-    <!-- Theme toggle -->
-    <div class="flex justify-end mb-6 sm:mb-8">
-      <ThemeToggle />
-    </div>
-
-    <!-- Header -->
-    <header class="text-center mb-6 sm:mb-8">
-      <div
-        class="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-5 shadow-lg shadow-primary/20"
-      >
-        <span class="text-primary-content font-bold text-xl">G</span>
+<main id="main-content" tabindex="-1" class="login-page">
+  <section class="login-story" aria-label="About your workspace">
+    <Brand />
+    <div class="login-story-copy">
+      <p class="eyebrow mb-6">Your analytics workspace</p>
+      <h2>The whole picture.<br /><span class="text-primary">One place to look.</span></h2>
+      <p class="text-muted-foreground leading-relaxed mt-6 max-w-sm">Follow the traffic. Understand your audience. Find the pages that matter.</p>
+      <div class="login-index">
+        <p><span>01</span> Traffic & trends</p>
+        <p><span>02</span> Audience & devices</p>
+        <p><span>03</span> Pages & referrers</p>
       </div>
-      <h1 class="text-2xl font-extrabold tracking-tight mb-2 text-foreground">
-        Sign in to Dashboard
-      </h1>
-      <p class="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto">
-        Enter your GoatCounter credentials to access your analytics.
-      </p>
-    </header>
-
-    <!-- Form card -->
-    <div class="panel overflow-hidden p-0">
+    </div>
+    <p class="text-xs text-muted-foreground">Your GoatCounter data. Your own perspective.</p>
+  </section>
+  <section class="login-form-section" aria-labelledby="login-title">
+    <div class="login-toolbar"><a href="/" class="section-link">← Back to home</a><ThemeToggle /></div>
+    <div class="login-form">
+      <p class="eyebrow mb-4">Welcome back</p>
+      <h1 id="login-title" class="text-3xl font-medium tracking-tight">Get into the details.</h1>
+      <p class="text-sm text-muted-foreground leading-relaxed mt-3 mb-8">Sign in with your GoatCounter account to open your analytics workspace.</p>
       <form
         method="POST"
         action="?/login"
@@ -72,7 +53,7 @@
           };
         }}
       >
-        <div class="p-5 sm:p-6 space-y-4 sm:space-y-5">
+        <div class="space-y-5">
           <div>
             <label
               for="email"
@@ -84,7 +65,7 @@
               name="email"
               type="email"
               placeholder="you@example.com"
-              class="input input-bordered w-full rounded-xl"
+              class="input input-bordered w-full rounded-md"
               required
               autocomplete="email"
             />
@@ -101,7 +82,7 @@
               name="password"
               type="password"
               placeholder="Your GoatCounter password"
-              class="input input-bordered w-full rounded-xl"
+              class="input input-bordered w-full rounded-md"
               required
               autocomplete="current-password"
             />
@@ -123,7 +104,7 @@
 
           <button
             type="submit"
-            class="btn btn-primary w-full rounded-xl text-base"
+            class="btn btn-primary w-full rounded-md text-base"
             disabled={loading}
           >
             {#if loading}
@@ -135,15 +116,26 @@
           </button>
         </div>
       </form>
+      <p class="text-xs text-muted-foreground leading-relaxed mt-6 pt-6 border-t border-border">Use the email and password for your existing GoatCounter account. No separate account needed.</p>
     </div>
-
-    <!-- Help text -->
-    <div class="mt-5 sm:mt-6 text-center">
-      <p class="text-muted-foreground text-xs leading-relaxed">
-        Use the email and password from your <strong
-          class="text-foreground font-semibold">GoatCounter account</strong
-        >.
-      </p>
-    </div>
-  </div>
+    <p class="text-xs text-muted-foreground text-center">A clearer view starts here.</p>
+  </section>
 </main>
+
+<style>
+  .login-page { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 100dvh; background: var(--color-base-100); }
+  .login-story { display: flex; flex-direction: column; justify-content: space-between; padding: 3rem; background: var(--color-base-200); border-right: 1px solid var(--color-border); }
+  .login-story-copy { padding-block: 5rem; }
+  .login-story h2 { font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 500; letter-spacing: -0.06em; line-height: 1.15; }
+  .login-index { margin-top: 3rem; max-width: 24rem; }
+  .login-index p { display: flex; gap: 1.5rem; padding-block: 1rem; border-top: 1px solid var(--color-border); font-size: 0.875rem; }
+  .login-index span { font-family: var(--font-mono); color: var(--color-primary); font-size: 0.75rem; }
+  .login-form-section { display: flex; flex-direction: column; justify-content: space-between; padding: 2rem; gap: 3rem; }
+  .login-toolbar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
+  .login-form { width: min(100%, 25rem); margin-inline: auto; }
+  @media (max-width: 767px) {
+    .login-page { grid-template-columns: minmax(0, 1fr); }
+    .login-story { display: none; }
+    .login-form-section { padding: 1rem 1.5rem 2rem; min-height: 100dvh; }
+  }
+</style>

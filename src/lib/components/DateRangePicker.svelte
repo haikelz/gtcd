@@ -40,7 +40,7 @@
 <div
   role="radiogroup"
   aria-label="Date range filter"
-  class="inline-flex flex-wrap items-center rounded-xl p-0.5 gap-0.5 bg-base-200 border border-base-300"
+  class="segment-control"
 >
   <span class="sr-only">Select date range:</span>
   {#each presets as preset, i}
@@ -51,8 +51,8 @@
       role="radio"
       aria-checked={isSelected}
       tabindex={isSelected ? 0 : -1}
-      class="px-2.5 sm:px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-primary {isSelected
-        ? 'bg-base-100 text-foreground font-semibold shadow-xs'
+      class="px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-primary {isSelected
+        ? 'bg-base-200 text-foreground font-semibold'
         : 'text-muted-foreground hover:text-foreground hover:bg-base-300/40'}"
       onclick={() => selectPreset(preset.value)}
       onkeydown={(e) => handleKeydown(e, i)}

@@ -9,6 +9,8 @@
     height?: number;
   } = $props();
 
+  const chartId = $props.id();
+
   const padding = { top: 16, right: 16, bottom: 36, left: 56 };
 
   function getChartDimensions(width: number) {
@@ -82,9 +84,8 @@
       .map((d, i) => ({ d, i }))
       .filter(({ i }) => {
         const total = data.length;
-        if (total <= 14) return true;
-        if (total <= 60) return i % 7 === 0;
-        return i % 30 === 0;
+        const labelCount = Math.max(2, Math.floor(dims.chartWidth / 64));
+        return i % Math.max(1, Math.ceil((total - 1) / labelCount)) === 0;
       })
       .map(({ d, i }) => ({
         label: d.day.slice(5),
@@ -130,7 +131,7 @@
     </div>
   {:else}
     <!-- Summary stats -->
-    <div class="flex items-center gap-6 mb-5">
+    <div class="chart-summary">
       <div>
         <p class="text-xs font-medium mb-0.5 text-muted-foreground">Total</p>
         <p class="font-bold text-lg tabular-nums text-foreground">
@@ -144,17 +145,15 @@
           {avgDaily.toLocaleString()}
         </p>
       </div>
-      {#if hoveredValue !== null}
         <div class="w-px h-8 bg-border"></div>
-        <div>
+        <div class="min-w-24">
           <p class="text-xs font-medium mb-0.5 text-muted-foreground">
-            {hoveredDate}
+            {hoveredDate ?? "Explore chart"}
           </p>
           <p class="font-bold text-lg tabular-nums text-primary">
-            {hoveredValue.toLocaleString()}
+            {hoveredValue?.toLocaleString() ?? "—"}
           </p>
         </div>
-      {/if}
     </div>
 
     <!-- SVG Area Chart with Full A11Y -->
@@ -173,7 +172,7 @@
       >
 
       <defs>
-        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="{chartId}-area" x1="0" y1="0" x2="0" y2="1">
           <stop
             offset="0%"
             stop-color="var(--color-primary)"
@@ -190,7 +189,7 @@
             stop-opacity="0"
           />
         </linearGradient>
-        <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id="{chartId}-line" x1="0" y1="0" x2="1" y2="0">
           <stop
             offset="0%"
             stop-color="var(--color-primary)"
@@ -227,19 +226,19 @@
             y={tick.y}
             text-anchor="end"
             dominant-baseline="middle"
-            class="text-[10px] font-mono fill-muted-foreground"
+            class="text-xs font-mono fill-muted-foreground"
             >{tick.value.toLocaleString()}</text
           >
         {/each}
 
         <!-- Area -->
-        <path d={areaPath} fill="url(#chartGradient)" />
+        <path d={areaPath} fill="url(#{chartId}-area)" />
 
         <!-- Line -->
         <path
           d={linePath}
           fill="none"
-          stroke="url(#lineGradient)"
+          stroke="url(#{chartId}-line)"
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -277,7 +276,7 @@
             x={label.x}
             y={dims.chartHeight + 22}
             text-anchor="middle"
-            class="text-[10px] font-mono fill-muted-foreground"
+            class="text-xs font-mono fill-muted-foreground"
             >{label.label}</text
           >
         {/each}
