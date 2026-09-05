@@ -135,7 +135,7 @@
             Sign In <span aria-hidden="true">→</span>
           </a>
           <a
-            href="https://github.com"
+            href="https://github.com/haikelz/gtcd"
             target="_blank"
             rel="noopener noreferrer"
             class="btn btn-outline text-base px-6 py-3 w-full sm:w-auto rounded-xl"
@@ -156,7 +156,7 @@
       </div>
       <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {#each features as feature}
-          <div class="card-hover group">
+          <div class="panel-hover group">
             <div
               class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:bg-primary group-hover:text-primary-content transition-colors duration-200"
             >

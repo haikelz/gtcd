@@ -10,10 +10,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - ${DOMAIN}
+        - analytics.example.com
       secretName: gtcd-tls
   rules:
-    - host: ${DOMAIN}
+    - host: analytics.example.com
       http:
         paths:
           # GoatCounter tracking endpoint

@@ -15,9 +15,22 @@ spec:
         app: goatcounter
     spec:
       terminationGracePeriodSeconds: 30
+      # Kubernetes injects GOATCOUNTER_PORT / GOATCOUNTER_SERVICE_* link
+      # variables for the `goatcounter` Service, which collide with
+      # GoatCounter's own env-based configuration; disable them.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: goatcounter
-          image: arp242/goatcounter:latest
+          image: arp242/goatcounter:2.6@sha256:66d079ab7604e4c72bd844862f0caad4955019e4c0b8a0565f10cd5216ef0cae
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
@@ -33,6 +46,8 @@ spec:
           volumeMounts:
             - name: goatcounter-data
               mountPath: /data
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: "50m"
@@ -46,16 +61,28 @@ spec:
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 20
+            timeoutSeconds: 3
           readinessProbe:
             httpGet:
               path: /
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: goatcounter-data
           persistentVolumeClaim:
             claimName: goatcounter-data
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Mi
 ---
 apiVersion: v1
 kind: Service

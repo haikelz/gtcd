@@ -32,8 +32,11 @@ spec:
               app: gtcd
       containers:
         - name: gtcd
-          image: ${IMAGE}
-          imagePullPolicy: Always
+          # Overridden by the `images` transformer in kustomization.yaml;
+          # use `kustomize edit set image gtcd=<registry>/<image>@<digest>`
+          # to deploy a specific build.
+          image: gtcd
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
               name: http
@@ -45,6 +48,13 @@ spec:
               value: "0.0.0.0"
             - name: NODE_ENV
               value: "production"
+            # Derive the public origin from the ingress proxy headers so CSRF
+            # origin checks and cookie flags work behind TLS and non-TLS
+            # ingress without per-domain ORIGIN configuration.
+            - name: PROTOCOL_HEADER
+              value: x-forwarded-proto
+            - name: HOST_HEADER
+              value: host
             - name: GOATCOUNTER_URL
               valueFrom:
                 secretKeyRef:
@@ -55,11 +65,6 @@ spec:
                 secretKeyRef:
                   name: gtcd-env
                   key: GOATCOUNTER_API_KEY
-            - name: SESSION_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: gtcd-env
-                  key: SESSION_SECRET
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
@@ -79,21 +84,32 @@ spec:
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 20
+            timeoutSeconds: 3
           readinessProbe:
             httpGet:
               path: /api/health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
           startupProbe:
             httpGet:
               path: /api/health
               port: 3000
             periodSeconds: 5
             failureThreshold: 12
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Mi

@@ -58,12 +58,35 @@ function sweepCache(now: number): void {
 }
 
 export function getApiKey(): string {
-  return env.GOATCOUNTER_API_KEY || process.env.GOATCOUNTER_API_KEY || "";
+  return (env.GOATCOUNTER_API_KEY || process.env.GOATCOUNTER_API_KEY || "").trim();
 }
 
 export function getBaseUrl(): string {
-  const url = env.GOATCOUNTER_URL || process.env.GOATCOUNTER_URL || "";
+  const url = (env.GOATCOUNTER_URL || process.env.GOATCOUNTER_URL || "").trim();
   return url.replace(/\/+$/, "");
+}
+
+/**
+ * Guard the outbound integration: GoatCounter answers a missing or empty
+ * Bearer token with the cryptic "wrong format for Authorization header", so
+ * fail before the request with an actionable configuration error instead.
+ */
+function requireApiConfig(): { baseUrl: string; apiKey: string } {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new Error(
+      "GOATCOUNTER_URL is not configured. Set it in your .env or container environment (e.g. http://goatcounter:8080).",
+    );
+  }
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error(
+      "GOATCOUNTER_API_KEY is not configured. Generate a token in GoatCounter (Settings → API) or run ./scripts/setup.sh, then set it in your .env or container environment.",
+    );
+  }
+
+  return { baseUrl, apiKey };
 }
 
 export function clearClientCache(): void {
@@ -102,7 +125,8 @@ export async function gcFetch<T>(
   params?: Record<string, string | undefined>,
   options: { bypassCache?: boolean; ttlMs?: number } = {},
 ): Promise<T> {
-  const url = new URL(`${getBaseUrl()}${path}`);
+  const { baseUrl, apiKey } = requireApiConfig();
+  const url = new URL(`${baseUrl}${path}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -209,16 +233,26 @@ export async function gcFetchRaw(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) {
+    throw new Error(
+      "GOATCOUNTER_URL is not configured. Set it in your .env or container environment (e.g. http://goatcounter:8080).",
+    );
+  }
+
   await paceRequest();
 
-  const url = `${getBaseUrl()}${path}`;
+  const url = `${baseUrl}${path}`;
+  const apiKey = getApiKey();
 
   const response = await fetch(url, {
     ...init,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getApiKey()}`,
+      // The login form endpoint does not require an API token; only send the
+      // header when a key exists so we never transmit an empty Bearer value.
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
       ...init.headers,
     },
   });

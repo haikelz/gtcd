@@ -42,6 +42,7 @@
   aria-label="Date range filter"
   class="inline-flex flex-wrap items-center rounded-xl p-0.5 gap-0.5 bg-base-200 border border-base-300"
 >
+  <span class="sr-only">Select date range:</span>
   {#each presets as preset, i}
     {@const isSelected = value === preset.value}
     <button

@@ -48,7 +48,7 @@
             aria-valuenow={item.count}
             aria-valuemin="0"
             aria-valuemax={maxCount}
-            aria-label="{label} share"
+            aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
             class="w-full h-1.5 rounded-full overflow-hidden bg-base-200"
           >
             <div

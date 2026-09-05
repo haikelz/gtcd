@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     restart: unless-stopped
     ports:
       - "80:80"
@@ -17,7 +17,8 @@ services:
       - goatcounter
 
   goatcounter:
-    image: arp242/goatcounter:latest
+    image: arp242/goatcounter:2.6@sha256:66d079ab7604e4c72bd844862f0caad4955019e4c0b8a0565f10cd5216ef0cae
+    restart: unless-stopped
     expose:
       - "8080"
     networks:
@@ -26,26 +27,45 @@ services:
       - goatcounter-data:/var/lib/goatcounter
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    restart: unless-stopped
     expose:
       - "6379"
     networks:
       - analytics
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   gtcd:
     build: .
     env_file: .env
     environment:
       GOATCOUNTER_URL: ${GOATCOUNTER_URL:-http://goatcounter:8080}
-      SESSION_SECRET: ${SESSION_SECRET:-}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      # Derive the public origin from the reverse proxy's headers so CSRF
+      # origin checks and cookie flags work for both http://localhost and
+      # TLS production domains without per-deployment ORIGIN configuration.
+      PROTOCOL_HEADER: x-forwarded-proto
+      HOST_HEADER: host
     expose:
       - "3000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     depends_on:
-      - goatcounter
-      - redis
+      goatcounter:
+        condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - analytics
 

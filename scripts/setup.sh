@@ -88,11 +88,6 @@ fi
 
 source "$ENV_FILE" 2>/dev/null || true
 
-if [ -z "${SESSION_SECRET:-}" ]; then
-  SESSION_SECRET=$(openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | od -An -tx1 | tr -d ' \n' | head -c 64)
-  info "Generated SESSION_SECRET"
-fi
-
 # ─── For local development, use stats.localhost as GoatCounter vhost ──────────
 
 # GoatCounter requires a domain with 2+ labels. For localhost, we use stats.localhost.
@@ -105,8 +100,11 @@ fi
 
 # ─── Stop any existing containers ─────────────────────────────────────────────
 
-info "Stopping any existing containers..."
-docker compose down -v 2>/dev/null || true
+# Keep named volumes: re-running setup must not wipe GoatCounter's analytics
+# data or the Redis store. Delete volumes only by hand (`docker compose down -v`)
+# when a from-scratch reset is really intended.
+info "Stopping any existing containers (volumes are kept)..."
+docker compose down 2>/dev/null || true
 
 # ─── Generate Caddyfile ──────────────────────────────────────────────────────
 
@@ -217,20 +215,27 @@ ok "User ID: $USER_ID"
 
 info "Creating API token..."
 
-# Check if a token already exists
-EXISTING_TOKEN=$(docker compose exec goatcounter goatcounter db show apitoken \
-  -find 1 \
-  -format json 2>/dev/null \
-  | grep -o '"token":"[^"]*"' \
-  | head -1 \
-  | cut -d'"' -f4 || true)
+# `db show apitoken -format json` prints pretty-printed JSON (one key per
+# line), so compact it before matching. `exec -T` also works when the script
+# itself is not attached to a TTY.
+fetch_api_token() {
+  docker compose exec -T goatcounter goatcounter db show apitoken \
+    -find 1 \
+    -format json 2>/dev/null \
+    | tr -d '\n\t\r ' \
+    | grep -o '"token":"[^"]*"' \
+    | head -1 \
+    | cut -d'"' -f4 || true
+}
 
-if [ -n "$EXISTING_TOKEN" ]; then
-  API_KEY="$EXISTING_TOKEN"
+# Reuse an existing token so repeated runs do not pile up duplicates.
+API_KEY=$(fetch_api_token)
+
+if [ -n "$API_KEY" ]; then
   ok "Using existing API token"
 else
   # Create new API token with all permissions
-  docker compose exec goatcounter goatcounter db create apitoken \
+  docker compose exec -T goatcounter goatcounter db create apitoken \
     -name "gtcd-dashboard" \
     -user "$USER_ID" \
     -perm "count,export,site_read,site_create,site_update" \
@@ -238,24 +243,19 @@ else
 
   # GoatCounter API requires 'stats' permission which the CLI doesn't expose.
   # Set all permission bits (127) directly in the database.
-  docker compose exec goatcounter goatcounter db query \
+  docker compose exec -T goatcounter goatcounter db query \
     "UPDATE api_tokens SET permissions = '127' WHERE name = 'gtcd-dashboard'" \
     -format exec 2>/dev/null || true
 
-  # Fetch the created token
-  API_KEY=$(docker compose exec goatcounter goatcounter db show apitoken \
-    -find 1 \
-    -format json 2>/dev/null \
-    | grep -o '"token":"[^"]*"' \
-    | head -1 \
-    | cut -d'"' -f4 || true)
+  API_KEY=$(fetch_api_token)
 
   if [ -z "$API_KEY" ]; then
-    error "Failed to create API token."
-    warn "You can create one manually via the GoatCounter dashboard."
-  else
-    ok "API token created"
+    error "Could not obtain an API token from GoatCounter."
+    error ".env was NOT rewritten; the dashboard cannot work without the key."
+    exit 1
   fi
+
+  ok "API token created"
 fi
 
 # ─── Write final .env ────────────────────────────────────────────────────────
@@ -263,12 +263,11 @@ fi
 cat > "$ENV_FILE" <<EOF
 DOMAIN=${GC_DOMAIN}
 GOATCOUNTER_URL=http://goatcounter:8080
-GOATCOUNTER_API_KEY=${API_KEY:-}
+GOATCOUNTER_API_KEY=${API_KEY}
 REDIS_URL=redis://redis:6379
-SESSION_SECRET=${SESSION_SECRET}
 EOF
 
-ok ".env saved"
+ok ".env saved (API key included)"
 
 # ─── Start full stack ────────────────────────────────────────────────────────
 
@@ -281,8 +280,8 @@ echo -e "${GREEN}  Setup complete!${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
 echo ""
 if [ "$GC_DOMAIN" = "localhost" ]; then
-  echo -e "  Dashboard:   ${BLUE}http://localhost${NC}"
-  echo -e "  GoatCounter: ${BLUE}http://localhost:8080${NC}"
+  echo -e "  Dashboard:   ${BLUE}https://localhost${NC} ${YELLOW}(Caddy uses a locally-issued certificate; trust it once in your browser)${NC}"
+  echo -e "  GoatCounter: ${BLUE}https://localhost/admin/${NC}"
 else
   echo -e "  Dashboard:   ${BLUE}https://${GC_DOMAIN}${NC}"
   echo -e "  Tracking:    ${BLUE}https://${GC_DOMAIN}/count${NC}"

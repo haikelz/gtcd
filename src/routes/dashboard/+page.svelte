@@ -27,7 +27,7 @@
 <SEO
   title="Dashboard Overview"
   description="Real-time analytics dashboard for your GoatCounter site. View visitors, pageviews, top pages, browsers, operating systems, locations, and more."
-/>
+  noindex />
 
 <header
   class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
@@ -45,11 +45,11 @@
 {#if data.error}
   <div
     role="alert"
-    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
+    class="alert alert-error animate-fade-in flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
   >
     <div class="flex items-center gap-3">
       <svg
-        class="w-6 h-6 text-error shrink-0"
+        class="w-6 h-6 shrink-0"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -63,13 +63,13 @@
         />
       </svg>
       <div>
-        <p class="font-semibold text-error text-sm">Failed to load analytics data</p>
-        <p class="text-xs text-muted-foreground mt-0.5">{data.error}</p>
+        <p class="font-semibold text-sm">Failed to load analytics data</p>
+        <p class="text-xs mt-0.5 opacity-80">{data.error}</p>
       </div>
     </div>
     <button
       type="button"
-      class="btn btn-sm btn-error btn-outline"
+      class="btn btn-sm btn-outline"
       onclick={() => location.reload()}
     >
       Retry
@@ -81,17 +81,17 @@
 <section aria-label="Key Performance Indicators" class="mb-6 sm:mb-8">
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
     <StatCard
-      label="Visitors"
+      label="Pageviews"
       value={data.total?.total?.toLocaleString() ?? "—"}
-      subtext="Unique visitors"
+      subtext="All tracked pageviews"
       icon={visitorIcon}
       class="animate-fade-in animate-fade-in-delay-1"
     />
 
     <StatCard
-      label="Pageviews"
+      label="Pages"
       value={data.hits?.hits?.length?.toLocaleString() ?? "—"}
-      subtext="Pages tracked"
+      subtext="Distinct tracked paths"
       icon={pageviewIcon}
       class="animate-fade-in animate-fade-in-delay-2"
     />
@@ -145,7 +145,7 @@
 
   <!-- Pages + Browsers -->
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-    <div class="card animate-fade-in" style="animation-delay: 0.2s;">
+    <div class="panel animate-fade-in" style="animation-delay: 0.2s;">
       <div class="flex items-center justify-between mb-4">
         <h3 class="section-title">Top Pages</h3>
         <a
@@ -187,7 +187,7 @@
       {/if}
     </div>
 
-    <div class="card animate-fade-in" style="animation-delay: 0.25s;">
+    <div class="panel animate-fade-in" style="animation-delay: 0.25s;">
       <div class="flex items-center justify-between mb-4">
         <h3 class="section-title">Browsers</h3>
         <a
@@ -210,7 +210,7 @@
 
   <!-- Systems + Locations + Languages -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-    <div class="card animate-fade-in" style="animation-delay: 0.3s;">
+    <div class="panel animate-fade-in" style="animation-delay: 0.3s;">
       <div class="flex items-center justify-between mb-4">
         <h3 class="section-title">Operating Systems</h3>
         <a
@@ -230,7 +230,7 @@
       {/if}
     </div>
 
-    <div class="card animate-fade-in" style="animation-delay: 0.35s;">
+    <div class="panel animate-fade-in" style="animation-delay: 0.35s;">
       <div class="flex items-center justify-between mb-4">
         <h3 class="section-title">Locations</h3>
         <a
@@ -251,7 +251,7 @@
     </div>
 
     <div
-      class="card sm:col-span-2 lg:col-span-1 animate-fade-in"
+      class="panel sm:col-span-2 lg:col-span-1 animate-fade-in"
       style="animation-delay: 0.4s;"
     >
       <div class="flex items-center justify-between mb-4">
@@ -275,7 +275,7 @@
   </div>
 
   <!-- Screen Sizes -->
-  <div class="card animate-fade-in" style="animation-delay: 0.45s;">
+  <div class="panel animate-fade-in" style="animation-delay: 0.45s;">
     <div class="flex items-center justify-between mb-4">
       <h3 class="section-title">Screen Sizes</h3>
       <a

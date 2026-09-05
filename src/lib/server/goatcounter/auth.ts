@@ -1,12 +1,10 @@
-import { gcFetchRaw, getBaseUrl } from "./client.js";
+import { gcFetchRaw } from "./client.js";
 import type { GoatCounterAuthResult } from "./types.js";
 
 export async function authenticateWithGoatCounter(
   email: string,
   password: string,
 ): Promise<GoatCounterAuthResult> {
-  const baseUrl = getBaseUrl();
-
   try {
     const response = await gcFetchRaw("/user/requestlogin", {
       method: "POST",

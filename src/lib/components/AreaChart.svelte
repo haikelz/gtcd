@@ -79,19 +79,17 @@
 
   const xLabels = $derived(
     data
-      .filter((_, i) => {
+      .map((d, i) => ({ d, i }))
+      .filter(({ i }) => {
         const total = data.length;
         if (total <= 14) return true;
         if (total <= 60) return i % 7 === 0;
         return i % 30 === 0;
       })
-      .map((d) => {
-        const idx = data.indexOf(d);
-        return {
-          label: d.day.slice(5),
-          x: (idx / Math.max(data.length - 1, 1)) * dims.chartWidth,
-        };
-      })
+      .map(({ d, i }) => ({
+        label: d.day.slice(5),
+        x: (i / Math.max(data.length - 1, 1)) * dims.chartWidth,
+      }))
   );
 
   const totalSum = $derived(data.reduce((s, d) => s + d.daily, 0));

@@ -1,14 +1,24 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import SEO from "$lib/components/SEO.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
 
   let { form } = $props();
   let loading = $state(false);
+  let errorEl = $state<HTMLDivElement | null>(null);
+
+  // Move focus to the error so keyboard and screen-reader users can act on it.
+  $effect(() => {
+    if (form?.error && errorEl) {
+      errorEl.focus();
+    }
+  });
 </script>
 
-<svelte:head>
-  <title>Sign In — gtcd</title>
-</svelte:head>
+<SEO
+  title="Sign In"
+  description="Sign in with your GoatCounter credentials to access your self-hosted analytics dashboard."
+/>
 
 <main
   id="main-content"
@@ -47,9 +57,7 @@
     </header>
 
     <!-- Form card -->
-    <div
-      class="bg-base-100 rounded-2xl border border-border shadow-xl shadow-black/[0.04] overflow-hidden"
-    >
+    <div class="panel overflow-hidden p-0">
       <form
         method="POST"
         action="?/login"
@@ -102,7 +110,9 @@
           {#if form?.error}
             <div
               role="alert"
-              class="bg-error/10 border border-error/30 rounded-xl p-3 text-error text-sm font-medium flex items-center gap-2"
+              tabindex="-1"
+              bind:this={errorEl}
+              class="alert alert-error text-sm font-medium focus:outline-none"
             >
               <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

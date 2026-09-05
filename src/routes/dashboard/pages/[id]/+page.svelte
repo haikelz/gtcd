@@ -25,9 +25,9 @@
 </script>
 
 <SEO
-  title="{pageTitle} — gtcd"
+  title={pageTitle}
   description="Referrer breakdown for {pageTitle}."
-/>
+  noindex />
 
 <header
   class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
@@ -51,28 +51,37 @@
 </header>
 
 {#if data.error}
-  <div
-    role="alert"
-    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
-  >
-    <p class="text-sm font-medium text-error">
-      {data.error}
-    </p>
+  <div role="alert" class="alert alert-error animate-fade-in">
+    <svg
+      class="w-5 h-5 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+      />
+    </svg>
+    <span class="text-sm font-medium">{data.error}</span>
     <button
       type="button"
-      class="btn btn-sm btn-outline btn-error"
+      class="btn btn-sm btn-outline"
       onclick={() => location.reload()}
     >
       Retry
     </button>
   </div>
 {:else if data.refs?.refs && data.refs.refs.length > 0}
-  <div class="card animate-fade-in">
+  <div class="panel animate-fade-in">
     <h2 class="section-title mb-4">Referrers</h2>
     <BarChart data={data.refs.refs} maxItems={30} />
   </div>
 {:else}
-  <div class="card empty-state animate-fade-in">
+  <div class="panel empty-state animate-fade-in">
     <div class="empty-state-icon" aria-hidden="true">
       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />

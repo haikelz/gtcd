@@ -16,7 +16,7 @@
   }
 </script>
 
-<SEO title="Pages — gtcd" description="Top pages for your GoatCounter site." />
+<SEO title="Pages — gtcd" description="Top pages for your GoatCounter site." noindex />
 
 <header
   class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
@@ -32,23 +32,32 @@
 </header>
 
 {#if data.error}
-  <div
-    role="alert"
-    class="rounded-2xl border border-error/30 bg-error/10 p-5 animate-fade-in flex items-center justify-between gap-4"
-  >
-    <p class="text-sm font-medium text-error">
-      {data.error}
-    </p>
+  <div role="alert" class="alert alert-error animate-fade-in">
+    <svg
+      class="w-5 h-5 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+      />
+    </svg>
+    <span class="text-sm font-medium">{data.error}</span>
     <button
       type="button"
-      class="btn btn-sm btn-outline btn-error"
+      class="btn btn-sm btn-outline"
       onclick={() => location.reload()}
     >
       Retry
     </button>
   </div>
 {:else if data.hits?.hits && data.hits.hits.length > 0}
-  <div class="card animate-fade-in">
+  <div class="panel animate-fade-in">
     <ul
       class="list-none p-0 m-0 border-t border-border"
       aria-label="Pages list"
@@ -74,7 +83,7 @@
     </ul>
   </div>
 {:else}
-  <div class="card empty-state animate-fade-in">
+  <div class="panel empty-state animate-fade-in">
     <div class="empty-state-icon" aria-hidden="true">
       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />

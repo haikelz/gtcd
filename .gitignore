@@ -28,3 +28,4 @@ npm-debug.log*
 
 # Tasks
 tasks/*
+k8s/gtcd.env

@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /dashboard/
-Disallow: /setup
-Disallow: /api/
-
-Sitemap: https://gtcd.dev/sitemap.xml
