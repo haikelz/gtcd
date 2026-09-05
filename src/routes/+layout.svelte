@@ -12,8 +12,12 @@
   let wideViewport = $state(false);
   let sidebarElement: HTMLElement | undefined = $state();
   let toggleElement: HTMLButtonElement | undefined = $state();
-  const navigationOpen = $derived(wideViewport ? desktopSidebarOpen : sidebarOpen);
-  const isDashboard = $derived(page.url.pathname.startsWith("/dashboard") && page.status < 400);
+  const navigationOpen = $derived(
+    wideViewport ? desktopSidebarOpen : sidebarOpen,
+  );
+  const isDashboard = $derived(
+    page.url.pathname.startsWith("/dashboard") && page.status < 400,
+  );
   const navItems = [
     {
       label: "Overview",
@@ -56,10 +60,14 @@
       icon: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" /></svg>`,
     },
   ];
-  const activeLabel = $derived(navItems.find((item) => isActive(item.href))?.label ?? "Overview");
+  const activeLabel = $derived(
+    navItems.find((item) => isActive(item.href))?.label ?? "Overview",
+  );
 
   function isActive(href: string): boolean {
-    return href === "/dashboard" ? page.url.pathname === href : page.url.pathname.startsWith(href);
+    return href === "/dashboard"
+      ? page.url.pathname === href
+      : page.url.pathname.startsWith(href);
   }
 
   function closeSidebar() {
@@ -88,11 +96,16 @@
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Escape" && sidebarOpen) {
       dismissSidebar();
-    } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
+    } else if (
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "b"
+    ) {
       event.preventDefault();
       toggleSidebar();
     } else if (event.key === "Tab" && sidebarOpen && !wideViewport) {
-      const controls = sidebarElement?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]):not([tabindex="-1"])');
+      const controls = sidebarElement?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]):not([tabindex="-1"])',
+      );
       const first = controls?.[0];
       const last = controls?.[controls.length - 1];
       if (event.shiftKey && document.activeElement === first) {
@@ -106,7 +119,8 @@
   }
 
   onMount(() => {
-    desktopSidebarOpen = localStorage.getItem("gtcd_desktop_sidebar") !== "false";
+    desktopSidebarOpen =
+      localStorage.getItem("gtcd_desktop_sidebar") !== "false";
     const media = window.matchMedia("(min-width: 1024px)");
     function handleResize() {
       wideViewport = media.matches;
@@ -125,7 +139,9 @@
     if (!sidebarOpen || wideViewport) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previous; };
+    return () => {
+      document.body.style.overflow = previous;
+    };
   });
 
   async function handleLogout() {
@@ -135,12 +151,20 @@
   }
 </script>
 
-<a href="#main-content" class="skip-link btn btn-primary">Skip to main content</a>
+<a href="#main-content" class="skip-link btn btn-primary"
+  >Skip to main content</a
+>
 
 {#if isDashboard && data.authenticated}
   <div class="flex min-h-dvh bg-background">
     {#if sidebarOpen && !wideViewport}
-      <button type="button" class="fixed inset-0 z-30 bg-neutral/30 lg:hidden" onclick={dismissSidebar} tabindex="-1" aria-label="Close navigation overlay"></button>
+      <button
+        type="button"
+        class="fixed inset-0 z-30 bg-neutral/30 lg:hidden"
+        onclick={dismissSidebar}
+        tabindex="-1"
+        aria-label="Close navigation overlay"
+      ></button>
     {/if}
     <aside
       id="sidebar-nav"
@@ -149,11 +173,20 @@
       role={sidebarOpen && !wideViewport ? "dialog" : undefined}
       aria-modal={sidebarOpen && !wideViewport ? true : undefined}
       inert={!navigationOpen}
-      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-dvh flex shrink-0 flex-col w-60 transition-transform duration-200 {sidebarOpen ? 'translate-x-0' : '-translate-x-full'} {desktopSidebarOpen ? 'lg:translate-x-0' : 'lg:w-0 lg:overflow-hidden lg:invisible'}"
+      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-dvh flex shrink-0 flex-col w-60 transition-transform duration-200 {sidebarOpen
+        ? 'translate-x-0'
+        : '-translate-x-full'} {desktopSidebarOpen
+        ? 'lg:translate-x-0'
+        : 'lg:w-0 lg:overflow-hidden lg:invisible'}"
     >
       <div class="flex items-center justify-between gap-3 px-5 h-20 shrink-0">
         <Brand />
-        <button type="button" class="btn btn-ghost btn-square lg:hidden" onclick={dismissSidebar} aria-label="Close navigation">×</button>
+        <button
+          type="button"
+          class="btn btn-ghost btn-square lg:hidden"
+          onclick={dismissSidebar}
+          aria-label="Close navigation">×</button
+        >
       </div>
       <div class="mx-4 px-3 py-3 border border-border rounded-lg">
         <p class="text-sm font-medium">Website analytics</p>
@@ -164,12 +197,26 @@
           {#each navItems as item, i}
             <li>
               {#if i === 0 || i === 2 || i === 7}
-                <p class="sidebar-section-label px-3 pb-2 {i > 0 ? 'pt-5' : ''}">{i === 0 ? "Workspace" : i === 2 ? "Audience" : "Acquisition"}</p>
+                <p
+                  class="sidebar-section-label px-3 pb-2 {i > 0 ? 'pt-5' : ''}"
+                >
+                  {i === 0 ? "Workspace" : i === 2 ? "Audience" : "Acquisition"}
+                </p>
               {/if}
-              <a href={item.href} class="sidebar-link {isActive(item.href) ? 'active' : ''}" aria-current={isActive(item.href) ? "page" : undefined} onclick={closeSidebar}>
-                <span class="shrink-0" aria-hidden="true">{@html item.icon}</span>
+              <a
+                href={item.href}
+                class="sidebar-link {isActive(item.href) ? 'active' : ''}"
+                aria-current={isActive(item.href) ? "page" : undefined}
+                onclick={closeSidebar}
+              >
+                <span class="shrink-0" aria-hidden="true"
+                  >{@html item.icon}</span
+                >
                 <span>{item.label}</span>
-                {#if isActive(item.href)}<span class="ml-auto text-xs" aria-hidden="true">⌁</span>{/if}
+                {#if isActive(item.href)}<span
+                    class="ml-auto text-xs"
+                    aria-hidden="true">⌁</span
+                  >{/if}
               </a>
             </li>
           {/each}
@@ -178,7 +225,11 @@
       <div class="border-t border-border p-4">
         <p class="sidebar-section-label mb-3">Appearance</p>
         <ThemeToggle compact />
-        <button type="button" class="sidebar-link w-full mt-3 cursor-pointer" onclick={handleLogout}>
+        <button
+          type="button"
+          class="sidebar-link w-full mt-3 cursor-pointer"
+          onclick={handleLogout}
+        >
           <span aria-hidden="true">↗</span> Sign out
         </button>
       </div>
@@ -186,19 +237,49 @@
     <div class="min-w-0 flex-1" inert={sidebarOpen && !wideViewport}>
       <header class="workspace-header sticky top-0 z-20">
         <div class="flex items-center gap-4 min-w-0">
-          <button bind:this={toggleElement} type="button" class="btn btn-ghost btn-square text-muted-foreground" onclick={toggleSidebar}
-            aria-expanded={navigationOpen} aria-controls="sidebar-nav" aria-label={navigationOpen ? "Close navigation sidebar" : "Open navigation sidebar"} title="Toggle sidebar (Ctrl+B / Cmd+B)">
-            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+          <button
+            bind:this={toggleElement}
+            type="button"
+            class="btn btn-ghost btn-square text-muted-foreground"
+            onclick={toggleSidebar}
+            aria-expanded={navigationOpen}
+            aria-controls="sidebar-nav"
+            aria-label={navigationOpen
+              ? "Close navigation sidebar"
+              : "Open navigation sidebar"}
+            title="Toggle sidebar (Ctrl+B / Cmd+B)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              aria-hidden="true"
+              ><rect x="3" y="4" width="18" height="16" rx="2" /><path
+                d="M9 4v16"
+              /></svg
+            >
           </button>
-          <nav aria-label="Breadcrumb" class="flex items-center gap-3 text-sm min-w-0">
-            <span class="hidden sm:inline text-muted-foreground">Workspace</span>
-            <span class="hidden sm:inline text-muted-foreground" aria-hidden="true">/</span>
+          <nav
+            aria-label="Breadcrumb"
+            class="flex items-center gap-3 text-sm min-w-0"
+          >
+            <span class="hidden sm:inline text-muted-foreground">Workspace</span
+            >
+            <span
+              class="hidden sm:inline text-muted-foreground"
+              aria-hidden="true">/</span
+            >
             <span class="truncate">{activeLabel}</span>
           </nav>
         </div>
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
           {#if navigating.to}
-            <span class="loading loading-spinner loading-xs text-primary" aria-hidden="true"></span>
+            <span
+              class="loading loading-spinner loading-xs text-primary"
+              aria-hidden="true"
+            ></span>
             <span role="status">Loading report</span>
           {:else}
             <span class="hidden sm:inline font-mono">WEBSITE ANALYTICS</span>
@@ -206,9 +287,13 @@
           {#if !desktopSidebarOpen}<ThemeToggle />{/if}
         </div>
       </header>
-      <main id="main-content" class="workspace-content" tabindex="-1" aria-busy={!!navigating.to}>
+      <main
+        id="main-content"
+        class="workspace-content"
+        tabindex="-1"
+        aria-busy={!!navigating.to}
+      >
         {@render children()}
-        <footer class="report-caption mt-8"><span>Powered by GoatCounter</span><span class="hidden sm:inline">Your website, in perspective.</span></footer>
       </main>
     </div>
   </div>
