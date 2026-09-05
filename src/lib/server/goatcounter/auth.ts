@@ -1,12 +1,27 @@
-import { gcFetchRaw } from "./client.js";
+import { gcFetchRaw, getBaseUrl } from "./client.js";
 import type { GoatCounterAuthResult } from "./types.js";
 
+/**
+ * Verify credentials against GoatCounter's login form endpoint.
+ *
+ * GoatCounter (v2.6 handlers/user.go) signals every login outcome with a
+ * redirect destination, never with an error status:
+ *   success            → 303 "/"
+ *   unknown email      → 303 "/user/new"
+ *   wrong password     → 303 "/user/new?email=…"
+ *   no password set    → 303 "/user/forgot?email=…"
+ *   TOTP enabled       → 200 with the TOTP form
+ * Classify by the Location header; treating every 3xx as success would accept
+ * any wrong credential, because failures redirect too.
+ */
 export async function authenticateWithGoatCounter(
   email: string,
   password: string,
 ): Promise<GoatCounterAuthResult> {
+  let response: Response;
+
   try {
-    const response = await gcFetchRaw("/user/requestlogin", {
+    response = await gcFetchRaw("/user/requestlogin", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -17,54 +32,47 @@ export async function authenticateWithGoatCounter(
       }).toString(),
       redirect: "manual",
     });
-
-    // Successful login redirects to the site
-    if (response.status >= 300 && response.status < 400) {
-      return {
-        success: true,
-        user: { email },
-      };
-    }
-
-    // Check response body for error clues
-    const body = await response.text();
-
-    if (
-      body.includes("TOTP") ||
-      body.includes("totp") ||
-      body.includes("two-factor")
-    ) {
-      return {
-        success: false,
-        reason: "mfa_required",
-      };
-    }
-
-    if (response.status === 403 || response.status === 401) {
-      return {
-        success: false,
-        reason: "invalid_credentials",
-      };
-    }
-
-    // If the page contains a "login" form again, credentials were wrong
-    if (body.includes("requestlogin") && body.includes("password")) {
-      return {
-        success: false,
-        reason: "invalid_credentials",
-      };
-    }
-
-    // Any other non-redirect response is treated as an error
-    return {
-      success: false,
-      reason: "invalid_credentials",
-    };
-  } catch (e) {
+  } catch {
     // Network error or GoatCounter unavailable
     return {
       success: false,
       reason: "unavailable",
     };
   }
+
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get("location") ?? "";
+    const path = new URL(location, getBaseUrl()).pathname;
+
+    if (path === "/") {
+      return {
+        success: true,
+        user: { email },
+      };
+    }
+
+    return {
+      success: false,
+      reason: "invalid_credentials",
+    };
+  }
+
+  // TOTP-enabled accounts receive the token form instead of a redirect.
+  const body = await response.text();
+
+  if (
+    body.includes("TOTP") ||
+    body.includes("totp") ||
+    body.includes("two-factor")
+  ) {
+    return {
+      success: false,
+      reason: "mfa_required",
+    };
+  }
+
+  return {
+    success: false,
+    reason: "invalid_credentials",
+  };
 }

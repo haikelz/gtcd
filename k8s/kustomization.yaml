@@ -5,6 +5,7 @@ resources:
   - deployment.yaml
   - goatcounter.yaml
   - redis.yaml
+  - middleware.yaml
   - ingress.yaml
 
 # Session/API configuration is generated from k8s/gtcd.env (gitignored).
