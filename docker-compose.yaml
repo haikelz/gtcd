@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - "80:80"
@@ -17,7 +17,7 @@ services:
       - goatcounter
 
   goatcounter:
-    image: arp242/goatcounter:2.6@sha256:66d079ab7604e4c72bd844862f0caad4955019e4c0b8a0565f10cd5216ef0cae
+    image: arp242/goatcounter:latest
     restart: unless-stopped
     expose:
       - "8080"
@@ -27,7 +27,7 @@ services:
       - goatcounter-data:/var/lib/goatcounter
 
   redis:
-    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    image: redis:7-alpine
     restart: unless-stopped
     expose:
       - "6379"

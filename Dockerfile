@@ -2,7 +2,7 @@
 # node:20-alpine, multi-arch manifest digest (2026-09-05).
 # NOTE: Node.js 20 reached end-of-life in April 2026; bump to a supported LTS
 # line deliberately, together with AGENTS.md and CI.
-FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY . .
 
 RUN pnpm run build && pnpm prune --prod
 
-FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS runtime
+FROM node:26-alpine AS runtime
 
 WORKDIR /app
 

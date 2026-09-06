@@ -3,7 +3,6 @@
     label,
     value,
     subtext,
-    icon,
     trend,
     class: className = "",
   }: {

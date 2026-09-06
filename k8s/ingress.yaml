@@ -10,10 +10,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - analytics.ekel.dev
+        - ${DOMAIN}
       secretName: gtcd-tls
   rules:
-    - host: analytics.ekel.dev
+    - host: ${DOMAIN}
       http:
         paths:
           - path: /count
