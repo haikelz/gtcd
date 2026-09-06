@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <title>gtcd</title>
-  <rect width="32" height="32" rx="8" fill="oklch(43% 0.105 160)" />
-  <path d="M8 24v-8m5.3 8V9m5.4 15V13M24 24V6" fill="none" stroke="white" stroke-width="2.5" />
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0a0a0a"/><path d="M10.7 48V32M24.8 48V13.3M39.2 48V24M53.3 48V8" stroke="#ffffff" stroke-width="6.7" fill="none" stroke-linecap="round"/></svg>

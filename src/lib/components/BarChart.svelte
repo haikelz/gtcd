@@ -41,23 +41,26 @@
         aria-valuemin="0"
         aria-valuemax={maxCount}
         aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
-        class="h-1 overflow-hidden rounded-sm bg-base-200"
+        class="h-1.5 overflow-hidden rounded-full bg-base-200"
       >
-        <div class="h-full bg-primary/65 rounded-sm" style:width="{pct}%"></div>
+        <div
+          class="h-full rounded-full bg-primary transition-[width] duration-500"
+          style:width="{pct}%"
+        ></div>
       </div>
     {/snippet}
     <li class="border-b border-border last:border-0">
       {#if onItemClick}
         <button
           type="button"
-          class="w-full min-w-0 cursor-pointer text-left px-1 py-3 hover:bg-base-200 transition-colors"
+          class="w-full min-w-0 cursor-pointer text-left px-1.5 py-3 rounded-lg hover:bg-base-200 transition-colors"
           onclick={() => onItemClick(item.id, label)}
           aria-label="Explore {label}: {item.count.toLocaleString()} visitors ({share}%)"
         >
           {@render row()}
         </button>
       {:else}
-        <div class="min-w-0 px-1 py-3">{@render row()}</div>
+        <div class="min-w-0 px-1.5 py-3">{@render row()}</div>
       {/if}
     </li>
   {/each}

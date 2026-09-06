@@ -1,8 +1,7 @@
 export const GET = async ({ url }) => {
-	const pages = [
-		{ url: '/', priority: '1.0', changefreq: 'weekly' },
-		{ url: '/login', priority: '0.5', changefreq: 'monthly' }
-	];
+	// The app is a private dashboard: home redirects to login or the
+	// dashboard, so only the sign-in page is publicly listed.
+	const pages = [{ url: '/login', priority: '0.5', changefreq: 'monthly' }];
 
 	const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

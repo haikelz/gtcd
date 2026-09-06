@@ -3,6 +3,7 @@
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import { Megaphone , TriangleAlert } from "@lucide/svelte";
 
   let { data } = $props();
   let datePreset = $state("7d");
@@ -39,20 +40,7 @@
 
 {#if data.error}
   <div role="alert" class="alert alert-error animate-fade-in">
-    <svg
-      class="w-5 h-5 shrink-0"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-      />
-    </svg>
+    <TriangleAlert class="h-5 w-5 shrink-0" />
     <span class="text-sm font-medium">{data.error}</span>
     <button
       type="button"
@@ -73,9 +61,7 @@
 {:else}
   <div class="panel empty-state animate-fade-in">
     <div class="empty-state-icon" aria-hidden="true">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
-      </svg>
+      <Megaphone class="h-6 w-6" strokeWidth={1.5} />
     </div>
     <p class="empty-state-title">No campaign data</p>
     <p class="empty-state-desc">No campaigns recorded for this time period.</p>

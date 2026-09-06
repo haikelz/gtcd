@@ -1,12 +1,38 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
+  import { Check, ChevronDown, Monitor, Moon, Sun } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
-  let { compact = false }: { compact?: boolean } = $props();
+  let {
+    compact = false,
+    block = false,
+    up = false,
+  }: { compact?: boolean; block?: boolean; up?: boolean } = $props();
 
   let currentTheme = $state<Theme>("system");
-  let mounted = $state(false);
-  const instanceId = $props.id();
+  let open = $state(false);
+  let rootElement: HTMLDivElement | undefined = $state();
+  let triggerElement: HTMLButtonElement | undefined = $state();
+
+  const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
+    { value: "light", label: "Light", icon: Sun },
+    { value: "dark", label: "Dark", icon: Moon },
+    { value: "system", label: "System", icon: Monitor },
+  ];
+
+  const activeTheme = $derived(
+    themes.find((t) => t.value === currentTheme) ?? themes[2],
+  );
+
+  // Up opens above the trigger (sidebar footer); otherwise below. A block
+  // trigger spans the sidebar, so its menu aligns to the left edge.
+  const menuPosition = $derived(
+    up
+      ? "bottom-full left-0 mb-2"
+      : block
+        ? "top-full left-0 mt-1"
+        : "top-full right-0 mt-1",
+  );
 
   function getSystemTheme(): "light" | "dark" {
     if (typeof window === "undefined") return "light";
@@ -27,79 +53,106 @@
     currentTheme = theme;
     localStorage.setItem("gtcd_theme", theme);
     applyTheme(theme);
+    open = false;
+    triggerElement?.focus();
   }
 
-  function handleKeydown(e: KeyboardEvent, index: number) {
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-      e.preventDefault();
-      const next = (index + 1) % themes.length;
-      setTheme(themes[next].value);
-      const nextBtn = document.getElementById(`${instanceId}-theme-${themes[next].value}`);
-      nextBtn?.focus();
-    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-      e.preventDefault();
-      const prev = (index - 1 + themes.length) % themes.length;
-      setTheme(themes[prev].value);
-      const prevBtn = document.getElementById(`${instanceId}-theme-${themes[prev].value}`);
-      prevBtn?.focus();
+  async function toggle() {
+    open = !open;
+    if (open) {
+      await tick();
+      rootElement
+        ?.querySelector<HTMLButtonElement>('[aria-checked="true"]')
+        ?.focus();
     }
   }
 
-  const themes: { value: Theme; label: string; icon: string }[] = [
-    {
-      value: "light",
-      label: "Light",
-      icon: `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>`,
-    },
-    {
-      value: "dark",
-      label: "Dark",
-      icon: `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>`,
-    },
-    {
-      value: "system",
-      label: "Auto",
-      icon: `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" /></svg>`,
-    },
-  ];
+  function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape" && open) {
+      open = false;
+      triggerElement?.focus();
+    }
+  }
 
   onMount(() => {
     const saved = localStorage.getItem("gtcd_theme") as Theme | null;
     currentTheme = saved || "system";
     applyTheme(currentTheme);
-    mounted = true;
 
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
       if (currentTheme === "system") applyTheme("system");
     };
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+
+    const onClick = (event: MouseEvent) => {
+      if (open && rootElement && !rootElement.contains(event.target as Node)) {
+        open = false;
+      }
+    };
+    document.addEventListener("click", onClick);
+    document.addEventListener("keydown", handleKeydown);
+
+    return () => {
+      mq.removeEventListener("change", handler);
+      document.removeEventListener("click", onClick);
+      document.removeEventListener("keydown", handleKeydown);
+    };
   });
 </script>
 
-<div
-  role="radiogroup"
-  aria-label="Color theme"
-  class="segment-control"
->
-  {#each themes as theme, i}
-    {@const isSelected = mounted ? currentTheme === theme.value : theme.value === "system"}
-    <button
-      type="button"
-      id="{instanceId}-theme-{theme.value}"
-      role="radio"
-      aria-checked={isSelected}
-      tabindex={isSelected ? 0 : -1}
-      class="relative flex items-center justify-center min-w-11 sm:gap-1.5 sm:px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-primary {isSelected
-        ? 'bg-base-200 text-base-content font-semibold'
-        : 'text-muted-foreground hover:text-base-content'}"
-      onclick={() => setTheme(theme.value)}
-      onkeydown={(e) => handleKeydown(e, i)}
-      aria-label="{theme.label} theme"
+<div class="relative inline-block {block ? 'w-full' : ''}" bind:this={rootElement}>
+  <button
+    bind:this={triggerElement}
+    type="button"
+    class="btn btn-ghost btn-sm gap-1.5 text-muted-foreground hover:text-foreground {block
+      ? 'w-full justify-between'
+      : ''}"
+    onclick={toggle}
+    aria-haspopup="menu"
+    aria-expanded={open}
+    aria-label="Color theme: {activeTheme.label}"
+    title="Color theme"
+  >
+    <span class="flex items-center gap-1.5">
+      <activeTheme.icon class="h-4 w-4" strokeWidth={1.5} />
+      {#if block || !compact}
+        <span class="{block ? '' : 'hidden sm:inline'} text-xs font-medium"
+          >{activeTheme.label}</span
+        >
+      {/if}
+    </span>
+    <ChevronDown class="h-3 w-3" aria-hidden="true" />
+  </button>
+
+  {#if open}
+    <ul
+      role="menu"
+      aria-label="Color theme"
+      class="absolute z-50 flex flex-col gap-0.5 rounded-box border border-border bg-base-100 p-1.5 shadow-lg {block
+        ? 'w-full'
+        : 'w-44'} {menuPosition}"
     >
-      {@html theme.icon}
-      <span class={compact ? "hidden" : "hidden sm:inline"}>{theme.label}</span>
-    </button>
-  {/each}
+      {#each themes as theme}
+        <li>
+          <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={currentTheme === theme.value}
+            onclick={() => setTheme(theme.value)}
+            class="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors {currentTheme ===
+              theme.value
+              ? 'bg-base-200 text-foreground'
+              : 'text-muted-foreground hover:bg-base-200 hover:text-foreground'}"
+          >
+            <theme.icon class="h-4 w-4 shrink-0" strokeWidth={1.5} />
+            <span>{theme.label}</span>
+            {#if currentTheme === theme.value}
+              <Check class="ml-auto h-3.5 w-3.5 text-primary" />
+            {/if}
+          </button>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </div>

@@ -40,7 +40,7 @@
       <h1 class="text-4xl sm:text-5xl font-medium tracking-tight mb-6">{title}</h1>
       <p class="text-base text-muted-foreground leading-relaxed max-w-md">{description}</p>
       <div class="flex flex-wrap gap-4 mt-8">
-        <a href="/" class="btn btn-primary px-6">Back to home <span aria-hidden="true">↗</span></a>
+        <a href="/" class="btn btn-primary px-6">Continue <span aria-hidden="true">→</span></a>
         <button type="button" class="btn btn-ghost" onclick={() => history.back()}>Previous page</button>
       </div>
     </div>

@@ -3,6 +3,7 @@
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import { Languages , TriangleAlert } from "@lucide/svelte";
 
   let { data } = $props();
   let datePreset = $state("7d");
@@ -39,20 +40,7 @@
 
 {#if data.error}
   <div role="alert" class="alert alert-error animate-fade-in">
-    <svg
-      class="w-5 h-5 shrink-0"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-      />
-    </svg>
+    <TriangleAlert class="h-5 w-5 shrink-0" />
     <span class="text-sm font-medium">{data.error}</span>
     <button
       type="button"
@@ -73,9 +61,7 @@
 {:else}
   <div class="panel empty-state animate-fade-in">
     <div class="empty-state-icon" aria-hidden="true">
-      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.785.147 2.666.257m-4.589 8.495a18.023 18.023 0 01-3.827-5.802" />
-      </svg>
+      <Languages class="h-6 w-6" strokeWidth={1.5} />
     </div>
     <p class="empty-state-title">No language data</p>
     <p class="empty-state-desc">No language preferences recorded for this period.</p>

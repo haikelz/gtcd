@@ -52,8 +52,8 @@
       aria-checked={isSelected}
       tabindex={isSelected ? 0 : -1}
       class="px-2.5 sm:px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-primary {isSelected
-        ? 'bg-base-200 text-foreground font-semibold'
-        : 'text-muted-foreground hover:text-foreground hover:bg-base-300/40'}"
+        ? 'bg-base-200 text-foreground font-medium'
+        : 'text-muted-foreground hover:text-foreground'}"
       onclick={() => selectPreset(preset.value)}
       onkeydown={(e) => handleKeydown(e, i)}
     >

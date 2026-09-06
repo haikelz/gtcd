@@ -20,17 +20,7 @@
   class="stat-card {className}"
   aria-label="{label}: {value}{subtext ? `, ${subtext}` : ''}"
 >
-  <div class="flex items-start justify-between mb-3">
-    <p class="metric-label">{label}</p>
-    {#if icon}
-      <div
-        class="text-muted-foreground shrink-0"
-        aria-hidden="true"
-      >
-        {@html icon}
-      </div>
-    {/if}
-  </div>
+  <p class="metric-label mb-4">{label}</p>
 
   <div class="flex items-baseline gap-3">
     <p class="metric-value">{value}</p>

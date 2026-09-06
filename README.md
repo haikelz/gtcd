@@ -26,6 +26,8 @@ A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter]
 * **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
 * **Resilient Session Store**: Distributed Redis session layer with automatic fallback to an in-memory store if Redis is unavailable.
 * **Accessible Visualizations (WCAG 2.1 AA)**: Interactive charts with SVG `<title>`, `<desc>`, semantic `role="meter"`, high-contrast focus rings, and screen-reader accessible data tables.
+* **Installable PWA**: Web app manifest, service worker with auto-update, and offline-cached app assets — installable from the browser address bar.
+* **Client-Side Caching (TanStack Query)**: Date-range switches on the dashboard are cached and refreshed in the background without full page reloads.
 
 ---
 

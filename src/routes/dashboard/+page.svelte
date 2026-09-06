@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { TriangleAlert } from "@lucide/svelte";
   import AreaChart from "$lib/components/AreaChart.svelte";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
@@ -7,6 +8,7 @@
   import StatCard from "$lib/components/StatCard.svelte";
 
   let { data } = $props();
+
   let datePreset = $state("7d");
   $effect(() => {
     datePreset = data.range || "7d";
@@ -62,15 +64,13 @@
 >
   <div>
     <h1 class="text-3xl tracking-tight text-foreground">Overview</h1>
-    <p class="text-sm mt-2 text-muted-foreground">
-      A little context for every visit.
-    </p>
   </div>
   <DateRangePicker value={datePreset} onchange={handleDateChange} />
 </header>
 
 {#if data.error}
   <div role="alert" class="alert alert-error mb-6">
+    <TriangleAlert class="h-5 w-5 shrink-0" />
     <div>
       <p class="font-medium">We couldn't load your analytics</p>
       <p class="text-sm mt-1">{data.error}</p>
