@@ -1,11 +1,11 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { TriangleAlert } from "@lucide/svelte";
   import AreaChart from "$lib/components/AreaChart.svelte";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
+  import { TriangleAlert } from "@lucide/svelte";
 
   let { data } = $props();
 

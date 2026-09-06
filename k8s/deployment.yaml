@@ -32,9 +32,6 @@ spec:
               app: gtcd
       containers:
         - name: gtcd
-          # Overridden by the `images` transformer in kustomization.yaml;
-          # use `kustomize edit set image gtcd=<registry>/<image>@<digest>`
-          # to deploy a specific build.
           image: gtcd
           imagePullPolicy: IfNotPresent
           ports:
@@ -48,9 +45,6 @@ spec:
               value: "0.0.0.0"
             - name: NODE_ENV
               value: "production"
-            # Derive the public origin from the ingress proxy headers so CSRF
-            # origin checks and cookie flags work behind TLS and non-TLS
-            # ingress without per-domain ORIGIN configuration.
             - name: PROTOCOL_HEADER
               value: x-forwarded-proto
             - name: HOST_HEADER

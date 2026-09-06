@@ -25,7 +25,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: redis
-          image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+          image: redis:7-alpine:latest
           imagePullPolicy: IfNotPresent
           args:
             - --save
@@ -67,8 +67,6 @@ spec:
               drop:
                 - ALL
       volumes:
-        # Session store only: persistence across restarts is not required,
-        # sessions expire after 7 days and callers fall back to memory.
         - name: data
           emptyDir: {}
         - name: tmp

@@ -2,7 +2,6 @@ import { building } from "$app/environment";
 import Redis from "ioredis";
 
 let redis: Redis | null = null;
-// null = never probed, true = last interaction succeeded, false = last interaction failed.
 let redisAvailable: boolean | null = null;
 let lastRedisFailureAt = 0;
 

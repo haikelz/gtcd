@@ -1,7 +1,7 @@
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDateRange } from "$lib/server/helpers.js";
 
-export const load = async ({ params, url }) => {
+export async function load({ params, url }) {
   const preset = url.searchParams.get("range") || "7d";
   const { start, end } = getDateRange(preset);
   const pathId = Number(params.id);
@@ -21,4 +21,4 @@ export const load = async ({ params, url }) => {
       pathId,
     };
   }
-};
+}

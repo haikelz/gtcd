@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
   import { Check, ChevronDown, Monitor, Moon, Sun } from "@lucide/svelte";
+  import { onMount, tick } from "svelte";
 
   type Theme = "light" | "dark" | "system";
   let {

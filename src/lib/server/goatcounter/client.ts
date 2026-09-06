@@ -136,7 +136,7 @@ export async function gcFetch<T>(
   params?: Record<string, string | undefined>,
   options: { bypassCache?: boolean; ttlMs?: number } = {}
 ): Promise<T> {
-  const { baseUrl, apiKey } = requireApiConfig();
+  const { baseUrl } = requireApiConfig();
   const url = new URL(`${baseUrl}${path}`);
 
   if (params) {

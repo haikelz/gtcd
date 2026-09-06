@@ -7,16 +7,10 @@ resources:
   - redis.yaml
   - middleware.yaml
   - ingress.yaml
-
-# Session/API configuration is generated from k8s/gtcd.env (gitignored).
-# Copy k8s/gtcd.env.example to k8s/gtcd.env and fill in real values.
 secretGenerator:
   - name: gtcd-env
     envs:
       - gtcd.env
-
-# Replace `gtcd` with a real registry path and an immutable digest for
-# production: kustomize edit set image gtcd=ghcr.io/me/gtcd@sha256:...
 images:
   - name: gtcd
     newTag: local

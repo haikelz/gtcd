@@ -2,7 +2,7 @@ import * as stats from "$lib/server/goatcounter/stats.js";
 import type { StatsPage } from "$lib/server/goatcounter/types.js";
 import { getDateRange } from "$lib/server/helpers.js";
 
-export const load = async ({ url }) => {
+export async function load({ url }) {
   const preset = url.searchParams.get("range") || "7d";
   const { start, end } = getDateRange(preset);
 
@@ -21,7 +21,7 @@ export const load = async ({ url }) => {
       stats: null,
     };
   }
-};
+}
 
 export const actions = {
   detail: async ({ request, url }) => {
