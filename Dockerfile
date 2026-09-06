@@ -8,8 +8,10 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
 
-# Corepack reads the pinned version from the packageManager field.
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+# Install the pnpm version pinned in package.json's packageManager field.
+# (Node 25+ images no longer bundle corepack, and npm is guaranteed to exist
+# in the node base image.)
+RUN npm install --global pnpm@9.15.9
 
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
