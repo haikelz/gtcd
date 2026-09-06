@@ -192,17 +192,17 @@ Durable repository memory includes:
 Each durable fact SHOULD have one canonical home.
 Other files SHOULD link rather than duplicate it.
 
-| Concern | Canonical home |
-| --- | --- |
-| Intended user-visible behavior | Product contract and public schema |
-| Current executable behavior | Code and behavior-matched tests |
-| Architecture direction | Architecture docs and accepted ADRs |
-| Repository operation | `AGENTS.md`, README, and canonical scripts |
-| Setup and onboarding | README and owned setup scripts |
-| Durable change memory | One active or completed plan when needed |
-| Deployment and recovery | Versioned configuration and runbooks |
-| Historical rationale | ADRs and Git history |
-| High-volume events and traces | Existing tracker, CI, or artifact system |
+| Concern                        | Canonical home                             |
+| ------------------------------ | ------------------------------------------ |
+| Intended user-visible behavior | Product contract and public schema         |
+| Current executable behavior    | Code and behavior-matched tests            |
+| Architecture direction         | Architecture docs and accepted ADRs        |
+| Repository operation           | `AGENTS.md`, README, and canonical scripts |
+| Setup and onboarding           | README and owned setup scripts             |
+| Durable change memory          | One active or completed plan when needed   |
+| Deployment and recovery        | Versioned configuration and runbooks       |
+| Historical rationale           | ADRs and Git history                       |
+| High-volume events and traces  | Existing tracker, CI, or artifact system   |
 
 The harness MUST NOT add SQLite task state by default.
 It MUST NOT mirror issue status, story transitions, command traces, or agent events into a local database.

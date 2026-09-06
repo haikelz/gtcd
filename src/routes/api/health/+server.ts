@@ -31,6 +31,6 @@ export const GET: RequestHandler = async () => {
       goatcounter,
       redis: isRedisUp ? "connected" : "disconnected",
     },
-    { status: 200 },
+    { status: 200 }
   );
 };

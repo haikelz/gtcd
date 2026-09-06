@@ -1,4 +1,7 @@
-import { createDashboardSession, shouldUseSecureCookies } from "$lib/server/auth/session.js";
+import {
+  createDashboardSession,
+  shouldUseSecureCookies,
+} from "$lib/server/auth/session.js";
 import { authenticateWithGoatCounter } from "$lib/server/goatcounter/auth.js";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
@@ -43,7 +46,7 @@ export const actions: Actions = {
     await createDashboardSession(
       cookies,
       result.user.email,
-      shouldUseSecureCookies(request.headers, url),
+      shouldUseSecureCookies(request.headers, url)
     );
 
     throw redirect(302, "/dashboard");

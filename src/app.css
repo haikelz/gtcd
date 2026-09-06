@@ -76,7 +76,11 @@
   --color-muted-foreground: oklch(46% 0.015 260);
   /* Subtle hairline borders derived from the foreground so both themes get
      the same low-contrast line weight. */
-  --color-border: color-mix(in oklch, var(--color-base-content) 12%, transparent);
+  --color-border: color-mix(
+    in oklch,
+    var(--color-base-content) 12%,
+    transparent
+  );
   --color-ring: var(--color-primary);
 }
 [data-theme="gtcd-dark"] {

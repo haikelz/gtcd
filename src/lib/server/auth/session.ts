@@ -36,7 +36,7 @@ export function shouldUseSecureCookies(headers: Headers, url: URL): boolean {
 export async function createDashboardSession(
   cookies: Cookies,
   email: string,
-  secure: boolean,
+  secure: boolean
 ): Promise<void> {
   const sessionId = generateSessionId();
 
@@ -52,7 +52,7 @@ export async function createDashboardSession(
 }
 
 export async function getDashboardSession(
-  cookies: Cookies,
+  cookies: Cookies
 ): Promise<SessionUser | null> {
   const sessionId = cookies.get(COOKIE_NAME);
   if (!sessionId) return null;

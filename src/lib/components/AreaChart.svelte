@@ -140,20 +140,22 @@
       </div>
       <div class="w-px h-8 bg-border"></div>
       <div>
-        <p class="text-xs font-medium mb-0.5 text-muted-foreground">Daily avg</p>
+        <p class="text-xs font-medium mb-0.5 text-muted-foreground">
+          Daily avg
+        </p>
         <p class="font-bold text-lg tabular-nums text-foreground">
           {avgDaily.toLocaleString()}
         </p>
       </div>
-        <div class="w-px h-8 bg-border"></div>
-        <div class="min-w-24">
-          <p class="text-xs font-medium mb-0.5 text-muted-foreground">
-            {hoveredDate ?? "Explore chart"}
-          </p>
-          <p class="font-bold text-lg tabular-nums text-primary">
-            {hoveredValue?.toLocaleString() ?? "—"}
-          </p>
-        </div>
+      <div class="w-px h-8 bg-border"></div>
+      <div class="min-w-24">
+        <p class="text-xs font-medium mb-0.5 text-muted-foreground">
+          {hoveredDate ?? "Explore chart"}
+        </p>
+        <p class="font-bold text-lg tabular-nums text-primary">
+          {hoveredValue?.toLocaleString() ?? "—"}
+        </p>
+      </div>
     </div>
 
     <!-- SVG Area Chart with Full A11Y -->
@@ -246,7 +248,8 @@
 
         <!-- Hover crosshair -->
         {#if hoveredIndex !== null && hoveredIndex < points.length}
-          {@const hx = (hoveredIndex / Math.max(points.length - 1, 1)) * dims.chartWidth}
+          {@const hx =
+            (hoveredIndex / Math.max(points.length - 1, 1)) * dims.chartWidth}
           {@const hy =
             dims.chartHeight -
             (points[hoveredIndex].y / maxY) * dims.chartHeight}
@@ -276,8 +279,7 @@
             x={label.x}
             y={dims.chartHeight + 22}
             text-anchor="middle"
-            class="text-xs font-mono fill-muted-foreground"
-            >{label.label}</text
+            class="text-xs font-mono fill-muted-foreground">{label.label}</text
           >
         {/each}
       </g>

@@ -18,7 +18,10 @@
   });
 </script>
 
-<SEO title="Sign in" description="Sign in with your GoatCounter account to access your analytics dashboard." />
+<SEO
+  title="Sign in"
+  description="Sign in with your GoatCounter account to access your analytics dashboard."
+/>
 
 <main
   id="main-content"
@@ -52,7 +55,8 @@
     >
       <div class="space-y-4">
         <div>
-          <label for="email" class="block text-sm font-medium mb-2">Email</label>
+          <label for="email" class="block text-sm font-medium mb-2">Email</label
+          >
           <input
             id="email"
             name="email"
@@ -106,13 +110,10 @@
           </div>
         {/if}
 
-        <button
-          type="submit"
-          class="btn btn-primary w-full"
-          disabled={loading}
-        >
+        <button type="submit" class="btn btn-primary w-full" disabled={loading}>
           {#if loading}
-            <span class="loading loading-spinner loading-sm" aria-hidden="true"></span>
+            <span class="loading loading-spinner loading-sm" aria-hidden="true"
+            ></span>
             <span>Signing in…</span>
           {:else}
             Sign in

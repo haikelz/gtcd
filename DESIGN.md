@@ -10,18 +10,18 @@ This redesign evolves the previous blue palette, floating rounded cards, Inter b
 
 All colors use DaisyUI theme tokens in `src/app.css`.
 
-| Role | Light OKLCH | Dark OKLCH |
-| --- | --- | --- |
-| base-100 / panels | 100% 0 0 | 19% .006 160 |
-| base-200 / canvas | 97% .004 160 | 16% .005 160 |
-| base-300 / borders | 89% .006 160 | 29% .008 160 |
-| base-content | 23% .012 160 | 95% .004 160 |
-| muted-foreground | 46% .014 160 | 72% .012 160 |
-| primary / chart / focus | 43% .105 160 | 77% .14 160 |
-| primary-content | 100% 0 0 | 18% .025 160 |
-| success | Same as primary | Same as primary |
-| error | 48% .20 25 | 74% .16 25 |
-| warning | 75% .16 80 | 82% .16 80 |
+| Role                    | Light OKLCH     | Dark OKLCH      |
+| ----------------------- | --------------- | --------------- |
+| base-100 / panels       | 100% 0 0        | 19% .006 160    |
+| base-200 / canvas       | 97% .004 160    | 16% .005 160    |
+| base-300 / borders      | 89% .006 160    | 29% .008 160    |
+| base-content            | 23% .012 160    | 95% .004 160    |
+| muted-foreground        | 46% .014 160    | 72% .012 160    |
+| primary / chart / focus | 43% .105 160    | 77% .14 160     |
+| primary-content         | 100% 0 0        | 18% .025 160    |
+| success                 | Same as primary | Same as primary |
+| error                   | 48% .20 25      | 74% .16 25      |
+| warning                 | 75% .16 80      | 82% .16 80      |
 
 Secondary and accent inherit base-200/content; neutral inherits base-content/base-100; info inherits primary. Chart fills use primary at 4–16%, selected controls at 8–12%. Avoid semantic color dependence: labels and selected-state attributes communicate meaning too.
 

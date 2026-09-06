@@ -21,7 +21,7 @@
   ];
 
   const activeTheme = $derived(
-    themes.find((t) => t.value === currentTheme) ?? themes[2],
+    themes.find((t) => t.value === currentTheme) ?? themes[2]
   );
 
   // Up opens above the trigger (sidebar footer); otherwise below. A block
@@ -31,7 +31,7 @@
       ? "bottom-full left-0 mb-2"
       : block
         ? "top-full left-0 mt-1"
-        : "top-full right-0 mt-1",
+        : "top-full right-0 mt-1"
   );
 
   function getSystemTheme(): "light" | "dark" {
@@ -101,7 +101,10 @@
   });
 </script>
 
-<div class="relative inline-block {block ? 'w-full' : ''}" bind:this={rootElement}>
+<div
+  class="relative inline-block {block ? 'w-full' : ''}"
+  bind:this={rootElement}
+>
   <button
     bind:this={triggerElement}
     type="button"
@@ -141,7 +144,7 @@
             aria-checked={currentTheme === theme.value}
             onclick={() => setTheme(theme.value)}
             class="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors {currentTheme ===
-              theme.value
+            theme.value
               ? 'bg-base-200 text-foreground'
               : 'text-muted-foreground hover:bg-base-200 hover:text-foreground'}"
           >

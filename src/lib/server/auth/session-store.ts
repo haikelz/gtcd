@@ -32,7 +32,8 @@ export function getRedis(): Redis {
     enableOfflineQueue: false,
     // Keep retrying in the background with bounded backoff so a recovered
     // Redis is picked up again instead of being abandoned until process restart.
-    retryStrategy: (attempt) => Math.min(1000 * 2 ** Math.min(attempt, 4), 10_000),
+    retryStrategy: (attempt) =>
+      Math.min(1000 * 2 ** Math.min(attempt, 4), 10_000),
   });
 
   client.on("error", () => {
@@ -55,7 +56,10 @@ export function getRedis(): Redis {
 export async function pingRedis(maxWaitMs = 1_000): Promise<boolean> {
   const now = Date.now();
 
-  if (redisAvailable === false && now - lastRedisFailureAt < REDIS_RETRY_COOLDOWN_MS) {
+  if (
+    redisAvailable === false &&
+    now - lastRedisFailureAt < REDIS_RETRY_COOLDOWN_MS
+  ) {
     return false;
   }
 
@@ -72,15 +76,12 @@ export async function pingRedis(maxWaitMs = 1_000): Promise<boolean> {
     }
   })();
 
-  return Promise.race([
-    attempt,
-    sleep(maxWaitMs).then(() => false),
-  ]);
+  return Promise.race([attempt, sleep(maxWaitMs).then(() => false)]);
 }
 
 export async function createSession(
   sessionId: string,
-  email: string,
+  email: string
 ): Promise<void> {
   const isUp = redisAvailable ?? (await pingRedis());
 
@@ -90,7 +91,7 @@ export async function createSession(
       await redis.setex(
         `${SESSION_PREFIX}${sessionId}`,
         SESSION_MAX_AGE_SEC,
-        data,
+        data
       );
       return;
     } catch {
@@ -107,7 +108,7 @@ export async function createSession(
 }
 
 export async function getSession(
-  sessionId: string,
+  sessionId: string
 ): Promise<{ email: string } | null> {
   const isUp = redisAvailable ?? (await pingRedis());
 

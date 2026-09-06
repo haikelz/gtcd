@@ -56,8 +56,7 @@ export const load: PageServerLoad = async ({ url }) => {
       languagesResult,
       sizesResult,
     ].find((result) => result.status === "rejected") as
-      | PromiseRejectedResult
-      | undefined;
+      PromiseRejectedResult | undefined;
 
     generalError =
       firstRejection?.reason instanceof Error

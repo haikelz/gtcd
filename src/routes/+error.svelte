@@ -27,23 +27,45 @@
     if (status === 401) return "Please sign in to continue.";
     return message;
   });
-
 </script>
 
-<svelte:head><title>{title} — gtcd</title><meta name="robots" content="noindex" /></svelte:head>
+<svelte:head
+  ><title>{title} — gtcd</title><meta
+    name="robots"
+    content="noindex"
+  /></svelte:head
+>
 
-<main id="main-content" tabindex="-1" class="min-h-dvh flex flex-col px-6 sm:px-12 bg-base-100">
-  <header class="flex flex-wrap items-center justify-between gap-4 py-6"><Brand /><ThemeToggle /></header>
+<main
+  id="main-content"
+  tabindex="-1"
+  class="min-h-dvh flex flex-col px-6 sm:px-12 bg-base-100"
+>
+  <header class="flex flex-wrap items-center justify-between gap-4 py-6">
+    <Brand /><ThemeToggle />
+  </header>
   <div class="flex-1 flex items-center justify-center py-16">
     <div class="w-full max-w-xl">
       <p class="eyebrow mb-6">Error {status}</p>
-      <h1 class="text-4xl sm:text-5xl font-medium tracking-tight mb-6">{title}</h1>
-      <p class="text-base text-muted-foreground leading-relaxed max-w-md">{description}</p>
+      <h1 class="text-4xl sm:text-5xl font-medium tracking-tight mb-6">
+        {title}
+      </h1>
+      <p class="text-base text-muted-foreground leading-relaxed max-w-md">
+        {description}
+      </p>
       <div class="flex flex-wrap gap-4 mt-8">
-        <a href="/" class="btn btn-primary px-6">Continue <span aria-hidden="true">→</span></a>
-        <button type="button" class="btn btn-ghost" onclick={() => history.back()}>Previous page</button>
+        <a href="/" class="btn btn-primary px-6"
+          >Continue <span aria-hidden="true">→</span></a
+        >
+        <button
+          type="button"
+          class="btn btn-ghost"
+          onclick={() => history.back()}>Previous page</button
+        >
       </div>
     </div>
   </div>
-  <footer class="py-6 border-t border-border text-xs text-muted-foreground">gtcd · Website analytics</footer>
+  <footer class="py-6 border-t border-border text-xs text-muted-foreground">
+    gtcd · Website analytics
+  </footer>
 </main>

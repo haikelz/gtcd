@@ -25,23 +25,23 @@
       e.preventDefault();
       const next = (index + 1) % presets.length;
       selectPreset(presets[next].value);
-      const nextBtn = document.getElementById(`date-opt-${presets[next].value}`);
+      const nextBtn = document.getElementById(
+        `date-opt-${presets[next].value}`
+      );
       nextBtn?.focus();
     } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       e.preventDefault();
       const prev = (index - 1 + presets.length) % presets.length;
       selectPreset(presets[prev].value);
-      const prevBtn = document.getElementById(`date-opt-${presets[prev].value}`);
+      const prevBtn = document.getElementById(
+        `date-opt-${presets[prev].value}`
+      );
       prevBtn?.focus();
     }
   }
 </script>
 
-<div
-  role="radiogroup"
-  aria-label="Date range filter"
-  class="segment-control"
->
+<div role="radiogroup" aria-label="Date range filter" class="segment-control">
   <span class="sr-only">Select date range:</span>
   {#each presets as preset, i}
     {@const isSelected = value === preset.value}

@@ -16,7 +16,7 @@ import type { GoatCounterAuthResult } from "./types.js";
  */
 export async function authenticateWithGoatCounter(
   email: string,
-  password: string,
+  password: string
 ): Promise<GoatCounterAuthResult> {
   let response: Response;
 

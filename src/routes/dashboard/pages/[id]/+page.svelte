@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
-    import { Link2, TriangleAlert } from "@lucide/svelte";
+  import { Link2, TriangleAlert } from "@lucide/svelte";
   import SEO from "$lib/components/SEO.svelte";
 
   let { data } = $props();
@@ -28,7 +28,8 @@
 <SEO
   title={pageTitle}
   description="Referrer breakdown for {pageTitle}."
-  noindex />
+  noindex
+/>
 
 <header
   class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
@@ -41,7 +42,9 @@
       <span aria-hidden="true">←</span> Back to Pages
     </a>
     <p class="eyebrow mb-1.5">Page Detail</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-foreground">
+    <h1
+      class="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-foreground"
+    >
       {pageTitle}
     </h1>
     <p class="text-sm mt-1.5 text-muted-foreground">
@@ -74,6 +77,8 @@
       <Link2 class="h-6 w-6" strokeWidth={1.5} />
     </div>
     <p class="empty-state-title">No referrers</p>
-    <p class="empty-state-desc">No incoming referrers recorded for this page in this time window.</p>
+    <p class="empty-state-desc">
+      No incoming referrers recorded for this page in this time window.
+    </p>
   </div>
 {/if}

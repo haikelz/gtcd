@@ -26,10 +26,10 @@
   let sidebarElement: HTMLElement | undefined = $state();
   let toggleElement: HTMLButtonElement | undefined = $state();
   const navigationOpen = $derived(
-    wideViewport ? desktopSidebarOpen : sidebarOpen,
+    wideViewport ? desktopSidebarOpen : sidebarOpen
   );
   const isDashboard = $derived(
-    page.url.pathname.startsWith("/dashboard") && page.status < 400,
+    page.url.pathname.startsWith("/dashboard") && page.status < 400
   );
   const navItems = [
     {
@@ -74,7 +74,7 @@
     },
   ];
   const activeLabel = $derived(
-    navItems.find((item) => isActive(item.href))?.label ?? "Overview",
+    navItems.find((item) => isActive(item.href))?.label ?? "Overview"
   );
 
   function isActive(href: string): boolean {
@@ -117,7 +117,7 @@
       toggleSidebar();
     } else if (event.key === "Tab" && sidebarOpen && !wideViewport) {
       const controls = sidebarElement?.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]):not([tabindex="-1"])',
+        'a[href], button:not([disabled]):not([tabindex="-1"])'
       );
       const first = controls?.[0];
       const last = controls?.[controls.length - 1];
@@ -164,144 +164,134 @@
   }
 </script>
 
-  <a href="#main-content" class="skip-link btn btn-primary"
-    >Skip to main content</a
-  >
+<a href="#main-content" class="skip-link btn btn-primary"
+  >Skip to main content</a
+>
 
-  {#if isDashboard && data.authenticated}
-    <div class="flex min-h-dvh bg-background">
-      {#if sidebarOpen && !wideViewport}
+{#if isDashboard && data.authenticated}
+  <div class="flex min-h-dvh bg-background">
+    {#if sidebarOpen && !wideViewport}
+      <button
+        type="button"
+        class="fixed inset-0 z-30 bg-neutral/30 lg:hidden"
+        onclick={dismissSidebar}
+        tabindex="-1"
+        aria-label="Close navigation overlay"
+      ></button>
+    {/if}
+    <aside
+      id="sidebar-nav"
+      bind:this={sidebarElement}
+      aria-label="Analytics navigation"
+      role={sidebarOpen && !wideViewport ? "dialog" : undefined}
+      aria-modal={sidebarOpen && !wideViewport ? true : undefined}
+      inert={!navigationOpen}
+      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-dvh flex shrink-0 flex-col w-60 transition-transform duration-200 {sidebarOpen
+        ? 'translate-x-0'
+        : '-translate-x-full'} {desktopSidebarOpen
+        ? 'lg:translate-x-0'
+        : 'lg:w-0 lg:overflow-hidden lg:invisible'}"
+    >
+      <div class="flex items-center justify-between gap-3 px-5 h-20 shrink-0">
+        <Brand />
         <button
           type="button"
-          class="fixed inset-0 z-30 bg-neutral/30 lg:hidden"
+          class="btn btn-ghost btn-square lg:hidden"
           onclick={dismissSidebar}
-          tabindex="-1"
-          aria-label="Close navigation overlay"
-        ></button>
-      {/if}
-      <aside
-        id="sidebar-nav"
-        bind:this={sidebarElement}
-        aria-label="Analytics navigation"
-        role={sidebarOpen && !wideViewport ? "dialog" : undefined}
-        aria-modal={sidebarOpen && !wideViewport ? true : undefined}
-        inert={!navigationOpen}
-        class="sidebar fixed lg:sticky top-0 left-0 z-40 h-dvh flex shrink-0 flex-col w-60 transition-transform duration-200 {sidebarOpen
-          ? 'translate-x-0'
-          : '-translate-x-full'} {desktopSidebarOpen
-          ? 'lg:translate-x-0'
-          : 'lg:w-0 lg:overflow-hidden lg:invisible'}"
-      >
-        <div class="flex items-center justify-between gap-3 px-5 h-20 shrink-0">
-          <Brand />
-          <button
-            type="button"
-            class="btn btn-ghost btn-square lg:hidden"
-            onclick={dismissSidebar}
-            aria-label="Close navigation"><X class="h-4 w-4" /></button
-          >
-        </div>
-        <nav
-          class="flex-1 min-h-0 overflow-y-auto p-3 pt-6"
-          aria-label="Reports"
+          aria-label="Close navigation"><X class="h-4 w-4" /></button
         >
-          <ul class="list-none p-0 m-0 space-y-1">
-            {#each navItems as item, i}
-              {@const Icon = item.icon}
-              <li>
-                {#if i === 0 || i === 2 || i === 7}
-                  <p
-                    class="sidebar-section-label px-3 pb-2 {i > 0
-                      ? 'pt-5'
-                      : ''}"
-                  >
-                    {i === 0
-                      ? "Workspace"
-                      : i === 2
-                        ? "Audience"
-                        : "Acquisition"}
-                  </p>
-                {/if}
-                <a
-                  href={item.href}
-                  class="sidebar-link {isActive(item.href) ? 'active' : ''}"
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                  onclick={closeSidebar}
-                >
-                  <Icon class="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                  <span>{item.label}</span>
-                </a>
-              </li>
-            {/each}
-          </ul>
-        </nav>
-        <div class="border-t border-border p-3 flex items-center gap-2">
-          <div class="flex-1 min-w-0">
-            <ThemeToggle block up />
-          </div>
-          <button
-            type="button"
-            class="btn btn-ghost btn-square btn-sm text-muted-foreground hover:text-foreground"
-            onclick={handleLogout}
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <LogOut class="h-4 w-4" />
-          </button>
-        </div>
-      </aside>
-      <div class="min-w-0 flex-1" inert={sidebarOpen && !wideViewport}>
-        <header class="workspace-header sticky top-0 z-20">
-          <div class="flex items-center gap-4 min-w-0">
-            <button
-              bind:this={toggleElement}
-              type="button"
-              class="btn btn-ghost btn-square text-muted-foreground"
-              onclick={toggleSidebar}
-              aria-expanded={navigationOpen}
-              aria-controls="sidebar-nav"
-              aria-label={navigationOpen
-                ? "Close navigation sidebar"
-                : "Open navigation sidebar"}
-              title="Toggle sidebar (Ctrl+B / Cmd+B)"
-            >
-              <Menu class="h-5 w-5" strokeWidth={1.5} />
-            </button>
-            <nav
-              aria-label="Breadcrumb"
-              class="flex items-center gap-3 text-sm min-w-0"
-            >
-              <span class="hidden sm:inline text-muted-foreground"
-                >Workspace</span
-              >
-              <span
-                class="hidden sm:inline text-muted-foreground"
-                aria-hidden="true">/</span
-              >
-              <span class="truncate">{activeLabel}</span>
-            </nav>
-          </div>
-          <div class="flex items-center gap-3 text-xs text-muted-foreground">
-            {#if navigating.to}
-              <span
-                class="loading loading-spinner loading-xs text-primary"
-                aria-hidden="true"
-              ></span>
-              <span role="status">Loading report</span>
-            {/if}
-            {#if !desktopSidebarOpen}<ThemeToggle />{/if}
-          </div>
-        </header>
-        <main
-          id="main-content"
-          class="workspace-content"
-          tabindex="-1"
-          aria-busy={!!navigating.to}
-        >
-          {@render children()}
-        </main>
       </div>
+      <nav class="flex-1 min-h-0 overflow-y-auto p-3 pt-6" aria-label="Reports">
+        <ul class="list-none p-0 m-0 space-y-1">
+          {#each navItems as item, i}
+            {@const Icon = item.icon}
+            <li>
+              {#if i === 0 || i === 2 || i === 7}
+                <p
+                  class="sidebar-section-label px-3 pb-2 {i > 0 ? 'pt-5' : ''}"
+                >
+                  {i === 0 ? "Workspace" : i === 2 ? "Audience" : "Acquisition"}
+                </p>
+              {/if}
+              <a
+                href={item.href}
+                class="sidebar-link {isActive(item.href) ? 'active' : ''}"
+                aria-current={isActive(item.href) ? "page" : undefined}
+                onclick={closeSidebar}
+              >
+                <Icon class="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                <span>{item.label}</span>
+              </a>
+            </li>
+          {/each}
+        </ul>
+      </nav>
+      <div class="border-t border-border p-3 flex items-center gap-2">
+        <div class="flex-1 min-w-0">
+          <ThemeToggle block up />
+        </div>
+        <button
+          type="button"
+          class="btn btn-ghost btn-square btn-sm text-muted-foreground hover:text-foreground"
+          onclick={handleLogout}
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <LogOut class="h-4 w-4" />
+        </button>
+      </div>
+    </aside>
+    <div class="min-w-0 flex-1" inert={sidebarOpen && !wideViewport}>
+      <header class="workspace-header sticky top-0 z-20">
+        <div class="flex items-center gap-4 min-w-0">
+          <button
+            bind:this={toggleElement}
+            type="button"
+            class="btn btn-ghost btn-square text-muted-foreground"
+            onclick={toggleSidebar}
+            aria-expanded={navigationOpen}
+            aria-controls="sidebar-nav"
+            aria-label={navigationOpen
+              ? "Close navigation sidebar"
+              : "Open navigation sidebar"}
+            title="Toggle sidebar (Ctrl+B / Cmd+B)"
+          >
+            <Menu class="h-5 w-5" strokeWidth={1.5} />
+          </button>
+          <nav
+            aria-label="Breadcrumb"
+            class="flex items-center gap-3 text-sm min-w-0"
+          >
+            <span class="hidden sm:inline text-muted-foreground">Workspace</span
+            >
+            <span
+              class="hidden sm:inline text-muted-foreground"
+              aria-hidden="true">/</span
+            >
+            <span class="truncate">{activeLabel}</span>
+          </nav>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-muted-foreground">
+          {#if navigating.to}
+            <span
+              class="loading loading-spinner loading-xs text-primary"
+              aria-hidden="true"
+            ></span>
+            <span role="status">Loading report</span>
+          {/if}
+          {#if !desktopSidebarOpen}<ThemeToggle />{/if}
+        </div>
+      </header>
+      <main
+        id="main-content"
+        class="workspace-content"
+        tabindex="-1"
+        aria-busy={!!navigating.to}
+      >
+        {@render children()}
+      </main>
     </div>
-  {:else}
+  </div>
+{:else}
   {@render children()}
-  {/if}
+{/if}

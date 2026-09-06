@@ -1,21 +1,25 @@
 export const GET = async ({ url }) => {
-	// The app is a private dashboard: home redirects to login or the
-	// dashboard, so only the sign-in page is publicly listed.
-	const pages = [{ url: '/login', priority: '0.5', changefreq: 'monthly' }];
+  // The app is a private dashboard: home redirects to login or the
+  // dashboard, so only the sign-in page is publicly listed.
+  const pages = [{ url: "/login", priority: "0.5", changefreq: "monthly" }];
 
-	const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${pages.map((p) => `  <url>
+${pages
+  .map(
+    (p) => `  <url>
     <loc>${url.origin}${p.url}</loc>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
-  </url>`).join('\n')}
+  </url>`
+  )
+  .join("\n")}
 </urlset>`;
 
-	return new Response(xml, {
-		headers: {
-			'Content-Type': 'application/xml',
-			'Cache-Control': 'max-age=0, s-maxage=3600'
-		}
-	});
+  return new Response(xml, {
+    headers: {
+      "Content-Type": "application/xml",
+      "Cache-Control": "max-age=0, s-maxage=3600",
+    },
+  });
 };

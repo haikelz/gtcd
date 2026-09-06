@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
-  import { FileText , TriangleAlert } from "@lucide/svelte";
+  import { FileText, TriangleAlert } from "@lucide/svelte";
 
   let { data } = $props();
   let datePreset = $state("7d");
@@ -17,14 +17,22 @@
   }
 </script>
 
-<SEO title="Pages — gtcd" description="Top pages for your GoatCounter site." noindex />
+<SEO
+  title="Pages — gtcd"
+  description="Top pages for your GoatCounter site."
+  noindex
+/>
 
 <header
   class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
 >
   <div>
     <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Pages</h1>
+    <h1
+      class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground"
+    >
+      Pages
+    </h1>
     <p class="text-sm mt-1.5 text-muted-foreground">
       Which pages your visitors view.
     </p>
@@ -48,9 +56,16 @@
   <div class="panel animate-fade-in">
     <div class="flex items-baseline justify-between gap-3 mb-6">
       <h2 class="section-title">Page report</h2>
-      <span class="text-xs text-muted-foreground">{data.hits.hits.length} tracked paths</span>
+      <span class="text-xs text-muted-foreground"
+        >{data.hits.hits.length} tracked paths</span
+      >
     </div>
-    <div class="flex justify-between text-xs text-muted-foreground pb-3" aria-hidden="true"><span>Page</span><span>Views</span></div>
+    <div
+      class="flex justify-between text-xs text-muted-foreground pb-3"
+      aria-hidden="true"
+    >
+      <span>Page</span><span>Views</span>
+    </div>
     <ul
       class="list-none p-0 m-0 border-t border-border"
       aria-label="Pages list"

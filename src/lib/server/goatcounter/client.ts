@@ -52,13 +52,20 @@ function sweepCache(now: number): void {
 
   // Still full after removing expired entries: drop the oldest half.
   if (memoryCache.size >= CACHE_MAX_ENTRIES) {
-    const keys = [...memoryCache.keys()].slice(0, Math.floor(CACHE_MAX_ENTRIES / 2));
+    const keys = [...memoryCache.keys()].slice(
+      0,
+      Math.floor(CACHE_MAX_ENTRIES / 2)
+    );
     for (const key of keys) memoryCache.delete(key);
   }
 }
 
 export function getApiKey(): string {
-  return (env.GOATCOUNTER_API_KEY || process.env.GOATCOUNTER_API_KEY || "").trim();
+  return (
+    env.GOATCOUNTER_API_KEY ||
+    process.env.GOATCOUNTER_API_KEY ||
+    ""
+  ).trim();
 }
 
 export function getBaseUrl(): string {
@@ -75,14 +82,14 @@ function requireApiConfig(): { baseUrl: string; apiKey: string } {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     throw new Error(
-      "GOATCOUNTER_URL is not configured. Set it in your .env or container environment (e.g. http://goatcounter:8080).",
+      "GOATCOUNTER_URL is not configured. Set it in your .env or container environment (e.g. http://goatcounter:8080)."
     );
   }
 
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error(
-      "GOATCOUNTER_API_KEY is not configured. Generate a token in GoatCounter (Settings → API) or run ./scripts/setup.sh, then set it in your .env or container environment.",
+      "GOATCOUNTER_API_KEY is not configured. Generate a token in GoatCounter (Settings → API) or run ./scripts/setup.sh, then set it in your .env or container environment."
     );
   }
 
@@ -101,11 +108,15 @@ export function getUpstreamStatus(): "up" | "down" | "unknown" {
   const now = Date.now();
 
   if (lastUpstreamSuccessAt > lastUpstreamFailureAt) {
-    return now - lastUpstreamSuccessAt <= UPSTREAM_STATUS_WINDOW_MS ? "up" : "unknown";
+    return now - lastUpstreamSuccessAt <= UPSTREAM_STATUS_WINDOW_MS
+      ? "up"
+      : "unknown";
   }
 
   if (lastUpstreamFailureAt > 0) {
-    return now - lastUpstreamFailureAt <= UPSTREAM_STATUS_WINDOW_MS ? "down" : "unknown";
+    return now - lastUpstreamFailureAt <= UPSTREAM_STATUS_WINDOW_MS
+      ? "down"
+      : "unknown";
   }
 
   return "unknown";
@@ -123,7 +134,7 @@ export async function gcFetch<T>(
   path: string,
   init: RequestInit = {},
   params?: Record<string, string | undefined>,
-  options: { bypassCache?: boolean; ttlMs?: number } = {},
+  options: { bypassCache?: boolean; ttlMs?: number } = {}
 ): Promise<T> {
   const { baseUrl, apiKey } = requireApiConfig();
   const url = new URL(`${baseUrl}${path}`);
@@ -178,7 +189,7 @@ export async function gcFetch<T>(
           Math.max(1000, parsedSeconds * 1000, exponentialDelay) + jitter;
 
         lastError = new Error(
-          `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`,
+          `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`
         );
 
         await sleep(waitMs);
@@ -231,12 +242,12 @@ export async function gcFetch<T>(
 
 export async function gcFetchRaw(
   path: string,
-  init: RequestInit = {},
+  init: RequestInit = {}
 ): Promise<Response> {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
     throw new Error(
-      "GOATCOUNTER_URL is not configured. Set it in your .env or container environment (e.g. http://goatcounter:8080).",
+      "GOATCOUNTER_URL is not configured. Set it in your .env or container environment (e.g. http://goatcounter:8080)."
     );
   }
 
