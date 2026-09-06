@@ -5,7 +5,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: default-security-headers@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: security-headers@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
@@ -16,6 +16,7 @@ spec:
     - host: ${DOMAIN}
       http:
         paths:
+          # GoatCounter tracking endpoint
           - path: /count
             pathType: Prefix
             backend:
@@ -23,6 +24,7 @@ spec:
                 name: goatcounter
                 port:
                   number: 8080
+          # Everything else → gtcd dashboard
           - path: /
             pathType: Prefix
             backend:

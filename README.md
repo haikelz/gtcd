@@ -172,19 +172,17 @@ pnpm build
 Production Kustomize manifests are included in [`k8s/`](k8s/):
 
 ```bash
-# 1. Create the secret configuration from the example
-cp k8s/gtcd.env.example k8s/gtcd.env
-# Edit k8s/gtcd.env with your GoatCounter URL and API token
+# 1. Create the deploy configuration from the example
+cp k8s/gtcd/.env.example k8s/.env
+# Edit k8s/.env with DOMAIN, EMAIL, IMAGE, GOATCOUNTER_URL and GOATCOUNTER_API_KEY
 
-# 2. Point the deployment at your built image
-#    (locally: docker build -t gtcd:local . && minikube image load gtcd:local)
-cd k8s && kustomize edit set image gtcd=ghcr.io/you/gtcd@sha256:<DIGEST> && cd ..
-#    or keep the default `gtcd:local` tag for a local cluster
-
-# 3. Inspect the rendered manifests, then deploy
-kubectl kustomize k8s/
-kubectl apply -k k8s/
+# 2. Deploy (requires kubectl and envsubst)
+k8s/deploy-k8s.sh
 ```
+
+The script renders the manifests with envsubst, creates the `gtcd-env` Secret
+from your env values, applies GoatCounter + gtcd + Redis in dependency order,
+and rolls the deployment so pods pick up the current Secret.
 
 The Kubernetes setup features:
 
@@ -194,13 +192,17 @@ The Kubernetes setup features:
 - Health and readiness probes wired to `/api/health`
 - Traefik Ingress with automatic Let's Encrypt TLS and security headers
 - PersistentVolumeClaim for GoatCounter data
-- Session configuration delivered through a generated Secret (`secretGenerator`)
+- Session credentials delivered through a kubectl-created Secret (`gtcd-env`)
+
+After the first deploy, bootstrap GoatCounter (site + API token) and put the
+token in `k8s/.env` as `GOATCOUNTER_API_KEY`, then re-run `k8s/deploy-k8s.sh` —
+the exact commands are documented in [`k8s/gtcd/.env.example`](k8s/gtcd/.env.example).
 
 Add the tracking snippet to your website:
 
 ```html
 <script
-  data-goatcounter="https://${DOMAIN}/count"
+  data-goatcounter="https://<DOMAIN>/count"
   async
   src="//gc.zgo.at/count.js"
 ></script>

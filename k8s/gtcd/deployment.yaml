@@ -23,17 +23,10 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
-      topologySpreadConstraints:
-        - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
-          whenUnsatisfiable: ScheduleAnyway
-          labelSelector:
-            matchLabels:
-              app: gtcd
       containers:
         - name: gtcd
-          image: gtcd
-          imagePullPolicy: IfNotPresent
+          image: ${IMAGE}
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
               name: http
@@ -45,6 +38,8 @@ spec:
               value: "0.0.0.0"
             - name: NODE_ENV
               value: "production"
+            # Derive the public origin from the ingress proxy headers so CSRF
+            # origin checks and session-cookie flags work behind TLS ingress.
             - name: PROTOCOL_HEADER
               value: x-forwarded-proto
             - name: HOST_HEADER
@@ -59,12 +54,9 @@ spec:
                 secretKeyRef:
                   name: gtcd-env
                   key: GOATCOUNTER_API_KEY
+            # In-cluster Redis deployed from redis.yaml in this directory.
             - name: REDIS_URL
-              valueFrom:
-                secretKeyRef:
-                  name: gtcd-env
-                  key: REDIS_URL
-                  optional: true
+              value: redis://redis:6379
           resources:
             requests:
               cpu: "50m"
@@ -93,10 +85,17 @@ spec:
             periodSeconds: 5
             failureThreshold: 12
             timeoutSeconds: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
-      volumes: []
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Mi
