@@ -4,9 +4,9 @@
 - **Framework**: SvelteKit 2 (Svelte 5 Runes)
 - **Package Manager**: pnpm
 - **Styling**: Tailwind CSS v4, DaisyUI v5
-- **Runtime**: Node.js 20 LTS (`@sveltejs/adapter-node`)
+- **Runtime**: Node.js 26 (`@sveltejs/adapter-node`; Node 20 is EOL — bump deliberately, together with the Dockerfile)
 - **State & Caching**: Redis 7 (`ioredis`) with in-memory fallback, memory query cache
-- **Containerization & Orchestration**: Docker (multi-stage non-root), Kubernetes (Kustomize manifests)
+- **Containerization & Orchestration**: Docker (multi-stage non-root, `node:26-alpine`), Kubernetes (envsubst-templated manifests + `k8s/deploy-k8s.sh`)
 
 ---
 
@@ -44,7 +44,21 @@ Read `.agents/general.md` and `.agents/preferences.md` for every task. Then sele
 
 - Null, empty string, or whitespace-only metric names (e.g., missing browsers, systems, or campaign tags) must be normalized to `"Unknown"` at the service layer (`src/lib/server/goatcounter/stats.ts`).
 
-### 4. Accessibility & UI Quality (WCAG 2.1 AA)
+### 4. GoatCounter Deployment Facts
+
+- The official `arp242/goatcounter` image accepts NO environment variables (unknown `GOATCOUNTER_*` vars are a startup error). Site/user/token bootstrap is CLI-only: `goatcounter db create site`, `db create apitoken`, automated by `scripts/setup.sh` (Docker) and documented in `k8s/gtcd/.env.example` (Kubernetes).
+- The stats API requires a `stats` permission bit the CLI cannot set; after `db create apitoken`, permissions are set to all bits (`127`) via `db query "UPDATE api_tokens SET permissions='127' ..."`.
+- The site vhost must have 2+ DNS labels (`stats.localhost` locally, the real domain in production) and it must match the `Host` header tracking requests arrive with — hits sent under a non-matching Host are counted but never persisted.
+- GoatCounter persists hits asynchronously (`hit_stats` fills within ~a minute) and filters non-browser User-Agents; don't validate tracking with `curl`/`wget` alone.
+
+### 5. Delivery Schemes
+
+- **Docker Compose**: Caddy (TLS, `/count` + `/admin/*` → GoatCounter, rest → gtcd) + GoatCounter + Redis + gtcd; `scripts/setup.sh` generates the Caddyfile and `.env`.
+- **Kubernetes** (`k8s/`): envsubst-templated manifests (`${DOMAIN}`, `${IMAGE}`) applied by `k8s/deploy-k8s.sh` — kubectl-created Secret `gtcd-env` (only `GOATCOUNTER_URL` + `GOATCOUNTER_API_KEY`; `REDIS_URL` is hardcoded to the in-cluster service), ordered apply, rollout restart. Shared assets in `k8s/shared/` (cert-manager ClusterIssuer, Traefik `security-headers` middleware).
+- The gtcd Ingress references `security-headers@kubernetescrd`; a missing middleware makes Traefik 404 every route with zero pod logs, so the deploy script applies middlewares empirically (legacy `traefik.containo.us` retry) and treats failure as fatal.
+- `REDIS_URL` unset or empty makes the app fall back to `localhost:6379`, which doesn't exist in-cluster — sessions would die; keep it set or hardcoded.
+
+### 6. Accessibility & UI Quality (WCAG 2.1 AA)
 
 - Charts must supply accessible representations: SVG `<title>`, `<desc>`, `role="img"`, and a companion screen-reader table (`.sr-only`).
 - Interactive metrics use semantic ARIA attributes (`role="meter"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`).
