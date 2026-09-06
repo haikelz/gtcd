@@ -17,11 +17,7 @@
     X,
   } from "@lucide/svelte";
   import { onMount, tick } from "svelte";
-  import { registerSW } from "virtual:pwa-register";
   import "../app.css";
-
-  // PWA: keep the service worker current (the plugin injects the manifest).
-  registerSW({ immediate: true });
 
   let { children, data } = $props();
   let sidebarOpen = $state(false);

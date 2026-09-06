@@ -9,6 +9,7 @@ export default defineConfig({
     tailwindcss(),
     SvelteKitPWA({
       registerType: "autoUpdate",
+      injectRegister: "script-defer",
       manifest: {
         name: "gtcd — GoatCounter analytics dashboard",
         short_name: "gtcd",
