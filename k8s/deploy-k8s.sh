@@ -50,7 +50,12 @@ fi
 # Create/update the Secret from env vars. Secret keys are read by the pod at
 # container start, so the deployment is rolled again after the apply below.
 secret_name="gtcd-env"
-secret_vars=(GOATCOUNTER_URL GOATCOUNTER_API_KEY)
+secret_vars=(
+  GOATCOUNTER_URL
+  GOATCOUNTER_API_KEY
+  GTCD_ADMIN_EMAILS
+  GOATCOUNTER_ADMIN_URL
+)
 
 echo "  Creating/updating Secret '$secret_name'..."
 literal_args=()

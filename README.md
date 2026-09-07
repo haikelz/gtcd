@@ -203,7 +203,8 @@ Production manifests live in [`k8s/`](k8s/) as envsubst-templated YAML applied b
 ```bash
 # 1. Create the deploy configuration from the example
 cp k8s/gtcd/.env.example k8s/.env
-# Edit k8s/.env with DOMAIN, EMAIL, IMAGE, GOATCOUNTER_URL and GOATCOUNTER_API_KEY
+# Edit k8s/.env with DOMAIN, EMAIL, IMAGE, GOATCOUNTER_URL, GOATCOUNTER_API_KEY,
+# and optional GTCD_ADMIN_EMAILS / GOATCOUNTER_ADMIN_URL values.
 
 # 2. Deploy (requires kubectl and envsubst)
 k8s/deploy-k8s.sh
@@ -219,11 +220,13 @@ The Kubernetes setup features:
 - Ingress routes `/count` to GoatCounter and `/` to gtcd
 - Non-root hardened containers (numeric UID 1000, dropped capabilities, read-only root filesystem, `RuntimeDefault` seccomp)
 - Health and readiness probes wired to `/api/health`
-- Traefik Ingress with automatic Let's Encrypt TLS and security headers
+- Traefik Ingress with automatic Let's Encrypt TLS; application security headers
 - PersistentVolumeClaim for GoatCounter data
 - Session credentials delivered through a kubectl-created Secret (`gtcd-env`)
 
-If cert-manager is absent, the ClusterIssuer step is skipped with a warning. The shared Traefik middleware, however, is applied empirically — with a legacy `traefik.containo.us` retry for old Traefik v2 clusters — and a failure here is fatal: an Ingress that references a missing middleware makes Traefik 404 every route before any pod is reached.
+If cert-manager is absent, the ClusterIssuer step is skipped with a warning. The
+Ingress does not reference optional Traefik Middleware, so an unavailable
+Middleware CRD cannot make Traefik return 404 for every GTCD route.
 
 After the first deploy, bootstrap GoatCounter (site + API token) and put the
 token in `k8s/.env` as `GOATCOUNTER_API_KEY`, then re-run `k8s/deploy-k8s.sh` —

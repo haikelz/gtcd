@@ -54,6 +54,16 @@ spec:
                 secretKeyRef:
                   name: gtcd-env
                   key: GOATCOUNTER_API_KEY
+            - name: GTCD_ADMIN_EMAILS
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: GTCD_ADMIN_EMAILS
+            - name: GOATCOUNTER_ADMIN_URL
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: GOATCOUNTER_ADMIN_URL
             # In-cluster Redis deployed from redis.yaml in this directory.
             - name: REDIS_URL
               value: redis://redis:6379
