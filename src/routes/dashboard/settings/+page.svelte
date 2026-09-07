@@ -22,7 +22,7 @@
 />
 
 <header
-  class="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between"
+  class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-end sm:justify-between"
 >
   <div class="max-w-2xl">
     <p class="eyebrow mb-2">Site administration</p>
@@ -41,14 +41,14 @@
 </header>
 
 {#if data.updated}
-  <div class="alert alert-success mb-6" role="status">
+  <div class="alert alert-success mb-5" role="status">
     <BadgeCheck class="h-5 w-5 shrink-0" />
     <span>Site settings saved.</span>
   </div>
 {/if}
 
 {#if form?.message}
-  <div class="alert alert-error mb-6" role="alert">
+  <div class="alert alert-error mb-5" role="alert">
     <TriangleAlert class="h-5 w-5 shrink-0" />
     <span
       >{form.field
@@ -58,18 +58,18 @@
   </div>
 {/if}
 
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
   <form
     id="site-settings"
     method="POST"
     action="?/update"
     use:enhance
-    class="panel"
+    class="panel !p-0 overflow-hidden"
   >
     <input type="hidden" name="siteId" value={data.site.id} />
 
-    <section class="pb-7" aria-labelledby="site-identity-heading">
-      <div class="flex items-start gap-3">
+    <section class="p-5 sm:p-6" aria-labelledby="site-identity-heading">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
         <span class="metric-icon shrink-0" aria-hidden="true"
           ><Settings class="h-5 w-5" /></span
         >
@@ -82,10 +82,10 @@
           </p>
         </div>
       </div>
-      <label class="form-control gap-2 mt-6">
+      <label class="grid gap-2 mt-6">
         <span class="label-text font-medium">Linked website URL</span>
         <input
-          class="input input-bordered w-full"
+          class="input input-bordered h-11 w-full px-3"
           name="linkDomain"
           type="url"
           value={form?.values?.linkDomain ?? data.site.link_domain ?? ""}
@@ -101,10 +101,10 @@
     </section>
 
     <section
-      class="border-t border-border py-7"
+      class="border-t border-border p-5 sm:p-6"
       aria-labelledby="data-controls-heading"
     >
-      <div class="flex items-start gap-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
         <span class="metric-icon shrink-0" aria-hidden="true"
           ><Database class="h-5 w-5" /></span
         >
@@ -118,13 +118,13 @@
         </div>
       </div>
       <div
-        class="grid gap-5 mt-6 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]"
+        class="grid gap-6 mt-6 md:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)]"
       >
-        <label class="form-control gap-2">
+        <label class="grid content-start gap-2">
           <span class="label-text font-medium">Data retention</span>
           <div class="join w-full">
             <input
-              class="input input-bordered join-item w-full"
+              class="input input-bordered join-item h-11 w-full px-3"
               name="dataRetention"
               type="number"
               min="0"
@@ -133,7 +133,7 @@
               aria-label="Data retention in days"
               aria-describedby="data-retention-help"
             />
-            <span class="btn btn-disabled join-item pointer-events-none"
+            <span class="btn btn-disabled join-item h-11 pointer-events-none"
               >days</span
             >
           </div>
@@ -143,10 +143,10 @@
             >Use 0 to retain data indefinitely.</span
           >
         </label>
-        <label class="form-control gap-2">
+        <label class="grid gap-2">
           <span class="label-text font-medium">Ignored IP addresses</span>
           <textarea
-            class="textarea textarea-bordered min-h-28 w-full"
+            class="textarea textarea-bordered min-h-32 w-full p-3 leading-6"
             name="ignoreIps"
             placeholder="One IP or CIDR per line"
             aria-describedby={form?.field === "ignoreIps"
@@ -170,21 +170,22 @@
           {/if}
         </label>
       </div>
-      <label class="form-control gap-2 mt-5">
+      <label class="grid gap-2 mt-6">
         <span class="label-text font-medium"
           >Countries with regional reporting</span
         >
-        <textarea
-          class="textarea textarea-bordered min-h-24 w-full"
+        <input
+          class="input input-bordered h-11 w-full px-3"
           name="collectRegions"
+          type="text"
           placeholder="US, ID"
           aria-describedby={form?.field === "collectRegions"
             ? "collect-regions-help collect-regions-error"
             : "collect-regions-help"}
           aria-invalid={form?.field === "collectRegions" ? "true" : undefined}
-          >{form?.values?.collectRegions ??
-            data.site.settings.collect_regions.join(", ")}</textarea
-        >
+          value={form?.values?.collectRegions ??
+            data.site.settings.collect_regions.join(", ")}
+        />
         <span
           id="collect-regions-help"
           class="block text-xs leading-5 text-muted-foreground"
@@ -201,10 +202,10 @@
     </section>
 
     <section
-      class="border-t border-border pt-7"
+      class="border-t border-border p-5 sm:p-6"
       aria-labelledby="sharing-heading"
     >
-      <div class="flex items-start gap-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
         <span class="metric-icon shrink-0" aria-hidden="true"
           ><ShieldCheck class="h-5 w-5" /></span
         >
@@ -218,10 +219,10 @@
           </p>
         </div>
       </div>
-      <label class="form-control gap-2 mt-6">
+      <label class="grid gap-2 mt-6">
         <span class="label-text font-medium">Allowed embed origins</span>
         <textarea
-          class="textarea textarea-bordered min-h-24 w-full"
+          class="textarea textarea-bordered min-h-32 w-full p-3 leading-6"
           name="allowEmbed"
           placeholder="https://dashboard.example.com"
           aria-describedby={form?.field === "allowEmbed"
@@ -243,9 +244,9 @@
           >
         {/if}
       </label>
-      <div class="grid gap-3 mt-5 sm:grid-cols-2">
+      <div class="grid gap-3 mt-6 sm:grid-cols-2">
         <label
-          class="flex min-h-20 cursor-pointer items-center gap-3 rounded-box border border-border px-4 py-3"
+          class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
         >
           <input
             class="toggle toggle-primary shrink-0"
@@ -262,7 +263,7 @@
           >
         </label>
         <label
-          class="flex min-h-20 cursor-pointer items-center gap-3 rounded-box border border-border px-4 py-3"
+          class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
         >
           <input
             class="toggle toggle-primary shrink-0"
@@ -313,11 +314,14 @@
         reports in GoatCounter.
       </p>
       {#if adminUrl}
-        <form action={adminUrl} method="GET" class="mt-5">
-          <button class="btn btn-outline w-full" type="submit"
-            ><ExternalLink class="h-4 w-4" /> Open GoatCounter</button
-          >
-        </form>
+        <svelte:element
+          this={"a"}
+          class="btn btn-outline w-full mt-5"
+          href={adminUrl}
+          target="_blank"
+          rel="noreferrer"
+          ><ExternalLink class="h-4 w-4" /> Open GoatCounter</svelte:element
+        >
       {:else}
         <div class="alert alert-warning text-sm mt-5">
           <TriangleAlert class="h-4 w-4 shrink-0" /> Set

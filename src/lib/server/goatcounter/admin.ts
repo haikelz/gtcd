@@ -10,6 +10,15 @@ type GoatCounterSettings = Omit<
   readonly allow_embed?: unknown;
 };
 
+type GoatCounterSettingsInput = Omit<
+  SiteSettings,
+  "ignore_ips" | "collect_regions" | "allow_embed"
+> & {
+  readonly ignore_ips: string;
+  readonly collect_regions: string;
+  readonly allow_embed: string;
+};
+
 type GoatCounterSite = Omit<Site, "settings"> & {
   readonly settings?: GoatCounterSettings;
   readonly setttings?: GoatCounterSettings;
@@ -29,6 +38,21 @@ function normalizeList(value: unknown): readonly string[] {
     .split(/\r?\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function serializeList(values: readonly string[]): string {
+  return values.join(",");
+}
+
+function toGoatCounterSettingsInput(
+  settings: SiteSettings
+): GoatCounterSettingsInput {
+  return {
+    ...settings,
+    ignore_ips: serializeList(settings.ignore_ips),
+    collect_regions: serializeList(settings.collect_regions),
+    allow_embed: serializeList(settings.allow_embed),
+  };
 }
 
 function normalizeSite(site: GoatCounterSite): Site {
@@ -71,7 +95,7 @@ export async function updateSite(
     method: "PATCH",
     body: JSON.stringify({
       link_domain: input.linkDomain,
-      settings: input.settings,
+      settings: toGoatCounterSettingsInput(input.settings),
     }),
   });
 
