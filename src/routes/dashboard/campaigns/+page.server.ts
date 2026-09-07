@@ -1,10 +1,9 @@
 import * as stats from "$lib/server/goatcounter/stats.js";
 import type { StatsPage } from "$lib/server/goatcounter/types.js";
-import { getDateRange } from "$lib/server/helpers.js";
+import { getDateRangeFromUrl } from "$lib/server/helpers.js";
 
 export async function load({ url }) {
-  const preset = url.searchParams.get("range") || "7d";
-  const { start, end } = getDateRange(preset);
+  const { range, start, end } = getDateRangeFromUrl(url);
 
   try {
     const result = await stats.getStats(
@@ -13,10 +12,10 @@ export async function load({ url }) {
       end,
       50
     );
-    return { range: preset, stats: result };
+    return { range, stats: result };
   } catch (e: unknown) {
     return {
-      range: preset,
+      range,
       error: e instanceof Error ? e.message : "Failed",
       stats: null,
     };

@@ -6,15 +6,18 @@
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
   import {
     FileText,
+    FolderCog,
     Globe,
     Languages,
     LayoutGrid,
+    Link2,
     LogOut,
     MapPin,
     Megaphone,
     Menu,
     Monitor,
     Smartphone,
+    Settings,
     X,
   } from "@lucide/svelte";
   import { onMount, tick } from "svelte";
@@ -72,6 +75,11 @@
       label: "Campaigns",
       href: "/dashboard/campaigns",
       icon: Megaphone,
+    },
+    {
+      label: "Referrers",
+      href: "/dashboard/referrers",
+      icon: Link2,
     },
   ] as const;
   const activeLabel = $derived(
@@ -225,6 +233,37 @@
               </a>
             </li>
           {/each}
+          {#if data.isAdmin}
+            <li>
+              <p class="sidebar-section-label px-3 pb-2 pt-5">Manage</p>
+              <a
+                href={resolve("/dashboard/settings")}
+                class="sidebar-link {isActive('/dashboard/settings')
+                  ? 'active'
+                  : ''}"
+                aria-current={isActive("/dashboard/settings")
+                  ? "page"
+                  : undefined}
+                onclick={closeSidebar}
+              >
+                <Settings class="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                <span>Settings</span>
+              </a>
+              <a
+                href={resolve("/dashboard/exports")}
+                class="sidebar-link {isActive('/dashboard/exports')
+                  ? 'active'
+                  : ''}"
+                aria-current={isActive("/dashboard/exports")
+                  ? "page"
+                  : undefined}
+                onclick={closeSidebar}
+              >
+                <FolderCog class="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                <span>Exports</span>
+              </a>
+            </li>
+          {/if}
         </ul>
       </nav>
       <div class="border-t border-border p-3 flex items-center gap-2">

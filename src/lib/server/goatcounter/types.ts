@@ -117,14 +117,29 @@ export interface SiteSettings {
   allow_counter: boolean;
   allow_bosmang: boolean;
   data_retention: number;
-  ignore_ips: string[];
+  ignore_ips: readonly string[];
   collect: number;
-  collect_regions: string[];
-  allow_embed: string[];
+  collect_regions: readonly string[];
+  allow_embed: readonly string[];
 }
 
 export interface SitesResponse {
-  sites: Site[];
+  sites: readonly Site[];
+}
+
+export interface ExportJob {
+  id: number;
+  site_id: number;
+  format: "csv" | "json";
+  start_from_hit_id?: number;
+  last_hit_id?: number;
+  start_from_day?: string;
+  created_at: string;
+  finished_at?: string;
+  num_rows?: number;
+  size?: string;
+  hash?: string;
+  error?: string;
 }
 
 export type GoatCounterAuthResult =

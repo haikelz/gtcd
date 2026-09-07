@@ -5,13 +5,14 @@ export async function load({ url }) {
   const { range, start, end } = getDateRangeFromUrl(url);
 
   try {
-    const hits = await stats.getHits(start, end, 100);
-    return { range, hits };
-  } catch (e: unknown) {
+    const refs = await stats.getStats("toprefs", start, end, 100);
+    return { range, refs };
+  } catch (error: unknown) {
     return {
       range,
-      error: e instanceof Error ? e.message : "Failed",
-      hits: null,
+      error:
+        error instanceof Error ? error.message : "Failed to load referrers.",
+      refs: null,
     };
   }
 }

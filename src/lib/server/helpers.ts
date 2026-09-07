@@ -19,6 +19,49 @@ export function getDateRange(preset: string): { start: string; end: string } {
   };
 }
 
+export function getDateRangeFromUrl(url: URL): {
+  readonly range: string;
+  readonly start: string;
+  readonly end: string;
+} {
+  const startDate = url.searchParams.get("start");
+  const endDate = url.searchParams.get("end");
+
+  if (!startDate && !endDate) {
+    const range = url.searchParams.get("range") || "7d";
+    return { range, ...getDateRange(range) };
+  }
+
+  if (
+    !startDate ||
+    !endDate ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(endDate)
+  ) {
+    throw new Error("Choose a valid start and end date.");
+  }
+
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T23:59:59.999`);
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    start > end
+  ) {
+    throw new Error("The end date must be on or after the start date.");
+  }
+
+  start.setMinutes(0, 0, 0);
+  end.setMinutes(59, 59, 999);
+
+  return {
+    range: "custom",
+    start: formatRFC3339(start),
+    end: formatRFC3339(end),
+  };
+}
+
 function getStartTime(now: Date, preset: string): Date {
   const start = new Date(now);
   switch (preset) {

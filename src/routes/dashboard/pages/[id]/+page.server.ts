@@ -1,9 +1,8 @@
 import * as stats from "$lib/server/goatcounter/stats.js";
-import { getDateRange } from "$lib/server/helpers.js";
+import { getDateRangeFromUrl } from "$lib/server/helpers.js";
 
 export async function load({ params, url }) {
-  const preset = url.searchParams.get("range") || "7d";
-  const { start, end } = getDateRange(preset);
+  const { range, start, end } = getDateRangeFromUrl(url);
   const pathId = Number(params.id);
 
   try {
@@ -11,10 +10,10 @@ export async function load({ params, url }) {
       stats.getReferrals(pathId, start, end, 30),
       stats.getHits(start, end, 100),
     ]);
-    return { range: preset, refs, hits, pathId };
+    return { range, refs, hits, pathId };
   } catch (e: unknown) {
     return {
-      range: preset,
+      range,
       error: e instanceof Error ? e.message : "Failed",
       refs: null,
       hits: null,

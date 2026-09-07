@@ -1,4 +1,8 @@
 import { redirect } from "@sveltejs/kit";
+import {
+  getGoatCounterAdminUrl,
+  isDashboardAdmin,
+} from "$lib/server/auth/admin.js";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -8,5 +12,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
   return {
     user: locals.user,
+    isAdmin: isDashboardAdmin(locals.user.email),
+    goatCounterAdminUrl: getGoatCounterAdminUrl(),
   };
 };
