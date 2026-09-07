@@ -1,20 +1,40 @@
 import { clearClientCache, gcFetch, gcFetchRaw } from "./client.js";
-import type { ExportJob, Site, SiteSettings, SitesResponse } from "./types.js";
+import type { ExportJob, Site, SiteSettings } from "./types.js";
+
+type GoatCounterSite = Omit<Site, "settings"> & {
+  readonly settings?: SiteSettings;
+  readonly setttings?: SiteSettings;
+};
+
+function normalizeSite(site: GoatCounterSite): Site {
+  const settings = site.settings ?? site.setttings;
+
+  if (!settings) {
+    throw new Error("GoatCounter returned a site without settings.");
+  }
+
+  return { ...site, settings };
+}
 
 export async function getSites(): Promise<readonly Site[]> {
-  const response = await gcFetch<SitesResponse>("/api/v0/sites");
-  return response.sites;
+  const response = await gcFetch<{
+    readonly sites: readonly GoatCounterSite[];
+  }>("/api/v0/sites");
+
+  return response.sites.map(normalizeSite);
 }
 
 export async function getSite(siteId: number): Promise<Site> {
-  return gcFetch<Site>(`/api/v0/sites/${siteId}`);
+  const site = await gcFetch<GoatCounterSite>(`/api/v0/sites/${siteId}`);
+
+  return normalizeSite(site);
 }
 
 export async function updateSite(
   siteId: number,
   input: { readonly linkDomain: string; readonly settings: SiteSettings }
 ): Promise<Site> {
-  const site = await gcFetch<Site>(`/api/v0/sites/${siteId}`, {
+  const site = await gcFetch<GoatCounterSite>(`/api/v0/sites/${siteId}`, {
     method: "PATCH",
     body: JSON.stringify({
       link_domain: input.linkDomain,
@@ -23,7 +43,7 @@ export async function updateSite(
   });
 
   clearClientCache();
-  return site;
+  return normalizeSite(site);
 }
 
 export async function createExport(format: "csv" | "json"): Promise<ExportJob> {
