@@ -33,7 +33,7 @@
     wideViewport ? desktopSidebarOpen : sidebarOpen
   );
   const isDashboard = $derived(
-    page.url.pathname.startsWith("/dashboard") && page.status < 400
+    page.url.pathname.startsWith("/dashboard") && page.status <= 400
   );
   const navItems = [
     {

@@ -6,6 +6,13 @@ import * as stats from "$lib/server/goatcounter/stats.js";
 const SITE_READ_PERMISSION = 8;
 const SITE_UPDATE_PERMISSION = 32;
 
+type SettingsField = "ignoreIps" | "collectRegions" | "allowEmbed";
+
+type SettingsUpdateError = {
+  readonly field: SettingsField | null;
+  readonly message: string;
+};
+
 function hasPermission(permissions: number, permission: number): boolean {
   return (
     Number.isSafeInteger(permissions) &&
@@ -47,6 +54,42 @@ function parseList(value: FormDataEntryValue | null): readonly string[] {
     .filter(Boolean);
 }
 
+function getSettingsUpdateError(error: unknown): SettingsUpdateError {
+  const message =
+    error instanceof Error
+      ? error.message
+      : "GoatCounter could not save these settings.";
+
+  if (message.startsWith("settings.ignore_ips:")) {
+    return {
+      field: "ignoreIps",
+      message: message.replace("settings.ignore_ips:", "Ignored IP addresses:"),
+    };
+  }
+
+  if (message.startsWith("settings.collect_regions:")) {
+    return {
+      field: "collectRegions",
+      message: message.replace(
+        "settings.collect_regions:",
+        "Countries with regional reporting:"
+      ),
+    };
+  }
+
+  if (message.startsWith("settings.allow_embed:")) {
+    return {
+      field: "allowEmbed",
+      message: message.replace(
+        "settings.allow_embed:",
+        "Allowed embed origins:"
+      ),
+    };
+  }
+
+  return { field: null, message };
+}
+
 export async function load({ locals, url }) {
   requireDashboardAdmin(locals.user);
 
@@ -67,11 +110,29 @@ export const actions = {
 
     const formData = await request.formData();
     const siteId = parsePositiveInteger(formData.get("siteId"));
-    const dataRetention = parsePositiveInteger(formData.get("dataRetention"));
+    const dataRetentionValue = formData.get("dataRetention");
+    const dataRetention = parsePositiveInteger(dataRetentionValue);
     const linkDomain = formData.get("linkDomain");
+    const ignoreIps = formData.get("ignoreIps");
+    const collectRegions = formData.get("collectRegions");
+    const allowEmbed = formData.get("allowEmbed");
+    const values = {
+      linkDomain: typeof linkDomain === "string" ? linkDomain : "",
+      dataRetention:
+        typeof dataRetentionValue === "string" ? dataRetentionValue : "",
+      ignoreIps: typeof ignoreIps === "string" ? ignoreIps : "",
+      collectRegions: typeof collectRegions === "string" ? collectRegions : "",
+      allowEmbed: typeof allowEmbed === "string" ? allowEmbed : "",
+      allowCounter: formData.get("allowCounter") === "on",
+      allowBosmang: formData.get("allowBosmang") === "on",
+    };
 
     if (!siteId || dataRetention === null || typeof linkDomain !== "string") {
-      return fail(400, { message: "Please provide valid site settings." });
+      return fail(400, {
+        field: null,
+        message: "Please provide valid site settings.",
+        values,
+      });
     }
 
     const currentUser = await stats.getMe();
@@ -79,22 +140,32 @@ export const actions = {
     requireSiteUpdatePermission(currentUser.token.permissions);
 
     if (siteId !== currentUser.user.site) {
-      return fail(403, { message: "This site cannot be managed here." });
+      return fail(403, {
+        field: null,
+        message: "This site cannot be managed here.",
+        values,
+      });
     }
 
-    const site = await admin.getSite(currentUser.user.site);
-    await admin.updateSite(currentUser.user.site, {
-      linkDomain: linkDomain.trim(),
-      settings: {
-        ...site.settings,
-        data_retention: dataRetention,
-        ignore_ips: parseList(formData.get("ignoreIps")),
-        collect_regions: parseList(formData.get("collectRegions")),
-        allow_embed: parseList(formData.get("allowEmbed")),
-        allow_counter: formData.get("allowCounter") === "on",
-        allow_bosmang: formData.get("allowBosmang") === "on",
-      },
-    });
+    try {
+      const site = await admin.getSite(currentUser.user.site);
+      await admin.updateSite(currentUser.user.site, {
+        linkDomain: linkDomain.trim(),
+        settings: {
+          ...site.settings,
+          data_retention: dataRetention,
+          ignore_ips: parseList(ignoreIps),
+          collect_regions: parseList(collectRegions),
+          allow_embed: parseList(allowEmbed),
+          allow_counter: formData.get("allowCounter") === "on",
+          allow_bosmang: formData.get("allowBosmang") === "on",
+        },
+      });
+    } catch (error) {
+      const updateError = getSettingsUpdateError(error);
+
+      return fail(400, { ...updateError, values });
+    }
 
     throw redirect(303, "/dashboard/settings?updated=1");
   },

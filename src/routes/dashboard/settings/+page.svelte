@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import SEO from "$lib/components/SEO.svelte";
   import {
     BadgeCheck,
@@ -10,7 +11,7 @@
     TriangleAlert,
   } from "@lucide/svelte";
 
-  let { data } = $props();
+  let { data, form } = $props();
   const adminUrl = $derived(data.goatCounterAdminUrl);
 </script>
 
@@ -21,7 +22,7 @@
 />
 
 <header
-  class="flex flex-col gap-5 mb-8 xl:flex-row xl:items-end xl:justify-between"
+  class="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between"
 >
   <div class="max-w-2xl">
     <p class="eyebrow mb-2">Site administration</p>
@@ -46,8 +47,25 @@
   </div>
 {/if}
 
-<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-  <form id="site-settings" method="POST" action="?/update" class="panel">
+{#if form?.message}
+  <div class="alert alert-error mb-6" role="alert">
+    <TriangleAlert class="h-5 w-5 shrink-0" />
+    <span
+      >{form.field
+        ? "GoatCounter could not save your settings. Review the highlighted field."
+        : form.message}</span
+    >
+  </div>
+{/if}
+
+<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+  <form
+    id="site-settings"
+    method="POST"
+    action="?/update"
+    use:enhance
+    class="panel"
+  >
     <input type="hidden" name="siteId" value={data.site.id} />
 
     <section class="pb-7" aria-labelledby="site-identity-heading">
@@ -70,13 +88,13 @@
           class="input input-bordered w-full"
           name="linkDomain"
           type="url"
-          value={data.site.link_domain || ""}
+          value={form?.values?.linkDomain ?? data.site.link_domain ?? ""}
           placeholder="https://www.example.com"
           aria-describedby="link-domain-help"
         />
         <span
           id="link-domain-help"
-          class="text-xs leading-5 text-muted-foreground"
+          class="block text-xs leading-5 text-muted-foreground"
           >Use the canonical URL for the website this site measures.</span
         >
       </label>
@@ -110,14 +128,18 @@
               name="dataRetention"
               type="number"
               min="0"
-              value={data.site.settings.data_retention}
+              value={form?.values?.dataRetention ??
+                data.site.settings.data_retention}
               aria-label="Data retention in days"
+              aria-describedby="data-retention-help"
             />
             <span class="btn btn-disabled join-item pointer-events-none"
               >days</span
             >
           </div>
-          <span class="text-xs leading-5 text-muted-foreground"
+          <span
+            id="data-retention-help"
+            class="block text-xs leading-5 text-muted-foreground"
             >Use 0 to retain data indefinitely.</span
           >
         </label>
@@ -127,12 +149,25 @@
             class="textarea textarea-bordered min-h-28 w-full"
             name="ignoreIps"
             placeholder="One IP or CIDR per line"
-            >{data.site.settings.ignore_ips.join("\n")}</textarea
+            aria-describedby={form?.field === "ignoreIps"
+              ? "ignore-ips-help ignore-ips-error"
+              : "ignore-ips-help"}
+            aria-invalid={form?.field === "ignoreIps" ? "true" : undefined}
+            >{form?.values?.ignoreIps ??
+              data.site.settings.ignore_ips.join("\n")}</textarea
           >
-          <span class="text-xs leading-5 text-muted-foreground"
+          <span
+            id="ignore-ips-help"
+            class="block text-xs leading-5 text-muted-foreground"
             >Exclude internal traffic using one IP address or CIDR range per
             line.</span
           >
+          {#if form?.field === "ignoreIps"}
+            <span
+              id="ignore-ips-error"
+              class="block text-xs leading-5 text-error">{form.message}</span
+            >
+          {/if}
         </label>
       </div>
       <label class="form-control gap-2 mt-5">
@@ -143,12 +178,25 @@
           class="textarea textarea-bordered min-h-24 w-full"
           name="collectRegions"
           placeholder="US, ID"
-          >{data.site.settings.collect_regions.join(", ")}</textarea
+          aria-describedby={form?.field === "collectRegions"
+            ? "collect-regions-help collect-regions-error"
+            : "collect-regions-help"}
+          aria-invalid={form?.field === "collectRegions" ? "true" : undefined}
+          >{form?.values?.collectRegions ??
+            data.site.settings.collect_regions.join(", ")}</textarea
         >
-        <span class="text-xs leading-5 text-muted-foreground"
+        <span
+          id="collect-regions-help"
+          class="block text-xs leading-5 text-muted-foreground"
           >Enter comma-separated country codes only where regional detail is
           needed.</span
         >
+        {#if form?.field === "collectRegions"}
+          <span
+            id="collect-regions-error"
+            class="block text-xs leading-5 text-error">{form.message}</span
+          >
+        {/if}
       </label>
     </section>
 
@@ -176,11 +224,24 @@
           class="textarea textarea-bordered min-h-24 w-full"
           name="allowEmbed"
           placeholder="https://dashboard.example.com"
-          >{data.site.settings.allow_embed.join("\n")}</textarea
+          aria-describedby={form?.field === "allowEmbed"
+            ? "allow-embed-help allow-embed-error"
+            : "allow-embed-help"}
+          aria-invalid={form?.field === "allowEmbed" ? "true" : undefined}
+          >{form?.values?.allowEmbed ??
+            data.site.settings.allow_embed.join("\n")}</textarea
         >
-        <span class="text-xs leading-5 text-muted-foreground"
+        <span
+          id="allow-embed-help"
+          class="block text-xs leading-5 text-muted-foreground"
           >Allow one trusted origin per line.</span
         >
+        {#if form?.field === "allowEmbed"}
+          <span
+            id="allow-embed-error"
+            class="block text-xs leading-5 text-error">{form.message}</span
+          >
+        {/if}
       </label>
       <div class="grid gap-3 mt-5 sm:grid-cols-2">
         <label
@@ -190,7 +251,8 @@
             class="toggle toggle-primary shrink-0"
             name="allowCounter"
             type="checkbox"
-            checked={data.site.settings.allow_counter}
+            checked={form?.values?.allowCounter ??
+              data.site.settings.allow_counter}
           />
           <span
             ><span class="block text-sm font-medium">Visitor counter</span><span
@@ -206,7 +268,8 @@
             class="toggle toggle-primary shrink-0"
             name="allowBosmang"
             type="checkbox"
-            checked={data.site.settings.allow_bosmang}
+            checked={form?.values?.allowBosmang ??
+              data.site.settings.allow_bosmang}
           />
           <span
             ><span class="block text-sm font-medium">Bosmang</span><span
@@ -216,17 +279,10 @@
           >
         </label>
       </div>
-      <div
-        class="flex items-center justify-end border-t border-border mt-7 pt-5"
-      >
-        <button class="btn btn-primary" type="submit"
-          ><Save class="h-4 w-4" /> Save changes</button
-        >
-      </div>
     </section>
   </form>
 
-  <aside class="h-fit space-y-4 xl:sticky xl:top-24">
+  <aside class="h-fit space-y-4 lg:sticky lg:top-24">
     <section class="panel" aria-labelledby="settings-site-heading">
       <p class="eyebrow mb-3">Current site</p>
       <h2 id="settings-site-heading" class="section-title">
