@@ -1,6 +1,7 @@
 import { error, json } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
-import { downloadExport } from "$lib/server/goatcounter/admin.js";
+import { downloadExport, getExport } from "$lib/server/goatcounter/admin.js";
+import { getMe } from "$lib/server/goatcounter/stats.js";
 import type { RequestHandler } from "./$types";
 
 function parseExportId(value: string): number {
@@ -18,6 +19,12 @@ export const GET: RequestHandler = async ({ locals, params }) => {
   requireDashboardAdmin(locals.user);
 
   const exportId = parseExportId(params.id);
+  const [currentUser, job] = await Promise.all([getMe(), getExport(exportId)]);
+
+  if (job.site_id !== currentUser.user.site) {
+    throw error(404, "Export not found.");
+  }
+
   const upstream = await downloadExport(exportId);
 
   if (upstream.status === 202) {
@@ -28,8 +35,12 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     throw error(upstream.status || 502, "Unable to download this export.");
   }
 
-  const contentType = upstream.headers.get("content-type") || "text/csv";
-  const disposition = `attachment; filename=goatcounter-export-${exportId}.csv`;
+  const extension = job.format;
+  const contentType =
+    extension === "json"
+      ? "application/json; charset=utf-8"
+      : "text/csv; charset=utf-8";
+  const disposition = `attachment; filename=goatcounter-export-${exportId}.${extension}`;
 
   return new Response(upstream.body, {
     headers: {

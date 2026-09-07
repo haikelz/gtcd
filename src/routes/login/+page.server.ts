@@ -16,10 +16,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
   login: async ({ request, cookies, url }) => {
     const data = await request.formData();
-    const email = data.get("email") as string;
-    const password = data.get("password") as string;
+    const emailValue = data.get("email");
+    const password = data.get("password");
 
-    if (!email || !password) {
+    if (typeof emailValue !== "string" || typeof password !== "string") {
+      return fail(400, { error: "Please enter both email and password" });
+    }
+
+    const email = emailValue.trim();
+
+    if (!email || !password || email.length > 254 || password.length > 1024) {
       return fail(400, { error: "Please enter both email and password" });
     }
 

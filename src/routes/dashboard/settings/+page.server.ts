@@ -44,8 +44,13 @@ export const actions = {
       return fail(400, { message: "Please provide valid site settings." });
     }
 
-    const site = await admin.getSite(siteId);
-    await admin.updateSite(siteId, {
+    const currentUser = await stats.getMe();
+    if (siteId !== currentUser.user.site) {
+      return fail(403, { message: "This site cannot be managed here." });
+    }
+
+    const site = await admin.getSite(currentUser.user.site);
+    await admin.updateSite(currentUser.user.site, {
       linkDomain: linkDomain.trim(),
       settings: {
         ...site.settings,

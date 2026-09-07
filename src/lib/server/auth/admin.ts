@@ -36,7 +36,20 @@ export function getGoatCounterAdminUrl(): string | null {
   if (!value) return null;
 
   try {
-    return new URL(value).toString();
+    const url = new URL(value);
+    const isLocalhost = ["localhost", "127.0.0.1", "[::1]"].includes(
+      url.hostname
+    );
+
+    if (
+      url.username ||
+      url.password ||
+      (url.protocol !== "https:" && !(isLocalhost && url.protocol === "http:"))
+    ) {
+      return null;
+    }
+
+    return url.toString();
   } catch {
     return null;
   }

@@ -32,5 +32,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set(header, value);
   }
 
+  if (event.locals.user) {
+    response.headers.set("Cache-Control", "private, no-store");
+  }
+
+  if (event.url.protocol === "https:") {
+    response.headers.set("Strict-Transport-Security", "max-age=31536000");
+  }
+
   return response;
 };
