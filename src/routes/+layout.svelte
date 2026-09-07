@@ -83,7 +83,11 @@
     },
   ] as const;
   const activeLabel = $derived(
-    navItems.find((item) => isActive(item.href))?.label ?? "Overview"
+    page.url.pathname === "/dashboard/settings"
+      ? "Settings"
+      : page.url.pathname === "/dashboard/exports"
+        ? "Exports"
+        : (navItems.find((item) => isActive(item.href))?.label ?? "Overview")
   );
 
   function isActive(href: string): boolean {

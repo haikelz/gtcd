@@ -1,6 +1,14 @@
 <script lang="ts">
   import SEO from "$lib/components/SEO.svelte";
-  import { ExternalLink, Save, Settings, TriangleAlert } from "@lucide/svelte";
+  import {
+    BadgeCheck,
+    Database,
+    ExternalLink,
+    Save,
+    Settings,
+    ShieldCheck,
+    TriangleAlert,
+  } from "@lucide/svelte";
 
   let { data } = $props();
   const adminUrl = $derived(data.goatCounterAdminUrl);
@@ -12,129 +20,277 @@
   noindex
 />
 
-<header class="flex flex-col gap-3 mb-8">
-  <p class="eyebrow">Manage</p>
-  <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground">
-    Site settings
-  </h1>
-  <p class="text-sm text-muted-foreground">
-    Configuration is applied directly to the selected GoatCounter site.
-  </p>
+<header
+  class="flex flex-col gap-5 mb-8 xl:flex-row xl:items-end xl:justify-between"
+>
+  <div class="max-w-2xl">
+    <p class="eyebrow mb-2">Site administration</p>
+    <h1
+      class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground"
+    >
+      Site settings
+    </h1>
+    <p class="text-sm leading-6 text-muted-foreground mt-2">
+      Control the data GoatCounter keeps and where your analytics can appear.
+    </p>
+  </div>
+  <button class="btn btn-primary shrink-0" type="submit" form="site-settings">
+    <Save class="h-4 w-4" /> Save changes
+  </button>
 </header>
 
 {#if data.updated}
-  <div class="alert alert-success mb-6" role="status">Site settings saved.</div>
+  <div class="alert alert-success mb-6" role="status">
+    <BadgeCheck class="h-5 w-5 shrink-0" />
+    <span>Site settings saved.</span>
+  </div>
 {/if}
 
-<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-  <form method="POST" action="?/update" class="panel space-y-6">
+<div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+  <form id="site-settings" method="POST" action="?/update" class="panel">
     <input type="hidden" name="siteId" value={data.site.id} />
-    <div class="flex items-center gap-2">
-      <Settings class="h-5 w-5 text-primary" />
-      <h2 class="section-title">{data.site.cname || data.site.code}</h2>
-    </div>
-    <label class="form-control">
-      <span class="label-text">Linked website URL</span>
-      <input
-        class="input input-bordered w-full"
-        name="linkDomain"
-        type="url"
-        value={data.site.link_domain || ""}
-        placeholder="https://www.example.com"
-      />
-    </label>
-    <label class="form-control">
-      <span class="label-text">Data retention (days)</span>
-      <input
-        class="input input-bordered w-full"
-        name="dataRetention"
-        type="number"
-        min="0"
-        value={data.site.settings.data_retention}
-      />
-    </label>
-    <label class="form-control">
-      <span class="label-text">Ignored IP addresses</span>
-      <textarea
-        class="textarea textarea-bordered min-h-24"
-        name="ignoreIps"
-        placeholder="One IP or CIDR per line"
-        >{data.site.settings.ignore_ips.join("\n")}</textarea
-      >
-    </label>
-    <label class="form-control">
-      <span class="label-text">Countries with regional reporting</span>
-      <textarea
-        class="textarea textarea-bordered min-h-20"
-        name="collectRegions"
-        placeholder="US, ID"
-        >{data.site.settings.collect_regions.join(", ")}</textarea
-      >
-    </label>
-    <label class="form-control">
-      <span class="label-text">Allowed embed origins</span>
-      <textarea
-        class="textarea textarea-bordered min-h-20"
-        name="allowEmbed"
-        placeholder="https://dashboard.example.com"
-        >{data.site.settings.allow_embed.join("\n")}</textarea
-      >
-    </label>
-    <div class="flex flex-wrap gap-6">
-      <label class="label cursor-pointer justify-start gap-3"
-        ><input
-          class="toggle toggle-primary"
-          name="allowCounter"
-          type="checkbox"
-          checked={data.site.settings.allow_counter}
-        /><span class="label-text">Enable visitor counter</span></label
-      >
-      <label class="label cursor-pointer justify-start gap-3"
-        ><input
-          class="toggle toggle-primary"
-          name="allowBosmang"
-          type="checkbox"
-          checked={data.site.settings.allow_bosmang}
-        /><span class="label-text">Enable Bosmang</span></label
-      >
-    </div>
-    <button class="btn btn-primary" type="submit"
-      ><Save class="h-4 w-4" /> Save settings</button
-    >
-  </form>
-  <aside class="panel h-fit space-y-4">
-    <h2 class="section-title">Native administration</h2>
-    <p class="text-sm text-muted-foreground">
-      Users, API tokens, TOTP, imports, page management, dashboard preferences,
-      and email reports stay in GoatCounter.
-    </p>
-    {#if adminUrl}
-      <form action={adminUrl} method="GET">
-        <button class="btn btn-outline w-full" type="submit"
-          ><ExternalLink class="h-4 w-4" /> Open GoatCounter</button
+
+    <section class="pb-7" aria-labelledby="site-identity-heading">
+      <div class="flex items-start gap-3">
+        <span class="metric-icon shrink-0" aria-hidden="true"
+          ><Settings class="h-5 w-5" /></span
         >
-      </form>
-    {:else}
-      <div class="alert alert-warning text-sm">
-        <TriangleAlert class="h-4 w-4" /> Set <code>GOATCOUNTER_ADMIN_URL</code> to
-        enable this handoff.
+        <div>
+          <h2 id="site-identity-heading" class="section-title">
+            {data.site.cname || data.site.code}
+          </h2>
+          <p class="text-sm leading-6 text-muted-foreground mt-1">
+            Connect this analytics site to the website people visit.
+          </p>
+        </div>
       </div>
-    {/if}
+      <label class="form-control gap-2 mt-6">
+        <span class="label-text font-medium">Linked website URL</span>
+        <input
+          class="input input-bordered w-full"
+          name="linkDomain"
+          type="url"
+          value={data.site.link_domain || ""}
+          placeholder="https://www.example.com"
+          aria-describedby="link-domain-help"
+        />
+        <span
+          id="link-domain-help"
+          class="text-xs leading-5 text-muted-foreground"
+          >Use the canonical URL for the website this site measures.</span
+        >
+      </label>
+    </section>
+
+    <section
+      class="border-t border-border py-7"
+      aria-labelledby="data-controls-heading"
+    >
+      <div class="flex items-start gap-3">
+        <span class="metric-icon shrink-0" aria-hidden="true"
+          ><Database class="h-5 w-5" /></span
+        >
+        <div>
+          <h2 id="data-controls-heading" class="section-title">
+            Data controls
+          </h2>
+          <p class="text-sm leading-6 text-muted-foreground mt-1">
+            Choose how long analytics data is kept and which traffic to ignore.
+          </p>
+        </div>
+      </div>
+      <div
+        class="grid gap-5 mt-6 md:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]"
+      >
+        <label class="form-control gap-2">
+          <span class="label-text font-medium">Data retention</span>
+          <div class="join w-full">
+            <input
+              class="input input-bordered join-item w-full"
+              name="dataRetention"
+              type="number"
+              min="0"
+              value={data.site.settings.data_retention}
+              aria-label="Data retention in days"
+            />
+            <span class="btn btn-disabled join-item pointer-events-none"
+              >days</span
+            >
+          </div>
+          <span class="text-xs leading-5 text-muted-foreground"
+            >Use 0 to retain data indefinitely.</span
+          >
+        </label>
+        <label class="form-control gap-2">
+          <span class="label-text font-medium">Ignored IP addresses</span>
+          <textarea
+            class="textarea textarea-bordered min-h-28 w-full"
+            name="ignoreIps"
+            placeholder="One IP or CIDR per line"
+            >{data.site.settings.ignore_ips.join("\n")}</textarea
+          >
+          <span class="text-xs leading-5 text-muted-foreground"
+            >Exclude internal traffic using one IP address or CIDR range per
+            line.</span
+          >
+        </label>
+      </div>
+      <label class="form-control gap-2 mt-5">
+        <span class="label-text font-medium"
+          >Countries with regional reporting</span
+        >
+        <textarea
+          class="textarea textarea-bordered min-h-24 w-full"
+          name="collectRegions"
+          placeholder="US, ID"
+          >{data.site.settings.collect_regions.join(", ")}</textarea
+        >
+        <span class="text-xs leading-5 text-muted-foreground"
+          >Enter comma-separated country codes only where regional detail is
+          needed.</span
+        >
+      </label>
+    </section>
+
+    <section
+      class="border-t border-border pt-7"
+      aria-labelledby="sharing-heading"
+    >
+      <div class="flex items-start gap-3">
+        <span class="metric-icon shrink-0" aria-hidden="true"
+          ><ShieldCheck class="h-5 w-5" /></span
+        >
+        <div>
+          <h2 id="sharing-heading" class="section-title">
+            Sharing and counters
+          </h2>
+          <p class="text-sm leading-6 text-muted-foreground mt-1">
+            Set where analytics can be embedded and which public counters are
+            available.
+          </p>
+        </div>
+      </div>
+      <label class="form-control gap-2 mt-6">
+        <span class="label-text font-medium">Allowed embed origins</span>
+        <textarea
+          class="textarea textarea-bordered min-h-24 w-full"
+          name="allowEmbed"
+          placeholder="https://dashboard.example.com"
+          >{data.site.settings.allow_embed.join("\n")}</textarea
+        >
+        <span class="text-xs leading-5 text-muted-foreground"
+          >Allow one trusted origin per line.</span
+        >
+      </label>
+      <div class="grid gap-3 mt-5 sm:grid-cols-2">
+        <label
+          class="flex min-h-20 cursor-pointer items-center gap-3 rounded-box border border-border px-4 py-3"
+        >
+          <input
+            class="toggle toggle-primary shrink-0"
+            name="allowCounter"
+            type="checkbox"
+            checked={data.site.settings.allow_counter}
+          />
+          <span
+            ><span class="block text-sm font-medium">Visitor counter</span><span
+              class="block text-xs leading-5 text-muted-foreground mt-0.5"
+              >Allow the public visitor counter.</span
+            ></span
+          >
+        </label>
+        <label
+          class="flex min-h-20 cursor-pointer items-center gap-3 rounded-box border border-border px-4 py-3"
+        >
+          <input
+            class="toggle toggle-primary shrink-0"
+            name="allowBosmang"
+            type="checkbox"
+            checked={data.site.settings.allow_bosmang}
+          />
+          <span
+            ><span class="block text-sm font-medium">Bosmang</span><span
+              class="block text-xs leading-5 text-muted-foreground mt-0.5"
+              >Allow GoatCounter's Bosmang interface.</span
+            ></span
+          >
+        </label>
+      </div>
+      <div
+        class="flex items-center justify-end border-t border-border mt-7 pt-5"
+      >
+        <button class="btn btn-primary" type="submit"
+          ><Save class="h-4 w-4" /> Save changes</button
+        >
+      </div>
+    </section>
+  </form>
+
+  <aside class="h-fit space-y-4 xl:sticky xl:top-24">
+    <section class="panel" aria-labelledby="settings-site-heading">
+      <p class="eyebrow mb-3">Current site</p>
+      <h2 id="settings-site-heading" class="section-title">
+        {data.site.cname || data.site.code}
+      </h2>
+      <dl class="mt-5 space-y-3 text-sm">
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">Status</dt>
+          <dd class="font-medium flex items-center gap-1.5">
+            <BadgeCheck class="h-4 w-4 text-success" />
+            {data.site.received_data ? "Receiving data" : "Awaiting data"}
+          </dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">Retention</dt>
+          <dd class="font-medium">
+            {data.site.settings.data_retention || "Unlimited"}
+          </dd>
+        </div>
+      </dl>
+    </section>
+    <section class="panel" aria-labelledby="native-admin-heading">
+      <h2 id="native-admin-heading" class="section-title">
+        Native administration
+      </h2>
+      <p class="text-sm leading-6 text-muted-foreground mt-2">
+        Manage users, API tokens, TOTP, imports, pages, preferences, and email
+        reports in GoatCounter.
+      </p>
+      {#if adminUrl}
+        <form action={adminUrl} method="GET" class="mt-5">
+          <button class="btn btn-outline w-full" type="submit"
+            ><ExternalLink class="h-4 w-4" /> Open GoatCounter</button
+          >
+        </form>
+      {:else}
+        <div class="alert alert-warning text-sm mt-5">
+          <TriangleAlert class="h-4 w-4 shrink-0" /> Set
+          <code>GOATCOUNTER_ADMIN_URL</code> to enable this handoff.
+        </div>
+      {/if}
+    </section>
     {#if data.sites.length > 1}
-      <div class="border-t border-border pt-4">
-        <h3 class="text-sm font-medium mb-2">Available sites</h3>
-        <ul class="list-none m-0 p-0 space-y-1 text-sm text-muted-foreground">
+      <section class="panel" aria-labelledby="available-sites-heading">
+        <h2 id="available-sites-heading" class="section-title">
+          Available sites
+        </h2>
+        <ul class="list-none m-0 mt-3 p-0 space-y-1 text-sm">
           {#each data.sites as site (site.id)}
             <li
-              class={site.id === data.site.id
-                ? "text-foreground font-medium"
-                : ""}
+              class="flex items-center gap-2 rounded-field px-2 py-2 {site.id ===
+              data.site.id
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground'}"
             >
-              {site.cname || site.code}
+              <span
+                class="h-1.5 w-1.5 rounded-full bg-current"
+                aria-hidden="true"
+              ></span>
+              <span class="truncate">{site.cname || site.code}</span>
             </li>
           {/each}
         </ul>
-      </div>
+      </section>
     {/if}
   </aside>
 </div>
