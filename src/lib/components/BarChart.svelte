@@ -5,17 +5,26 @@
     data,
     maxItems = 15,
     label = "Source",
+    tone = "cobalt",
     onItemClick,
   }: {
     data: HitStat[];
     maxItems?: number;
     label?: string;
+    tone?: "cobalt" | "mint" | "amber" | "coral" | "lavender";
     onItemClick?: (id: string, name: string) => void;
   } = $props();
 
   const items = $derived(data.slice(0, maxItems));
   const maxCount = $derived(Math.max(...items.map((item) => item.count), 1));
   const total = $derived(data.reduce((sum, item) => sum + item.count, 0));
+  const tones = {
+    cobalt: "var(--color-chart-1)",
+    mint: "var(--color-chart-2)",
+    amber: "var(--color-chart-3)",
+    coral: "var(--color-chart-4)",
+    lavender: "var(--color-chart-5)",
+  };
 </script>
 
 <div
@@ -26,7 +35,7 @@
   <span>Visitors <span class="inline-block w-16 text-right">Share</span></span>
 </div>
 <ul class="list-none p-0 m-0" aria-label="Breakdown chart">
-  {#each items as item}
+  {#each items as item, index (index)}
     {@const label = item.name?.trim() || "Unknown"}
     {@const pct = Math.max(0, Math.min((item.count / maxCount) * 100, 100))}
     {@const share = total > 0 ? ((item.count / total) * 100).toFixed(1) : "0"}
@@ -49,7 +58,8 @@
         class="h-1.5 overflow-hidden rounded-full bg-base-200"
       >
         <div
-          class="h-full rounded-full bg-primary transition-[width] duration-500"
+          class="h-full rounded-full"
+          style:background={tones[tone]}
           style:width="{pct}%"
         ></div>
       </div>

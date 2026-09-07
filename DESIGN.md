@@ -2,65 +2,64 @@
 
 ## 1. Atmosphere & identity
 
-A focused analytics workspace: graphite, paper, and restrained emerald. Large editorial type introduces the product; precise tabular numbers and quiet dividers organize the workspace. The signature is a wide traffic chart above a compact, ruled metrics strip. The existing Svelte components and DaisyUI semantics remain the shared foundation.
+A modern analytics studio: cloud canvas, ink typography, cobalt actions and a warm categorical data palette. The signature is an asymmetric overview: an emphasized traffic metric, a wide time-series chart beside an audience ring, then a content table beside geographic rankings. Reports differ by purpose instead of repeating equal-weight panels.
 
-This redesign evolves the previous blue palette, floating rounded cards, Inter body, and JetBrains Mono labels. The Supabase reference informs the graphite surface hierarchy, restrained green signals, and fine borders; this is an analytics product, not a brand clone. Existing self-hosted fonts keep the product independent of third-party requests.
+The Stripe reference informs chromatic elevation, navy typography and dense data with spacious controls, not brand cloning. Preserve self-hosted fonts, Lucide, Svelte and DaisyUI. Home continues to redirect to login/dashboard; no landing page is introduced.
 
 ## 2. Color
 
-All colors use DaisyUI theme tokens in `src/app.css`.
+All colors are theme tokens in src/app.css.
 
-| Role                    | Light OKLCH     | Dark OKLCH      |
-| ----------------------- | --------------- | --------------- |
-| base-100 / panels       | 100% 0 0        | 19% .006 160    |
-| base-200 / canvas       | 97% .004 160    | 16% .005 160    |
-| base-300 / borders      | 89% .006 160    | 29% .008 160    |
-| base-content            | 23% .012 160    | 95% .004 160    |
-| muted-foreground        | 46% .014 160    | 72% .012 160    |
-| primary / chart / focus | 43% .105 160    | 77% .14 160     |
-| primary-content         | 100% 0 0        | 18% .025 160    |
-| success                 | Same as primary | Same as primary |
-| error                   | 48% .20 25      | 74% .16 25      |
-| warning                 | 75% .16 80      | 82% .16 80      |
+| Role              | Light OKLCH  | Dark OKLCH   |
+| ----------------- | ------------ | ------------ |
+| Panels / base-100 | 100% 0 0     | 22% .018 265 |
+| Canvas / base-200 | 97% .006 265 | 17% .018 265 |
+| Border / base-300 | 91% .012 265 | 32% .022 265 |
+| Text              | 25% .035 265 | 96% .006 265 |
+| Primary / actions | 49% .20 265  | 76% .13 265  |
+| Muted text        | 47% .025 265 | 73% .025 265 |
+| Chart cobalt      | 59% .19 265  | 76% .13 265  |
+| Chart mint        | 68% .12 175  | 76% .12 175  |
+| Chart amber       | 77% .14 75   | 82% .14 75   |
+| Chart coral       | 68% .15 30   | 76% .13 30   |
+| Chart lavender    | 67% .14 305  | 79% .11 305  |
 
-Secondary and accent inherit base-200/content; neutral inherits base-content/base-100; info inherits primary. Chart fills use primary at 4–16%, selected controls at 8–12%. Avoid semantic color dependence: labels and selected-state attributes communicate meaning too.
+Categorical colors distinguish distribution parts, not success/failure. All marks have labels and numeric equivalents. Featured metric/login art use fixed ink-blue 28% .075 265 with 97% .005 265 text and 75% .13 265 highlights. Icon wells use 12% category tints. Existing semantic success/warning/error tokens retain their meaning.
 
 ## 3. Typography
 
-Self-hosted Inter for body and display; JetBrains Mono for compact section markers, path names, dates, and data. Body 14/16px, metadata 12px, section heading 16/20/24px, page heading 30/36px, metric 32px, marketing heading fluid 40–80px. Display weight 500, body 400, controls 500, key figures 600. Display tracking -.06em, headings -.035em. Tabular figures for all analytics numbers. No tiny uppercase text as the primary information label.
+Self-hosted Inter with stylistic display alternates; JetBrains Mono for paths and precise data. Body 14/16px, secondary 12/13px, panel titles 16px, page headings 32px, featured numbers 36px, login display 48px. Headings 500/600, body 400, controls 500. Display tracking -.04em, metrics -.02em. Tabular figures throughout. Long labels wrap or visibly truncate with full accessible text.
 
 ## 4. Spacing & layout
 
-Use the existing Tailwind 4px scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96px. Controls are at least 44px high. Panel padding 20/24px. Marketing maximum width 1200px; analytics 1440px. Marketing section spacing 64–96px. Dashboard section spacing 24px. Sidebar 240px, top bar 64px.
+Tailwind 4px scale; controls 44px. Panel padding 20/24px and corners 16px; control corners 8px; icon wells 12px. Sidebar 240px, header 64px, content maximum 1440px. Canvas padding 32px desktop, 16px mobile.
 
-The document owns page scroll. Desktop sidebar is sticky, 100dvh, with its navigation owning overflow. Below 1024px the sidebar is a modal drawer. Main content uses min-width:0, tables own horizontal scrolling, and plots resize to their container. Two-column data panels stack below 640px. KPI strip is two columns on small screens, four on wide screens.
+Overview uses 2:1 traffic/audience and 3:2 pages/locations grids above 1280px. Three compact technical reports share the final row at wide sizes; stack below 1280px. KPIs use four columns above 1280px and two below; small-screen long values use 24px. Document owns scrolling; sticky sidebar navigation owns vertical overflow. Below 1024px preserve modal navigation and background focus lock.
 
 ## 5. Components
 
-- **Brand**: reusable live SVG histogram mark plus gtcd wordmark. Link to home, decorative SVG hidden from assistive technology.
-- **AnalyticsPreview**: the shared StatCard, AreaChart, and BarChart compose an interactive example with visible illustrative-data labeling. Seven/thirty-day buttons update the chart and summary. Never connect sample data to authenticated routes.
-- **Login / error**: split editorial login with native validated form, focus-managed error and pending button; single-column error page with working home/back actions. Mobile login prioritizes the form.
-- **StatCard**: semantic article, label, tabular value, supporting text. Standalone panel or grouped metric strip with dividers. Long values wrap; no hover movement on a static metric.
-- **AreaChart**: reusable SVG area, line, grid, date ticks, cursor readout, aggregate summary. Empty state retained. Title, description, role=img, and screen-reader data table required. Preview uses explicitly labeled sample data, never production metrics.
-- **BarChart**: ranked rows, aligned count/share columns, low-height proportional bar. Button variant for drill-down, static variant for summaries. Meters retain labels and ranges; long names truncate within bounded columns.
-- **DateRangePicker**: DaisyUI-style segmented radio group, selected surface and border, keyboard arrows, focus ring. Native button hit targets at least 44px. Selection continues to use route query state.
-- **ThemeToggle**: light/dark/system segmented radio group, shared tokens, persistent preference and system updates, unique instance IDs.
-- **Panels / tables**: shared `.panel` and `.chart-container`, fine border and 8px corners. Section headers align titles with text actions. Table rows use the same rhythm; no nested decorative cards.
-- **App shell**: grouped navigation, current-page indicator, breadcrumb header, date context; persistent desktop collapse and keyboard shortcut. Mobile drawer closes on navigation, Escape, or backdrop and contains keyboard focus.
-- **DaisyUI controls**: btn, input, alert, loading and table semantics remain. Disabled/submit/loading/error controls preserve existing behavior. Errors include actionable retry/back navigation; empty metrics never imply real traffic.
-
-Existing routes serve as the state harness for shared primitives before the landing and dashboard composition is updated.
+- **Brand**: existing live SVG histogram with cobalt mark.
+- **StatCard**: label, value, supporting text; default/cobalt/mint/amber tones, optional typed Lucide icon and featured ink surface. No invented growth comparisons. Missing metrics remain an em dash.
+- **AreaChart**: responsive SVG time series, hover readout, title/description/role, screen-reader table, empty state.
+- **DonutChart**: actual category counts, top four plus summed remainder, SVG ring with total and visible count/share legend. Accessible title, description and table. No-data state when total is zero. Shared by overview and browsers.
+- **BarChart**: ranked rows and accessible meters; optional category tone differentiates geographic/technical reports. Buttons only for real drill-down.
+- **Report panels**: consistent headers/actions but composition varies by chart, ring, table or list. No static hover elevation.
+- **DateRangePicker**: existing query-driven radio controls and arrow keys.
+- **ThemeToggle**: existing light/dark/system dropdown, upward sidebar placement, persistence and focus behavior.
+- **Shell**: grouped navigation, selected cobalt surface, workspace context, breadcrumb, actual loading status, persisted collapse and shortcut.
+- **Login**: split analytics illustration and native form. Illustration has no fake metrics or production claims; mobile prioritizes form. Preserve password visibility, pending and focused error states.
+- **Error/empty**: existing actionable copy/links, shared themed surfaces.
 
 ## 6. Motion & interaction
 
-150ms color/opacity feedback for buttons and links; 200ms transform for the mobile drawer. Active buttons translate 1px. No decorative entrance cascades or hover lifts on data panels. Reduced-motion preference disables nonessential transitions. Loading indicates actual navigation or requests.
+Preserve 200ms drawer transition/focus handling; controls use 150ms color feedback. No decorative card hover or entrance cascades. Reduced-motion preference suppresses transitions.
 
 ## 7. Depth & surface
 
-Border and tonal hierarchy: paper panels against an off-white canvas; graphite panels against a darker canvas. Panel corners 8px, controls 6px, brand mark 8px. The landing product preview alone uses a layered elevation shadow (1px edge, 8px/24px soft shadow, 32px/80px ambient shadow at 4–8% of foreground) to distinguish the demonstration from marketing copy. No blur blobs, grid wallpaper, gradients behind headings, or floating metrics.
+White/slate panels above cloud/navy canvas. Near edge plus soft blue-tinted ambient shadows: 0 1px 2px at 3%, 0 8px 24px at 3%. Featured metric/login illustration use contrasting ink surfaces. Chart color, proportion and whitespace provide variety without gradient wallpaper or fake floating notifications.
 
 ## 8. Accessibility constraints & accepted debt
 
-Target WCAG 2.1 AA: 4.5:1 body contrast, visible 2px primary focus outline, keyboard-accessible navigation/filters, 44px primary touch controls, skip link, reduced motion, proper landmarks. Preserve light/dark/system modes. Primary personas: site owner checking traffic quickly; analyst exploring sources and devices; keyboard/mobile user navigating detailed reports. Each must reach a report, change its range, and return without losing context.
+WCAG 2.1 AA target, 4.5:1 text contrast, visible primary focus, keyboard navigation, 44px touch controls, reduced motion and skip link. Personas: site owner checking traffic; analyst exploring content/audience; mobile/keyboard user navigating filters/details. Backend mediation, auth, sessions and data contracts stay unchanged.
 
-No new accepted accessibility debt. Verify public and authenticated route families at 375, 768, and 1280px with synthetic data isolated to the local QA service.
+No new accepted accessibility debt. Verify every route at 375, 768 and 1280px in both themes with synthetic data isolated in the local QA upstream.

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { goto, invalidateAll } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { navigating, page } from "$app/state";
   import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
   import {
+    ChartNoAxesCombined,
     FileText,
     Globe,
     Languages,
@@ -72,7 +74,7 @@
       href: "/dashboard/campaigns",
       icon: Megaphone,
     },
-  ];
+  ] as const;
   const activeLabel = $derived(
     navItems.find((item) => isActive(item.href))?.label ?? "Overview"
   );
@@ -160,7 +162,7 @@
   async function handleLogout() {
     await fetch("/logout", { method: "POST" });
     await invalidateAll();
-    goto("/login");
+    goto(resolve("/login"));
   }
 </script>
 
@@ -201,9 +203,16 @@
           aria-label="Close navigation"><X class="h-4 w-4" /></button
         >
       </div>
+      <div class="workspace-context">
+        <span class="metric-icon shrink-0"><Globe class="h-4 w-4" /></span>
+        <div class="min-w-0">
+          <p class="text-sm font-medium">Your workspace</p>
+          <p class="text-xs text-muted-foreground mt-1">Website analytics</p>
+        </div>
+      </div>
       <nav class="flex-1 min-h-0 overflow-y-auto p-3 pt-6" aria-label="Reports">
         <ul class="list-none p-0 m-0 space-y-1">
-          {#each navItems as item, i}
+          {#each navItems as item, i (item.href)}
             {@const Icon = item.icon}
             <li>
               {#if i === 0 || i === 2 || i === 7}
@@ -214,7 +223,7 @@
                 </p>
               {/if}
               <a
-                href={item.href}
+                href={resolve(item.href)}
                 class="sidebar-link {isActive(item.href) ? 'active' : ''}"
                 aria-current={isActive(item.href) ? "page" : undefined}
                 onclick={closeSidebar}
@@ -272,6 +281,9 @@
           </nav>
         </div>
         <div class="flex items-center gap-3 text-xs text-muted-foreground">
+          <span class="hidden sm:flex items-center gap-2"
+            ><ChartNoAxesCombined class="h-4 w-4" />GoatCounter analytics</span
+          >
           {#if navigating.to}
             <span
               class="loading loading-spinner loading-xs text-primary"
