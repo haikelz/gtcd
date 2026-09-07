@@ -1,7 +1,35 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { error, fail, redirect } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
+
+const SITE_READ_PERMISSION = 8;
+const SITE_UPDATE_PERMISSION = 32;
+
+function hasPermission(permissions: number, permission: number): boolean {
+  return (
+    Number.isSafeInteger(permissions) &&
+    (permissions & permission) === permission
+  );
+}
+
+function requireSiteReadPermission(permissions: number): void {
+  if (!hasPermission(permissions, SITE_READ_PERMISSION)) {
+    throw error(
+      403,
+      "Settings needs the GoatCounter API token to have site-read permission. Grant site-read and site-update to the configured GOATCOUNTER_API_KEY, then reload."
+    );
+  }
+}
+
+function requireSiteUpdatePermission(permissions: number): void {
+  if (!hasPermission(permissions, SITE_UPDATE_PERMISSION)) {
+    throw error(
+      403,
+      "Saving settings needs the GoatCounter API token to have site-update permission. Grant it to the configured GOATCOUNTER_API_KEY, then reload."
+    );
+  }
+}
 
 function parsePositiveInteger(value: FormDataEntryValue | null): number | null {
   if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
@@ -23,6 +51,8 @@ export async function load({ locals, url }) {
   requireDashboardAdmin(locals.user);
 
   const currentUser = await stats.getMe();
+  requireSiteReadPermission(currentUser.token.permissions);
+
   const [site, sites] = await Promise.all([
     admin.getSite(currentUser.user.site),
     admin.getSites(),
@@ -45,6 +75,9 @@ export const actions = {
     }
 
     const currentUser = await stats.getMe();
+    requireSiteReadPermission(currentUser.token.permissions);
+    requireSiteUpdatePermission(currentUser.token.permissions);
+
     if (siteId !== currentUser.user.site) {
       return fail(403, { message: "This site cannot be managed here." });
     }

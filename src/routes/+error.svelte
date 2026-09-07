@@ -21,8 +21,7 @@
   const description = $derived.by(() => {
     if (status === 404)
       return "The page you're looking for doesn't exist or has been moved.";
-    if (status === 403)
-      return "You don't have permission to access this resource.";
+    if (status === 403) return message;
     if (status === 500) return "An unexpected error occurred on the server.";
     if (status === 401) return "Please sign in to continue.";
     return message;
