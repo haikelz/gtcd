@@ -81,6 +81,35 @@ flowchart TD
 
 ---
 
+## 🖼️ Screenshots
+
+### Traffic overview
+
+![Traffic overview dashboard with pageview metrics, traffic chart, and browser mix](static/screenshots/traffic.png)
+
+### Analytics reports
+
+<table>
+  <tr>
+    <td><img src="static/screenshots/pages.png" alt="Pages report with tracked paths and view counts"></td>
+    <td><img src="static/screenshots/browsers.png" alt="Browsers report with visitor counts and audience-share chart"></td>
+  </tr>
+  <tr>
+    <td><img src="static/screenshots/operating-systems.png" alt="Operating systems report with visitor share bars"></td>
+    <td><img src="static/screenshots/locations.png" alt="Locations report showing visitor distribution by country"></td>
+  </tr>
+  <tr>
+    <td><img src="static/screenshots/languages.png" alt="Languages report showing visitor language distribution"></td>
+    <td><img src="static/screenshots/screen-size.png" alt="Screen sizes report showing visitor device dimensions"></td>
+  </tr>
+</table>
+
+### Sign in
+
+![gtcd login page with GoatCounter account sign-in form](static/screenshots/login.png)
+
+---
+
 ## 🚀 Quickstart
 
 ### 1. Run with Docker Compose (Easiest)
