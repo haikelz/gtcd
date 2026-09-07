@@ -94,7 +94,6 @@
       {/each}
     </ul>
     <table class="sr-only">
-      <caption>{label} distribution data</caption>
       <thead
         ><tr
           ><th scope="col">{label}</th><th scope="col">Visits</th><th
