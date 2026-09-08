@@ -1,4 +1,4 @@
-import { error, fail, redirect } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
@@ -25,17 +25,10 @@ export async function load({ locals, url }) {
 }
 
 export const actions = {
-  create: async ({ request, locals }) => {
+  create: async ({ locals }) => {
     requireDashboardAdmin(locals.user);
 
-    const formData = await request.formData();
-    const format = formData.get("format");
-
-    if (format !== "csv" && format !== "json") {
-      return fail(400, { message: "Select CSV or JSON." });
-    }
-
-    const job = await admin.createExport(format);
+    const job = await admin.createExport();
     throw redirect(303, `/dashboard/exports?export=${job.id}`);
   },
 };

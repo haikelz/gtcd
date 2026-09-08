@@ -130,7 +130,6 @@ export interface SitesResponse {
 export interface ExportJob {
   id: number;
   site_id: number;
-  format: "csv" | "json";
   start_from_hit_id?: number;
   last_hit_id?: number;
   start_from_day?: string;

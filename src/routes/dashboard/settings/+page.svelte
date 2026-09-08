@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import SEO from "$lib/components/SEO.svelte";
+  import { showToast } from "$lib/components/toast.js";
   import {
     BadgeCheck,
     Database,
@@ -13,6 +14,14 @@
 
   let { data, form } = $props();
   const adminUrl = $derived(data.goatCounterAdminUrl);
+  let lastUpdateId = $state<string | null>(null);
+
+  $effect(() => {
+    if (data.updated && data.updated !== lastUpdateId) {
+      showToast("Site settings saved.", "success");
+      lastUpdateId = data.updated;
+    }
+  });
 </script>
 
 <SEO
@@ -39,13 +48,6 @@
     <Save class="h-4 w-4" /> Save changes
   </button>
 </header>
-
-{#if data.updated}
-  <div class="alert alert-success mb-5" role="status">
-    <BadgeCheck class="h-5 w-5 shrink-0" />
-    <span>Site settings saved.</span>
-  </div>
-{/if}
 
 {#if form?.message}
   <div class="alert alert-error mb-5" role="alert">
@@ -323,9 +325,12 @@
           ><ExternalLink class="h-4 w-4" /> Open GoatCounter</svelte:element
         >
       {:else}
-        <div class="alert alert-warning text-sm mt-5">
-          <TriangleAlert class="h-4 w-4 shrink-0" /> Set
-          <code>GOATCOUNTER_ADMIN_URL</code> to enable this handoff.
+        <div class="alert alert-warning items-start text-sm mt-5 min-w-0">
+          <TriangleAlert class="h-4 w-4 shrink-0" />
+          <span class="min-w-0">
+            Set <code class="break-words">GOATCOUNTER_ADMIN_URL</code> to enable this
+            handoff.
+          </span>
         </div>
       {/if}
     </section>

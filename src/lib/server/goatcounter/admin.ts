@@ -103,12 +103,12 @@ export async function updateSite(
   return normalizeSite(site);
 }
 
-export async function createExport(format: "csv" | "json"): Promise<ExportJob> {
+export async function createExport(): Promise<ExportJob> {
   return gcFetch<ExportJob>(
     "/api/v0/export",
     {
       method: "POST",
-      body: JSON.stringify({ format }),
+      body: JSON.stringify({}),
     },
     undefined,
     { bypassCache: true }

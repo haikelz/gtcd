@@ -67,18 +67,23 @@
       >
       <div>
         <p class="eyebrow mb-1">Step 1</p>
-        <h2 class="section-title">Create an export</h2>
+        <h2 class="section-title">Create a CSV export</h2>
         <p class="text-sm leading-6 text-muted-foreground mt-1">
-          Choose a format and GoatCounter prepares the file in the background.
+          GoatCounter prepares a gzip-compressed CSV file in the background.
         </p>
       </div>
     </div>
     <label class="form-control gap-2 mt-7">
       <span class="label-text font-medium">Format</span>
-      <select class="select select-bordered w-full" name="format">
-        <option value="csv">CSV — spreadsheet-friendly</option>
-        <option value="json">JSON — structured data</option>
-      </select>
+      <input
+        class="input input-bordered w-full"
+        value="CSV (gzip-compressed)"
+        readonly
+        aria-describedby="export-format-help"
+      />
+      <span id="export-format-help" class="text-sm text-muted-foreground"
+        >The GoatCounter API currently provides CSV exports only.</span
+      >
     </label>
     <div class="flex gap-3 border-t border-border mt-6 pt-5">
       <Clock3
@@ -118,11 +123,11 @@
               {exportState}
             </h2>
             <p class="text-sm leading-6 text-muted-foreground mt-1">
-              Export #{job.id} is being prepared as {job.format.toUpperCase()}.
+              Export #{job.id} is being prepared as a CSV file.
             </p>
           </div>
         </div>
-        <span class="badge badge-outline uppercase shrink-0">{job.format}</span>
+        <span class="badge badge-outline uppercase shrink-0">CSV</span>
       </div>
       {#if job.error}
         <div class="alert alert-error mt-7">
@@ -147,7 +152,7 @@
         <a
           class="btn btn-primary"
           href={resolve(`/api/admin/exports/${job.id}`)}
-          ><Download class="h-4 w-4" /> Download {job.format.toUpperCase()}</a
+          ><Download class="h-4 w-4" /> Download CSV</a
         >
       {:else}
         <div class="border-y border-border my-7 py-5 flex gap-3">
@@ -194,10 +199,10 @@
             class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-primary"
             aria-hidden="true"
           ></span>
-          <p class="text-sm font-medium">Choose a format</p>
+          <p class="text-sm font-medium">Create a CSV export</p>
           <p class="text-sm leading-6 text-muted-foreground mt-1">
-            CSV works well with spreadsheets; JSON preserves a structured
-            payload.
+            The gzip-compressed CSV file works with spreadsheets and most data
+            tools.
           </p>
         </li>
         <li class="relative pl-6">

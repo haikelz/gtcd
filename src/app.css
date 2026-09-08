@@ -138,12 +138,21 @@
     transition:
       background-color 150ms,
       color 150ms,
-      opacity 150ms;
+      opacity 150ms,
+      transform 150ms;
   }
-  .input {
+  .btn:not([disabled]):active {
+    transform: scale(0.98);
+  }
+  .input,
+  .select,
+  .textarea {
     min-height: 2.75rem;
     border-radius: var(--radius-field);
     background: var(--color-base-100);
+    transition:
+      border-color 150ms,
+      box-shadow 150ms;
   }
   .skip-link {
     position: fixed;
@@ -320,11 +329,13 @@
     text-decoration: none;
     transition:
       color 150ms,
-      background-color 150ms;
+      background-color 150ms,
+      transform 150ms;
   }
   .sidebar-link:hover {
     color: var(--color-foreground);
     background: color-mix(in oklch, var(--color-base-content) 5%, transparent);
+    transform: translateX(2px);
   }
   .sidebar-link.active {
     color: var(--color-primary);
@@ -520,6 +531,34 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+@keyframes app-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .app-page {
+    animation: app-page-enter 180ms ease-out both;
+  }
+  .toast-item {
+    animation: toast-enter 180ms ease-out both;
   }
 }
 @media (max-width: 639px) {

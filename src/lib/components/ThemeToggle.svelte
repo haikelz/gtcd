@@ -102,7 +102,8 @@
 </script>
 
 <div
-  class="relative inline-block {block ? 'w-full' : ''}"
+  class="relative inline-block {block ? 'w-full' : 'tooltip tooltip-bottom'}"
+  data-tip={block ? undefined : "Color theme"}
   bind:this={rootElement}
 >
   <button
@@ -115,7 +116,6 @@
     aria-haspopup="menu"
     aria-expanded={open}
     aria-label="Color theme: {activeTheme.label}"
-    title="Color theme"
   >
     <span class="flex items-center gap-1.5">
       <activeTheme.icon class="h-4 w-4" strokeWidth={1.5} />

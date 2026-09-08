@@ -47,13 +47,22 @@ Overview uses 2:1 traffic/audience and 3:2 pages/locations grids above 1280px. T
 - **Management panels**: a single primary form is divided by structural rules into named settings groups; a sticky secondary rail carries current-site context and the GoatCounter handoff. Export creation and request status use an explicit two-step composition rather than equal-weight cards.
 - **DateRangePicker**: existing query-driven radio controls and arrow keys.
 - **ThemeToggle**: existing light/dark/system dropdown, upward sidebar placement, persistence and focus behavior.
+- **ToastStack**: DaisyUI alert stack for real action feedback, with status icons,
+  auto-dismiss, and a keyboard-accessible dismissal control.
+- **Tooltip**: DaisyUI hints on compact icon actions; visible labels remain the
+  accessible name and tooltips never carry required information.
 - **Shell**: grouped navigation, selected cobalt surface, workspace context, breadcrumb, actual loading status, persisted collapse and shortcut.
 - **Login**: split analytics illustration and native form. Illustration has no fake metrics or production claims; mobile prioritizes form. Preserve password visibility, pending and focused error states.
 - **Error/empty**: existing actionable copy/links, shared themed surfaces.
 
 ## 6. Motion & interaction
 
-Preserve 200ms drawer transition/focus handling; controls use 150ms color feedback. No decorative card hover or entrance cascades. Reduced-motion preference suppresses transitions.
+Preserve 200ms drawer transition/focus handling. Every route enters once with
+an 180ms opacity/6px transform settle; controls use 150ms color and press
+feedback, sidebar links shift 2px only on hover, and toasts settle from -8px
+over 180ms. These are purposeful route, affordance, and status changes, never
+decorative card hover or entrance cascades. Reduced-motion preference suppresses
+motion transitions while preserving the settled interaction states.
 
 ## 7. Depth & surface
 

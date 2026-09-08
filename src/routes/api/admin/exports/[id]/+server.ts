@@ -35,12 +35,9 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     throw error(upstream.status || 502, "Unable to download this export.");
   }
 
-  const extension = job.format;
   const contentType =
-    extension === "json"
-      ? "application/json; charset=utf-8"
-      : "text/csv; charset=utf-8";
-  const disposition = `attachment; filename=goatcounter-export-${exportId}.${extension}`;
+    upstream.headers.get("content-type") ?? "application/gzip";
+  const disposition = `attachment; filename=goatcounter-export-${exportId}.csv.gz`;
 
   return new Response(upstream.body, {
     headers: {

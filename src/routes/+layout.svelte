@@ -4,6 +4,7 @@
   import { navigating, page } from "$app/state";
   import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
+  import ToastStack from "$lib/components/ToastStack.svelte";
   import {
     FileText,
     FolderCog,
@@ -209,9 +210,10 @@
         <Brand />
         <button
           type="button"
-          class="btn btn-ghost btn-square lg:hidden"
+          class="btn btn-ghost btn-square lg:hidden tooltip tooltip-right"
           onclick={dismissSidebar}
-          aria-label="Close navigation"><X class="h-4 w-4" /></button
+          aria-label="Close navigation"
+          data-tip="Close navigation"><X class="h-4 w-4" /></button
         >
       </div>
       <nav class="flex-1 min-h-0 overflow-y-auto p-3 pt-6" aria-label="Reports">
@@ -276,10 +278,10 @@
         </div>
         <button
           type="button"
-          class="btn btn-ghost btn-square btn-sm text-muted-foreground hover:text-foreground"
+          class="btn btn-ghost btn-square btn-sm text-muted-foreground hover:text-foreground tooltip tooltip-right"
           onclick={handleLogout}
           aria-label="Sign out"
-          title="Sign out"
+          data-tip="Sign out"
         >
           <LogOut class="h-4 w-4" />
         </button>
@@ -291,14 +293,14 @@
           <button
             bind:this={toggleElement}
             type="button"
-            class="btn btn-ghost btn-square text-muted-foreground"
+            class="btn btn-ghost btn-square text-muted-foreground tooltip tooltip-right"
             onclick={toggleSidebar}
             aria-expanded={navigationOpen}
             aria-controls="sidebar-nav"
             aria-label={navigationOpen
               ? "Close navigation sidebar"
               : "Open navigation sidebar"}
-            title="Toggle sidebar (Ctrl+B / Cmd+B)"
+            data-tip="Toggle sidebar (Ctrl+B / Cmd+B)"
           >
             <Menu class="h-5 w-5" strokeWidth={1.5} />
           </button>
@@ -322,10 +324,16 @@
         tabindex="-1"
         aria-busy={!!navigating.to}
       >
-        {@render children()}
+        {#key page.url.pathname}
+          <div class="app-page">{@render children()}</div>
+        {/key}
       </main>
     </div>
   </div>
 {:else}
-  {@render children()}
+  {#key page.url.pathname}
+    <div class="app-page">{@render children()}</div>
+  {/key}
 {/if}
+
+<ToastStack />

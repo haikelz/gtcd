@@ -151,8 +151,9 @@
       </div>
       <a
         href={resolve("/dashboard/browsers")}
-        class="btn btn-ghost btn-square btn-sm"
-        aria-label="View browser report"><ArrowUpRight class="h-4 w-4" /></a
+        class="btn btn-ghost btn-square btn-sm tooltip tooltip-left"
+        aria-label="View browser report"
+        data-tip="View browser report"><ArrowUpRight class="h-4 w-4" /></a
       >
     </div>
     <DonutChart data={data.browsers?.stats ?? []} />
@@ -222,8 +223,9 @@
       </div>
       <a
         href={resolve("/dashboard/locations")}
-        class="btn btn-ghost btn-square btn-sm"
-        aria-label="View locations report"><ArrowUpRight class="h-4 w-4" /></a
+        class="btn btn-ghost btn-square btn-sm tooltip tooltip-left"
+        aria-label="View locations report"
+        data-tip="View locations report"><ArrowUpRight class="h-4 w-4" /></a
       >
     </div>
     {#if data.locations?.stats?.length}
@@ -260,8 +262,9 @@
         </div>
         <a
           href={resolve(report.href)}
-          class="btn btn-ghost btn-square btn-sm"
+          class="btn btn-ghost btn-square btn-sm tooltip tooltip-left"
           aria-label="View {report.title.toLowerCase()} report"
+          data-tip="View {report.title.toLowerCase()} report"
           ><ArrowUpRight class="h-4 w-4" /></a
         >
       </div>

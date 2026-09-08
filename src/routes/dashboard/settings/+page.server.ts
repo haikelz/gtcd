@@ -101,7 +101,7 @@ export async function load({ locals, url }) {
     admin.getSites(),
   ]);
 
-  return { site, sites, updated: url.searchParams.has("updated") };
+  return { site, sites, updated: url.searchParams.get("updated") };
 }
 
 export const actions = {
@@ -167,6 +167,6 @@ export const actions = {
       return fail(400, { ...updateError, values });
     }
 
-    throw redirect(303, "/dashboard/settings?updated=1");
+    throw redirect(303, `/dashboard/settings?updated=${Date.now()}`);
   },
 };

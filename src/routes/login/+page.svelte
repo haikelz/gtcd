@@ -137,7 +137,8 @@
               />
               <button
                 type="button"
-                class="btn btn-ghost btn-sm btn-square absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                class="btn btn-ghost btn-sm btn-square absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground tooltip tooltip-left"
+                data-tip={showPassword ? "Hide password" : "Show password"}
                 onclick={() => (showPassword = !showPassword)}
                 aria-pressed={showPassword}
                 aria-label={showPassword ? "Hide password" : "Show password"}
