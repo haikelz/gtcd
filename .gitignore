@@ -32,6 +32,5 @@ tasks/*
 
 .playwright-cli/
 output/
-*graphify*
+cache
 .claude/*
-.codex/*
