@@ -74,6 +74,57 @@ export function getBaseUrl(): string {
 }
 
 /**
+ * GoatCounter routes /api/v0/stats/* by Host header, matching the site's
+ * vhost. Container-internal URLs like http://goatcounter:8080 send
+ * "Host: goatcounter:8080", which matches no site, and the API answers
+ * 404 even though /api/v0/me works. Set GOATCOUNTER_VHOST to the site's
+ * vhost so stats resolve; it is sent as the Host header verbatim.
+ */
+export function getVhost(): string {
+  return (env.GOATCOUNTER_VHOST || process.env.GOATCOUNTER_VHOST || "").trim();
+}
+
+function upstreamHeaders(apiKey: string): Record<string, string> {
+  const vhost = getVhost();
+
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+    ...(vhost ? { Host: vhost } : {}),
+  };
+}
+
+/**
+ * GoatCounter uses 404 both for unknown paths and for "no site matches this
+ * Host header". Surface the Host-routing cause explicitly so a
+ * misconfigured GOATCOUNTER_VHOST is diagnosable instead of rendering as
+ * mysteriously empty reports.
+ */
+function hostRoutingHint(response: Response, url: URL): string | null {
+  if (response.status !== 404) return null;
+
+  const isApiPath = url.pathname.startsWith("/api/v0/");
+  const host = url.host;
+  const hostLooksInternal =
+    host.startsWith("goatcounter") ||
+    host.startsWith("localhost") ||
+    host.startsWith("127.0.0.1") ||
+    /^\d+\.\d+\.\d+\.\d+/.test(host) ||
+    host.endsWith(".svc.cluster.local");
+
+  if (isApiPath && hostLooksInternal && !getVhost()) {
+    return (
+      "GoatCounter returned 404 for an API path. It routes /api/v0/stats/* by " +
+      `the Host header, and "${host}" matches no site. Set GOATCOUNTER_VHOST ` +
+      "to your site's vhost (the domain the GoatCounter dashboard uses) so " +
+      "gtcd sends the right Host."
+    );
+  }
+
+  return null;
+}
+
+/**
  * Guard the outbound integration: GoatCounter answers a missing or empty
  * Bearer token with the cryptic "wrong format for Authorization header", so
  * fail before the request with an actionable configuration error instead.
@@ -168,8 +219,7 @@ export async function gcFetch<T>(
         ...init,
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getApiKey()}`,
+          ...upstreamHeaders(getApiKey()),
           ...init.headers,
         },
       });
@@ -200,7 +250,11 @@ export async function gcFetch<T>(
         const errorData = await response
           .json()
           .catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || `API error: ${response.status}`);
+        const hint = hostRoutingHint(response, url);
+
+        throw new Error(
+          hint || errorData.error || `API error: ${response.status}`
+        );
       }
 
       const result = (await response.json()) as T;
@@ -255,6 +309,7 @@ export async function gcFetchRaw(
 
   const url = `${baseUrl}${path}`;
   const apiKey = getApiKey();
+  const vhost = getVhost();
 
   const response = await fetch(url, {
     ...init,
@@ -264,6 +319,7 @@ export async function gcFetchRaw(
       // The login form endpoint does not require an API token; only send the
       // header when a key exists so we never transmit an empty Bearer value.
       ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      ...(vhost ? { Host: vhost } : {}),
       ...init.headers,
     },
   });
