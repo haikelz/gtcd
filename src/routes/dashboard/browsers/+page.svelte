@@ -1,11 +1,14 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import DonutChart from "$lib/components/DonutChart.svelte";
+  import ReportPagination from "$lib/components/ReportPagination.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { Globe, TriangleAlert } from "@lucide/svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
   let datePreset = $derived(data.range || "7d");
@@ -15,6 +18,22 @@
     goto(resolve(`/dashboard/browsers?range=${preset}`), {
       replaceState: true,
     });
+  }
+
+  function reportHref(offset: number): string {
+    const params = new SvelteURLSearchParams(page.url.searchParams);
+    if (offset === 0) params.delete("offset");
+    else params.set("offset", String(offset));
+    const query = params.toString();
+    return query ? `${page.url.pathname}?${query}` : page.url.pathname;
+  }
+
+  function handleDetail(id: string) {
+    goto(
+      resolve(
+        `/dashboard/reports/browsers/${encodeURIComponent(id)}?${page.url.searchParams}`
+      )
+    );
   }
 </script>
 
@@ -62,7 +81,18 @@
           >{data.stats.stats.length} entries in this period</span
         >
       </div>
-      <BarChart data={data.stats.stats} maxItems={50} label="Browser" />
+      <BarChart
+        data={data.stats.stats}
+        maxItems={50}
+        label="Browser"
+        onItemClick={handleDetail}
+      />
+      <ReportPagination
+        previousHref={data.offset > 0
+          ? reportHref(Math.max(0, data.offset - 50))
+          : undefined}
+        nextHref={data.stats.more ? reportHref(data.offset + 50) : undefined}
+      />
     </div>
     <section class="panel" aria-labelledby="browser-share-heading">
       <h2 id="browser-share-heading" class="section-title mb-6">

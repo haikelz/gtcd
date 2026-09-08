@@ -4,6 +4,7 @@ import type {
   GoatCounterUser,
   HitsResponse,
   RefsResponse,
+  StatsDetailPage,
   StatsPage,
   StatsResponse,
 } from "./types.js";
@@ -31,6 +32,19 @@ const STATS_PAGES: readonly StatsPage[] = [
  */
 export function isStatsPage(value: string): value is StatsPage {
   return (STATS_PAGES as readonly string[]).includes(value);
+}
+
+const DETAIL_STATS_PAGES: readonly StatsDetailPage[] = [
+  "browsers",
+  "systems",
+  "locations",
+  "sizes",
+  "campaigns",
+  "toprefs",
+];
+
+export function isStatsDetailPage(value: string): value is StatsDetailPage {
+  return (DETAIL_STATS_PAGES as readonly string[]).includes(value);
 }
 
 export async function getMe(): Promise<GoatCounterUser> {
@@ -83,7 +97,8 @@ export async function getReferrals(
   pathId: number,
   start?: string,
   end?: string,
-  limit?: number
+  limit?: number,
+  offset?: number
 ): Promise<RefsResponse> {
   const res = await gcFetch<RefsResponse>(
     `/api/v0/stats/hits/${pathId}`,
@@ -92,6 +107,7 @@ export async function getReferrals(
       start,
       end,
       limit: limit?.toString(),
+      offset: offset?.toString(),
     }
   );
 
@@ -136,7 +152,8 @@ export async function getStatsDetail(
   id: string,
   start?: string,
   end?: string,
-  limit?: number
+  limit?: number,
+  offset?: number
 ): Promise<StatsResponse> {
   const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}/${encodeURIComponent(id)}`,
@@ -145,6 +162,7 @@ export async function getStatsDetail(
       start,
       end,
       limit: limit?.toString(),
+      offset: offset?.toString(),
     }
   );
 

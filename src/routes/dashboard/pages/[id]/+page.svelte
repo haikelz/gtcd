@@ -1,22 +1,30 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import { page } from "$app/state";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import { Link2, TriangleAlert } from "@lucide/svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import ReportPagination from "$lib/components/ReportPagination.svelte";
 
   let { data } = $props();
-  let datePreset = $state("7d");
-
-  $effect(() => {
-    datePreset = data.range || "7d";
-  });
+  let datePreset = $derived(data.range || "7d");
 
   function handleDateChange(preset: string) {
     datePreset = preset;
-    goto(`/dashboard/pages/${data.pathId}?range=${preset}`, {
+    goto(resolve(`/dashboard/pages/${data.pathId}?range=${preset}`), {
       replaceState: true,
     });
+  }
+
+  function refsHref(offset: number): string {
+    const params = new SvelteURLSearchParams(page.url.searchParams);
+    if (offset === 0) params.delete("offset");
+    else params.set("offset", String(offset));
+    const query = params.toString();
+    return query ? `${page.url.pathname}?${query}` : page.url.pathname;
   }
 
   const pageTitle = $derived(
@@ -36,7 +44,7 @@
 >
   <div>
     <a
-      href="/dashboard/pages"
+      href={resolve("/dashboard/pages")}
       class="text-sm font-medium mb-2 inline-flex items-center gap-1 text-primary hover:underline"
     >
       <span aria-hidden="true">←</span> Back to Pages
@@ -70,6 +78,12 @@
   <div class="panel animate-fade-in">
     <h2 class="section-title mb-4">Referrers</h2>
     <BarChart data={data.refs.refs} maxItems={30} label="Referrer" />
+    <ReportPagination
+      previousHref={data.offset > 0
+        ? refsHref(Math.max(0, data.offset - 30))
+        : undefined}
+      nextHref={data.refs.more ? refsHref(data.offset + 30) : undefined}
+    />
   </div>
 {:else}
   <div class="panel empty-state animate-fade-in">

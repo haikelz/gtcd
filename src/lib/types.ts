@@ -14,6 +14,7 @@ export type {
   SiteSettings,
   SitesResponse,
   StatsPage,
+  StatsDetailPage,
   StatsResponse,
   UserSettings,
 } from "$lib/server/goatcounter/types.js";

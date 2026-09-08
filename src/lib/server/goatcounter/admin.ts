@@ -1,5 +1,5 @@
 import { clearClientCache, gcFetch, gcFetchRaw } from "./client.js";
-import type { ExportJob, Site, SiteSettings } from "./types.js";
+import type { ExportJob, ExportRequest, Site, SiteSettings } from "./types.js";
 
 type GoatCounterSettings = Omit<
   SiteSettings,
@@ -103,12 +103,37 @@ export async function updateSite(
   return normalizeSite(site);
 }
 
-export async function createExport(): Promise<ExportJob> {
+export async function createSite(input: {
+  readonly cname: string;
+  readonly linkDomain: string;
+}): Promise<Site> {
+  const site = await gcFetch<GoatCounterSite>(
+    "/api/v0/sites",
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        cname: input.cname,
+        link_domain: input.linkDomain,
+      }),
+    },
+    undefined,
+    { bypassCache: true }
+  );
+
+  clearClientCache();
+  return normalizeSite(site);
+}
+
+export async function createExport(input: ExportRequest): Promise<ExportJob> {
   return gcFetch<ExportJob>(
     "/api/v0/export",
     {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        format: input.format,
+        start_from_hit_id: input.startFromHitId,
+        start_from_day: input.startFromDay,
+      }),
     },
     undefined,
     { bypassCache: true }

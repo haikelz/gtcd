@@ -43,6 +43,7 @@ Overview uses 2:1 traffic/audience and 3:2 pages/locations grids above 1280px. T
 - **AreaChart**: responsive SVG time series, hover readout, title/description/role, screen-reader table, empty state.
 - **DonutChart**: actual category counts, top four plus summed remainder, SVG ring with total and visible count/share legend. Accessible title, description and table. No-data state when total is zero. Shared by overview and browsers.
 - **BarChart**: ranked rows and accessible meters; optional category tone differentiates geographic/technical reports. Buttons only for real drill-down.
+- **ReportPagination**: a compact previous/next navigation below paged data. It uses ordinary links so date filters, history, and keyboard behavior remain native.
 - **Report panels**: consistent headers/actions but composition varies by chart, ring, table or list. No static hover elevation.
 - **Management panels**: a single primary form is divided by structural rules into named settings groups; a sticky secondary rail carries current-site context and the GoatCounter handoff. Export creation and request status use an explicit two-step composition rather than equal-weight cards.
 - **DateRangePicker**: existing query-driven radio controls and arrow keys.

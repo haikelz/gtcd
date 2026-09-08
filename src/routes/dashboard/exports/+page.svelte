@@ -10,8 +10,9 @@
     RefreshCw,
   } from "@lucide/svelte";
 
-  let { data } = $props();
+  let { data, form } = $props();
   const job = $derived(data.job);
+  let format = $derived(form?.values?.format ?? "csv");
   const isReady = $derived(job?.finished_at && !job.error);
   const exportState = $derived(
     job?.error
@@ -59,6 +60,13 @@
   </div>
 </header>
 
+{#if form?.error}
+  <div class="alert alert-error mb-6" role="alert">
+    <CircleAlert class="h-5 w-5 shrink-0" />
+    <span>{form.error}</span>
+  </div>
+{/if}
+
 <div class="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
   <form method="POST" action="?/create" class="panel">
     <div class="flex items-start gap-3">
@@ -67,24 +75,96 @@
       >
       <div>
         <p class="eyebrow mb-1">Step 1</p>
-        <h2 class="section-title">Create a CSV export</h2>
+        <h2 class="section-title">Create an export</h2>
         <p class="text-sm leading-6 text-muted-foreground mt-1">
-          GoatCounter prepares a gzip-compressed CSV file in the background.
+          GoatCounter prepares a gzip-compressed file in the background.
         </p>
       </div>
     </div>
-    <label class="form-control gap-2 mt-7">
-      <span class="label-text font-medium">Format</span>
-      <input
-        class="input input-bordered w-full"
-        value="CSV (gzip-compressed)"
-        readonly
-        aria-describedby="export-format-help"
-      />
-      <span id="export-format-help" class="text-sm text-muted-foreground"
-        >The GoatCounter API currently provides CSV exports only.</span
-      >
-    </label>
+    <fieldset class="mt-7">
+      <legend class="label-text font-medium">Format</legend>
+      <div class="grid gap-3 mt-2 sm:grid-cols-2">
+        <label
+          class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
+        >
+          <input
+            class="radio radio-primary shrink-0"
+            name="format"
+            type="radio"
+            value="csv"
+            bind:group={format}
+          />
+          <span
+            ><span class="block text-sm font-medium">CSV</span><span
+              class="block text-xs leading-5 text-muted-foreground mt-0.5"
+              >Individual pageviews for spreadsheets and data tools.</span
+            ></span
+          >
+        </label>
+        <label
+          class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
+        >
+          <input
+            class="radio radio-primary shrink-0"
+            name="format"
+            type="radio"
+            value="json"
+            bind:group={format}
+          />
+          <span
+            ><span class="block text-sm font-medium">JSON</span><span
+              class="block text-xs leading-5 text-muted-foreground mt-0.5"
+              >Aggregate data for a portable analytics backup.</span
+            ></span
+          >
+        </label>
+      </div>
+    </fieldset>
+    {#if format === "csv"}
+      <label class="form-control gap-2 mt-6">
+        <span class="label-text font-medium"
+          >Start after hit ID <span class="font-normal text-muted-foreground"
+            >(optional)</span
+          ></span
+        >
+        <input
+          class="input input-bordered w-full"
+          name="startFromHitId"
+          type="number"
+          min="1"
+          inputmode="numeric"
+          value={form?.values?.startFromHitId ?? ""}
+          aria-describedby="csv-cursor-help"
+        />
+        <span
+          id="csv-cursor-help"
+          class="text-sm leading-6 text-muted-foreground"
+          >Paste the last hit ID from an earlier CSV export to download only
+          newer pageviews.</span
+        >
+      </label>
+    {:else}
+      <label class="form-control gap-2 mt-6">
+        <span class="label-text font-medium"
+          >Start date <span class="font-normal text-muted-foreground"
+            >(optional)</span
+          ></span
+        >
+        <input
+          class="input input-bordered w-full"
+          name="startFromDay"
+          type="date"
+          value={form?.values?.startFromDay ?? ""}
+          aria-describedby="json-date-help"
+        />
+        <span
+          id="json-date-help"
+          class="text-sm leading-6 text-muted-foreground"
+          >Leave blank to include all aggregate data, or choose a day to export
+          newer data only.</span
+        >
+      </label>
+    {/if}
     <div class="flex gap-3 border-t border-border mt-6 pt-5">
       <Clock3
         class="h-5 w-5 shrink-0 text-muted-foreground"
@@ -123,11 +203,11 @@
               {exportState}
             </h2>
             <p class="text-sm leading-6 text-muted-foreground mt-1">
-              Export #{job.id} is being prepared as a CSV file.
+              Export #{job.id} is being prepared as a {job.format.toUpperCase()} file.
             </p>
           </div>
         </div>
-        <span class="badge badge-outline uppercase shrink-0">CSV</span>
+        <span class="badge badge-outline uppercase shrink-0">{job.format}</span>
       </div>
       {#if job.error}
         <div class="alert alert-error mt-7">
@@ -152,7 +232,7 @@
         <a
           class="btn btn-primary"
           href={resolve(`/api/admin/exports/${job.id}`)}
-          ><Download class="h-4 w-4" /> Download CSV</a
+          ><Download class="h-4 w-4" /> Download {job.format.toUpperCase()}</a
         >
       {:else}
         <div class="border-y border-border my-7 py-5 flex gap-3">
@@ -199,10 +279,9 @@
             class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-primary"
             aria-hidden="true"
           ></span>
-          <p class="text-sm font-medium">Create a CSV export</p>
+          <p class="text-sm font-medium">Create an export</p>
           <p class="text-sm leading-6 text-muted-foreground mt-1">
-            The gzip-compressed CSV file works with spreadsheets and most data
-            tools.
+            Choose CSV for individual pageviews or JSON for aggregate data.
           </p>
         </li>
         <li class="relative pl-6">

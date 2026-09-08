@@ -7,6 +7,7 @@
   import ToastStack from "$lib/components/ToastStack.svelte";
   import {
     FileText,
+    FolderTree,
     FolderCog,
     Globe,
     Languages,
@@ -46,6 +47,11 @@
       label: "Pages",
       href: "/dashboard/pages",
       icon: FileText,
+    },
+    {
+      label: "Path directory",
+      href: "/dashboard/paths",
+      icon: FolderTree,
     },
     {
       label: "Browsers",
@@ -88,7 +94,9 @@
       ? "Settings"
       : page.url.pathname === "/dashboard/exports"
         ? "Exports"
-        : (navItems.find((item) => isActive(item.href))?.label ?? "Overview")
+        : page.url.pathname.startsWith("/dashboard/reports/")
+          ? "Report detail"
+          : (navItems.find((item) => isActive(item.href))?.label ?? "Overview")
   );
 
   function isActive(href: string): boolean {
@@ -221,11 +229,11 @@
           {#each navItems as item, i (item.href)}
             {@const Icon = item.icon}
             <li>
-              {#if i === 0 || i === 2 || i === 7}
+              {#if i === 0 || i === 3 || i === 8}
                 <p
                   class="sidebar-section-label px-3 pb-2 {i > 0 ? 'pt-5' : ''}"
                 >
-                  {i === 0 ? "Workspace" : i === 2 ? "Audience" : "Acquisition"}
+                  {i === 0 ? "Workspace" : i === 3 ? "Audience" : "Acquisition"}
                 </p>
               {/if}
               <a

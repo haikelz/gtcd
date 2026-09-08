@@ -97,6 +97,8 @@ export type StatsPage =
   | "campaigns"
   | "toprefs";
 
+export type StatsDetailPage = Exclude<StatsPage, "languages">;
+
 export interface Site {
   id: number;
   parent?: number;
@@ -130,6 +132,7 @@ export interface SitesResponse {
 export interface ExportJob {
   id: number;
   site_id: number;
+  format: "csv" | "json";
   start_from_hit_id?: number;
   last_hit_id?: number;
   start_from_day?: string;
@@ -139,6 +142,12 @@ export interface ExportJob {
   size?: string;
   hash?: string;
   error?: string;
+}
+
+export interface ExportRequest {
+  readonly format: "csv" | "json";
+  readonly startFromHitId?: number;
+  readonly startFromDay?: string;
 }
 
 export type GoatCounterAuthResult =

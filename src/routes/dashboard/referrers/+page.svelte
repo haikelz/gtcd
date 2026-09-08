@@ -1,10 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import ReportPagination from "$lib/components/ReportPagination.svelte";
   import { Link2, TriangleAlert } from "@lucide/svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
   let datePreset = $derived(data.range || "7d");
@@ -14,6 +17,22 @@
     goto(resolve(`/dashboard/referrers?range=${preset}`), {
       replaceState: true,
     });
+  }
+
+  function reportHref(offset: number): string {
+    const params = new SvelteURLSearchParams(page.url.searchParams);
+    if (offset === 0) params.delete("offset");
+    else params.set("offset", String(offset));
+    const query = params.toString();
+    return query ? `${page.url.pathname}?${query}` : page.url.pathname;
+  }
+
+  function handleDetail(id: string) {
+    goto(
+      resolve(
+        `/dashboard/reports/toprefs/${encodeURIComponent(id)}?${page.url.searchParams}`
+      )
+    );
   }
 </script>
 
@@ -63,6 +82,13 @@
       maxItems={100}
       label="Referrer"
       tone="mint"
+      onItemClick={handleDetail}
+    />
+    <ReportPagination
+      previousHref={data.offset > 0
+        ? reportHref(Math.max(0, data.offset - 100))
+        : undefined}
+      nextHref={data.refs.more ? reportHref(data.offset + 100) : undefined}
     />
   </section>
 {:else}

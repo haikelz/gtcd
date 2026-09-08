@@ -62,6 +62,21 @@ export function getDateRangeFromUrl(url: URL): {
   };
 }
 
+export function getOffsetFromUrl(url: URL): number {
+  const value = url.searchParams.get("offset");
+  if (!value) return 0;
+  if (!/^\d+$/.test(value)) {
+    throw new Error("Choose a valid report page.");
+  }
+
+  const offset = Number(value);
+  if (!Number.isSafeInteger(offset) || offset < 0) {
+    throw new Error("Choose a valid report page.");
+  }
+
+  return offset;
+}
+
 function getStartTime(now: Date, preset: string): Date {
   const start = new Date(now);
   switch (preset) {

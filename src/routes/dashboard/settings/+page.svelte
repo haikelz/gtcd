@@ -14,10 +14,23 @@
 
   let { data, form } = $props();
   const adminUrl = $derived(data.goatCounterAdminUrl);
+  const settingsValues = $derived(
+    form?.values && "dataRetention" in form.values ? form.values : undefined
+  );
+  const createSiteValues = $derived(
+    form?.values && "cname" in form.values ? form.values : undefined
+  );
   let lastUpdateId = $state<string | null>(null);
 
+  function hasCollection(flag: number): boolean {
+    return (data.site.settings.collect & flag) === flag;
+  }
+
   $effect(() => {
-    if (data.updated && data.updated !== lastUpdateId) {
+    if (data.created && data.created !== lastUpdateId) {
+      showToast("Site created.", "success");
+      lastUpdateId = data.created;
+    } else if (data.updated && data.updated !== lastUpdateId) {
       showToast("Site settings saved.", "success");
       lastUpdateId = data.updated;
     }
@@ -49,7 +62,7 @@
   </button>
 </header>
 
-{#if form?.message}
+{#if form?.message && !createSiteValues}
   <div class="alert alert-error mb-5" role="alert">
     <TriangleAlert class="h-5 w-5 shrink-0" />
     <span
@@ -90,7 +103,7 @@
           class="input input-bordered h-11 w-full px-3"
           name="linkDomain"
           type="url"
-          value={form?.values?.linkDomain ?? data.site.link_domain ?? ""}
+          value={settingsValues?.linkDomain ?? data.site.link_domain ?? ""}
           placeholder="https://www.example.com"
           aria-describedby="link-domain-help"
         />
@@ -130,7 +143,7 @@
               name="dataRetention"
               type="number"
               min="0"
-              value={form?.values?.dataRetention ??
+              value={settingsValues?.dataRetention ??
                 data.site.settings.data_retention}
               aria-label="Data retention in days"
               aria-describedby="data-retention-help"
@@ -155,7 +168,7 @@
               ? "ignore-ips-help ignore-ips-error"
               : "ignore-ips-help"}
             aria-invalid={form?.field === "ignoreIps" ? "true" : undefined}
-            >{form?.values?.ignoreIps ??
+            >{settingsValues?.ignoreIps ??
               data.site.settings.ignore_ips.join("\n")}</textarea
           >
           <span
@@ -185,7 +198,7 @@
             ? "collect-regions-help collect-regions-error"
             : "collect-regions-help"}
           aria-invalid={form?.field === "collectRegions" ? "true" : undefined}
-          value={form?.values?.collectRegions ??
+          value={settingsValues?.collectRegions ??
             data.site.settings.collect_regions.join(", ")}
         />
         <span
@@ -201,6 +214,151 @@
           >
         {/if}
       </label>
+      <fieldset class="mt-7" aria-describedby="collection-help">
+        <legend class="label-text font-medium">Data to collect</legend>
+        <p
+          id="collection-help"
+          class="text-xs leading-5 text-muted-foreground mt-2"
+        >
+          Changes apply to future visits. Existing analytics data is not
+          removed.
+        </p>
+        <div class="grid gap-3 mt-4 sm:grid-cols-2">
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectHits"
+              type="checkbox"
+              checked={settingsValues?.collectHits ?? hasCollection(256)}
+            />
+            <span
+              ><span class="block text-sm font-medium"
+                >Individual pageviews</span
+              ><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Store pageviews for CSV exports.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectSessions"
+              type="checkbox"
+              checked={settingsValues?.collectSessions ?? hasCollection(128)}
+            />
+            <span
+              ><span class="block text-sm font-medium">Sessions</span><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Estimate unique visitors for up to eight hours.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectReferrer"
+              type="checkbox"
+              checked={settingsValues?.collectReferrer ?? hasCollection(2)}
+            />
+            <span
+              ><span class="block text-sm font-medium"
+                >Referrers and campaigns</span
+              ><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Record referrer headers and campaign parameters.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectUserAgent"
+              type="checkbox"
+              checked={settingsValues?.collectUserAgent ?? hasCollection(4)}
+            />
+            <span
+              ><span class="block text-sm font-medium">Browser and system</span
+              ><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Derive names from the User-Agent without storing the header.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectScreenSize"
+              type="checkbox"
+              checked={settingsValues?.collectScreenSize ?? hasCollection(8)}
+            />
+            <span
+              ><span class="block text-sm font-medium">Screen size</span><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Record viewport dimensions.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectLocation"
+              type="checkbox"
+              checked={settingsValues?.collectLocation ?? hasCollection(16)}
+            />
+            <span
+              ><span class="block text-sm font-medium">Country</span><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Record visitor country.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectRegion"
+              type="checkbox"
+              checked={settingsValues?.collectRegion ?? hasCollection(32)}
+            />
+            <span
+              ><span class="block text-sm font-medium">Region</span><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Record regional detail for selected countries.</span
+              ></span
+            >
+          </label>
+          <label
+            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
+          >
+            <input
+              class="checkbox checkbox-primary mt-0.5 shrink-0"
+              name="collectLanguage"
+              type="checkbox"
+              checked={settingsValues?.collectLanguage ?? hasCollection(64)}
+            />
+            <span
+              ><span class="block text-sm font-medium">Language</span><span
+                class="block text-xs leading-5 text-muted-foreground mt-0.5"
+                >Record supported browser languages.</span
+              ></span
+            >
+          </label>
+        </div>
+      </fieldset>
     </section>
 
     <section
@@ -231,7 +389,7 @@
             ? "allow-embed-help allow-embed-error"
             : "allow-embed-help"}
           aria-invalid={form?.field === "allowEmbed" ? "true" : undefined}
-          >{form?.values?.allowEmbed ??
+          >{settingsValues?.allowEmbed ??
             data.site.settings.allow_embed.join("\n")}</textarea
         >
         <span
@@ -254,7 +412,7 @@
             class="toggle toggle-primary shrink-0"
             name="allowCounter"
             type="checkbox"
-            checked={form?.values?.allowCounter ??
+            checked={settingsValues?.allowCounter ??
               data.site.settings.allow_counter}
           />
           <span
@@ -271,7 +429,7 @@
             class="toggle toggle-primary shrink-0"
             name="allowBosmang"
             type="checkbox"
-            checked={form?.values?.allowBosmang ??
+            checked={settingsValues?.allowBosmang ??
               data.site.settings.allow_bosmang}
           />
           <span
@@ -355,6 +513,52 @@
             </li>
           {/each}
         </ul>
+      </section>
+    {/if}
+    {#if data.canCreateSite}
+      <section class="panel" aria-labelledby="add-site-heading">
+        <h2 id="add-site-heading" class="section-title">Add a site</h2>
+        <p class="text-sm leading-6 text-muted-foreground mt-2">
+          Create a child site for another analytics hostname. Its host must be
+          configured in your GoatCounter reverse proxy before it can receive
+          data.
+        </p>
+        <form method="POST" action="?/createSite" class="grid gap-4 mt-5">
+          {#if createSiteValues && form?.message}
+            <div class="alert alert-error" role="alert">
+              <TriangleAlert class="h-5 w-5 shrink-0" />
+              <span>{form.message}</span>
+            </div>
+          {/if}
+          <label class="grid gap-2">
+            <span class="label-text font-medium">Analytics hostname</span>
+            <input
+              class="input input-bordered h-11 w-full px-3"
+              name="cname"
+              type="text"
+              placeholder="stats.example.com"
+              value={createSiteValues?.cname ?? ""}
+              required
+            />
+          </label>
+          <label class="grid gap-2">
+            <span class="label-text font-medium"
+              >Linked website URL <span
+                class="font-normal text-muted-foreground">(optional)</span
+              ></span
+            >
+            <input
+              class="input input-bordered h-11 w-full px-3"
+              name="linkDomain"
+              type="url"
+              placeholder="https://www.example.com"
+              value={createSiteValues?.linkDomain ?? ""}
+            />
+          </label>
+          <button class="btn btn-outline w-full" type="submit"
+            >Create site</button
+          >
+        </form>
       </section>
     {/if}
   </aside>

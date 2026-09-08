@@ -1,10 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import ReportPagination from "$lib/components/ReportPagination.svelte";
   import { Smartphone, TriangleAlert } from "@lucide/svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
   let datePreset = $derived(data.range || "7d");
@@ -12,6 +15,22 @@
   function handleDateChange(preset: string) {
     datePreset = preset;
     goto(resolve(`/dashboard/devices?range=${preset}`), { replaceState: true });
+  }
+
+  function reportHref(offset: number): string {
+    const params = new SvelteURLSearchParams(page.url.searchParams);
+    if (offset === 0) params.delete("offset");
+    else params.set("offset", String(offset));
+    const query = params.toString();
+    return query ? `${page.url.pathname}?${query}` : page.url.pathname;
+  }
+
+  function handleDetail(id: string) {
+    goto(
+      resolve(
+        `/dashboard/reports/sizes/${encodeURIComponent(id)}?${page.url.searchParams}`
+      )
+    );
   }
 </script>
 
@@ -63,6 +82,13 @@
       data={data.stats.stats}
       maxItems={50}
       label="Screen size"
+      onItemClick={handleDetail}
+    />
+    <ReportPagination
+      previousHref={data.offset > 0
+        ? reportHref(Math.max(0, data.offset - 50))
+        : undefined}
+      nextHref={data.stats.more ? reportHref(data.offset + 50) : undefined}
     />
   </div>
 {:else}

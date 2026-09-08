@@ -1,19 +1,27 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import { page } from "$app/state";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import ReportPagination from "$lib/components/ReportPagination.svelte";
   import { FileText, TriangleAlert } from "@lucide/svelte";
 
   let { data } = $props();
-  let datePreset = $state("7d");
-
-  $effect(() => {
-    datePreset = data.range || "7d";
-  });
+  let datePreset = $derived(data.range || "7d");
 
   function handleDateChange(preset: string) {
     datePreset = preset;
-    goto(`/dashboard/pages?range=${preset}`, { replaceState: true });
+    goto(resolve(`/dashboard/pages?range=${preset}`), { replaceState: true });
+  }
+
+  function pagesHref(exclude: string): string {
+    const params = new SvelteURLSearchParams(page.url.searchParams);
+    if (exclude) params.set("exclude", exclude);
+    else params.delete("exclude");
+    const query = params.toString();
+    return query ? `${page.url.pathname}?${query}` : page.url.pathname;
   }
 </script>
 
@@ -70,10 +78,10 @@
       class="list-none p-0 m-0 border-t border-border"
       aria-label="Pages list"
     >
-      {#each data.hits.hits as hit, i}
+      {#each data.hits.hits as hit, i (hit.path_id)}
         <li class="border-b border-border">
           <a
-            href="/dashboard/pages/{hit.path_id}"
+            href={resolve(`/dashboard/pages/${hit.path_id}`)}
             class="list-row no-underline group"
             aria-label="{hit.path}, {hit.count.toLocaleString()} visits"
           >
@@ -89,6 +97,14 @@
         </li>
       {/each}
     </ul>
+    <ReportPagination
+      previousHref={data.excludedPathIds
+        ? pagesHref(data.previousExcludedPathIds)
+        : undefined}
+      nextHref={data.hits.more
+        ? pagesHref(data.nextExcludedPathIds)
+        : undefined}
+    />
   </div>
 {:else}
   <div class="panel empty-state animate-fade-in">
