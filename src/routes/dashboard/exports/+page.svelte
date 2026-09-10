@@ -112,13 +112,13 @@
       </fieldset>
       {#if format === "csv"}
         <label class="form-control">
-          <span class="label-text font-medium mb-3"
+          <span class="label-text font-medium"
             >Start after hit ID <span class="font-normal text-muted-foreground"
               >(optional)</span
             ></span
           >
           <input
-            class="input input-bordered w-full"
+            class="input input-bordered w-full mt-3"
             name="startFromHitId"
             type="number"
             min="1"
@@ -135,13 +135,13 @@
         </label>
       {:else}
         <label class="form-control">
-          <span class="label-text font-medium mb-3"
+          <span class="label-text font-medium"
             >Start date <span class="font-normal text-muted-foreground"
               >(optional)</span
             ></span
           >
           <input
-            class="input input-bordered w-full"
+            class="input input-bordered w-full mt-3"
             name="startFromDay"
             type="date"
             value={form?.values?.startFromDay ?? ""}
