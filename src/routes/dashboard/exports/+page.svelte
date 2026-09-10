@@ -71,7 +71,7 @@
       </div>
     </section>
     <section class="border-t border-border p-5 sm:p-6">
-      <fieldset>
+      <fieldset class="mb-6">
         <legend class="label-text font-medium">Format</legend>
         <div class="grid gap-3 mt-3 sm:grid-cols-2">
           <label
@@ -111,8 +111,8 @@
         </div>
       </fieldset>
       {#if format === "csv"}
-        <label class="form-control gap-2 mt-6">
-          <span class="label-text font-medium"
+        <label class="form-control">
+          <span class="label-text font-medium mb-3"
             >Start after hit ID <span class="font-normal text-muted-foreground"
               >(optional)</span
             ></span
@@ -134,8 +134,8 @@
           >
         </label>
       {:else}
-        <label class="form-control gap-2 mt-6">
-          <span class="label-text font-medium"
+        <label class="form-control">
+          <span class="label-text font-medium mb-3"
             >Start date <span class="font-normal text-muted-foreground"
               >(optional)</span
             ></span

@@ -4,8 +4,8 @@
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
   import DateRangePicker from "$lib/components/DateRangePicker.svelte";
-  import SEO from "$lib/components/SEO.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
+  import SEO from "$lib/components/SEO.svelte";
   import { Languages, TriangleAlert } from "@lucide/svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
