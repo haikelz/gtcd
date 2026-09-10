@@ -16,6 +16,26 @@ function normalizeName(name: string | null | undefined): string {
   return name.trim();
 }
 
+const SIZE_CATEGORY_NAMES: Readonly<Record<string, string>> = {
+  phone: "Phones",
+  tablet: "Tablets and large phones",
+  desktop: "Computer monitors",
+  desktophd: "Computer monitors larger than HD",
+  unknown: "Unknown",
+};
+
+function normalizeStatName(
+  page: StatsPage,
+  id: string,
+  name: string | null | undefined
+): string {
+  if (page === "sizes" && (!name || name.trim() === "")) {
+    return SIZE_CATEGORY_NAMES[id] ?? "Unknown";
+  }
+
+  return normalizeName(name);
+}
+
 const STATS_PAGES: readonly StatsPage[] = [
   "browsers",
   "systems",
@@ -142,7 +162,7 @@ export async function getStats(
     ...res,
     stats: (res.stats || []).map((item) => ({
       ...item,
-      name: normalizeName(item.name),
+      name: normalizeStatName(page, item.id, item.name),
     })),
   };
 }
@@ -170,7 +190,7 @@ export async function getStatsDetail(
     ...res,
     stats: (res.stats || []).map((item) => ({
       ...item,
-      name: normalizeName(item.name),
+      name: normalizeStatName(page, item.id, item.name),
     })),
   };
 }
