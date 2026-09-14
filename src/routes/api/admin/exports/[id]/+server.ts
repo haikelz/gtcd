@@ -1,7 +1,7 @@
 import { error, json } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import { downloadExport, getExport } from "$lib/server/goatcounter/admin.js";
-import { getMe } from "$lib/server/goatcounter/stats.js";
+import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import type { RequestHandler } from "./$types";
 
 function parseExportId(value: string): number {
@@ -15,17 +15,18 @@ function parseExportId(value: string): number {
   return exportId;
 }
 
-export const GET: RequestHandler = async ({ locals, params }) => {
+export const GET: RequestHandler = async ({ locals, params, url }) => {
   requireDashboardAdmin(locals.user);
 
   const exportId = parseExportId(params.id);
-  const [currentUser, job] = await Promise.all([getMe(), getExport(exportId)]);
+  const siteContext = await getDashboardSiteContext(url);
+  const job = await getExport(exportId, { vhost: siteContext.vhost });
 
-  if (job.site_id !== currentUser.user.site) {
+  if (job.site_id !== siteContext.site.id) {
     throw error(404, "Export not found.");
   }
 
-  const upstream = await downloadExport(exportId);
+  const upstream = await downloadExport(exportId, { vhost: siteContext.vhost });
 
   if (upstream.status === 202) {
     return json({ error: "Export is still being prepared." }, { status: 202 });

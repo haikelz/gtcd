@@ -2,6 +2,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
+import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import type { ExportRequest } from "$lib/server/goatcounter/types.js";
 
 const EXPORT_PERMISSION = 4;
@@ -93,15 +94,18 @@ export async function load({ locals, url }) {
 
   const exportId = parseExportId(url.searchParams.get("export"));
   const currentUser = await stats.getMe();
+  const siteContext = await getDashboardSiteContext(url);
   if (!hasExportPermission(currentUser.token.permissions)) {
     throw error(
       403,
       "Exports need the GoatCounter API token to have export permission. Grant export permission to GOATCOUNTER_API_KEY, then reload."
     );
   }
-  const job = exportId ? await admin.getExport(exportId) : null;
+  const job = exportId
+    ? await admin.getExport(exportId, { vhost: siteContext.vhost })
+    : null;
 
-  if (job && job.site_id !== currentUser.user.site) {
+  if (job && job.site_id !== siteContext.site.id) {
     throw error(404, "Export not found.");
   }
 
@@ -109,7 +113,7 @@ export async function load({ locals, url }) {
 }
 
 export const actions = {
-  create: async ({ locals, request }) => {
+  create: async ({ locals, request, url }) => {
     requireDashboardAdmin(locals.user);
 
     const parsed = parseExportRequest(await request.formData());
@@ -118,6 +122,7 @@ export const actions = {
     }
 
     const currentUser = await stats.getMe();
+    const siteContext = await getDashboardSiteContext(url);
     if (!hasExportPermission(currentUser.token.permissions)) {
       return fail(403, {
         error:
@@ -126,7 +131,12 @@ export const actions = {
       });
     }
 
-    const job = await admin.createExport(parsed.input);
-    throw redirect(303, `/dashboard/exports?export=${job.id}`);
+    const job = await admin.createExport(parsed.input, {
+      vhost: siteContext.vhost,
+    });
+    throw redirect(
+      303,
+      `/dashboard/exports?site=${siteContext.site.id}&export=${job.id}`
+    );
   },
 };

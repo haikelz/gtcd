@@ -12,11 +12,12 @@ function parseAfter(value: string | null): number | undefined {
   return after;
 }
 
-export async function load({ url }) {
+export async function load({ url, parent }) {
   const after = parseAfter(url.searchParams.get("after"));
+  const { vhost } = await parent();
 
   try {
-    const result = await getPaths(100, after);
+    const result = await getPaths(100, after, { vhost });
     const nextAfter = result.paths.at(-1)?.id;
     return { after, nextAfter, paths: result };
   } catch (cause: unknown) {

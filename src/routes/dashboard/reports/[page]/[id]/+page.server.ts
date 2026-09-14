@@ -44,7 +44,7 @@ const REPORTS = {
   },
 } as const;
 
-export async function load({ params, url }) {
+export async function load({ params, url, parent }) {
   if (!isStatsDetailPage(params.page)) {
     throw error(404, "This report does not have a detail view.");
   }
@@ -52,6 +52,7 @@ export async function load({ params, url }) {
   const report = REPORTS[params.page];
   const { range, start, end } = getDateRangeFromUrl(url);
   const offset = getOffsetFromUrl(url);
+  const { vhost } = await parent();
 
   try {
     const detail = await getStatsDetail(
@@ -60,7 +61,8 @@ export async function load({ params, url }) {
       start,
       end,
       50,
-      offset
+      offset,
+      { vhost }
     );
 
     return { range, offset, report, detail, detailId: params.id };

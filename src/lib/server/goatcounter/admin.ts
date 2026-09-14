@@ -1,4 +1,5 @@
 import { clearClientCache, gcFetch, gcFetchRaw } from "./client.js";
+import type { GoatCounterRequestOptions } from "./client.js";
 import type { ExportJob, ExportRequest, Site, SiteSettings } from "./types.js";
 
 type GoatCounterSettings = Omit<
@@ -89,11 +90,16 @@ export async function getSite(siteId: number): Promise<Site> {
 
 export async function updateSite(
   siteId: number,
-  input: { readonly linkDomain: string; readonly settings: SiteSettings }
+  input: {
+    readonly cname: string;
+    readonly linkDomain: string;
+    readonly settings: SiteSettings;
+  }
 ): Promise<Site> {
   const site = await gcFetch<GoatCounterSite>(`/api/v0/sites/${siteId}`, {
     method: "PATCH",
     body: JSON.stringify({
+      cname: input.cname,
       link_domain: input.linkDomain,
       settings: toGoatCounterSettingsInput(input.settings),
     }),
@@ -124,7 +130,10 @@ export async function createSite(input: {
   return normalizeSite(site);
 }
 
-export async function createExport(input: ExportRequest): Promise<ExportJob> {
+export async function createExport(
+  input: ExportRequest,
+  options?: GoatCounterRequestOptions
+): Promise<ExportJob> {
   return gcFetch<ExportJob>(
     "/api/v0/export",
     {
@@ -136,16 +145,23 @@ export async function createExport(input: ExportRequest): Promise<ExportJob> {
       }),
     },
     undefined,
-    { bypassCache: true }
+    { ...options, bypassCache: true }
   );
 }
 
-export async function getExport(exportId: number): Promise<ExportJob> {
+export async function getExport(
+  exportId: number,
+  options?: GoatCounterRequestOptions
+): Promise<ExportJob> {
   return gcFetch<ExportJob>(`/api/v0/export/${exportId}`, {}, undefined, {
+    ...options,
     bypassCache: true,
   });
 }
 
-export async function downloadExport(exportId: number): Promise<Response> {
-  return gcFetchRaw(`/api/v0/export/${exportId}/download`);
+export async function downloadExport(
+  exportId: number,
+  options?: GoatCounterRequestOptions
+): Promise<Response> {
+  return gcFetchRaw(`/api/v0/export/${exportId}/download`, {}, options);
 }

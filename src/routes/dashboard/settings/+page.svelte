@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
+  import { resolve } from "$app/paths";
   import SEO from "$lib/components/SEO.svelte";
   import { showToast } from "$lib/components/toast.js";
   import {
@@ -97,6 +98,17 @@
           </p>
         </div>
       </div>
+      <label class="grid gap-2 mt-6">
+        <span class="label-text font-medium">Analytics hostname</span>
+        <input
+          class="input input-bordered h-11 w-full px-3"
+          name="cname"
+          type="text"
+          value={settingsValues?.cname ?? data.site.cname ?? ""}
+          aria-invalid={form?.field === "cname" ? "true" : undefined}
+          required
+        />
+      </label>
       <label class="grid gap-2 mt-6">
         <span class="label-text font-medium">Linked website URL</span>
         <input
@@ -380,6 +392,19 @@
         </div>
       </div>
       <label class="grid gap-2 mt-6">
+        <span class="label-text font-medium">Public setting</span>
+        <input
+          class="input input-bordered h-11 w-full px-3"
+          name="public"
+          type="text"
+          value={settingsValues?.public ?? data.site.settings.public}
+          aria-invalid={form?.field === "public" ? "true" : undefined}
+        />
+        <span class="block text-xs leading-5 text-muted-foreground"
+          >Use the GoatCounter public setting value configured for this site.</span
+        >
+      </label>
+      <label class="grid gap-2 mt-6">
         <span class="label-text font-medium">Allowed embed origins</span>
         <textarea
           class="textarea textarea-bordered min-h-32 w-full p-3 leading-6"
@@ -499,17 +524,20 @@
         </h2>
         <ul class="list-none m-0 mt-3 p-0 space-y-1 text-sm">
           {#each data.sites as site (site.id)}
-            <li
-              class="flex items-center gap-2 rounded-field px-2 py-2 {site.id ===
-              data.site.id
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-muted-foreground'}"
-            >
-              <span
-                class="h-1.5 w-1.5 rounded-full bg-current"
-                aria-hidden="true"
-              ></span>
-              <span class="truncate">{site.cname || site.code}</span>
+            <li>
+              <a
+                class="flex items-center gap-2 rounded-field px-2 py-2 {site.id ===
+                data.site.id
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground'}"
+                href={resolve("/dashboard/settings") + `?site=${site.id}`}
+              >
+                <span
+                  class="h-1.5 w-1.5 rounded-full bg-current"
+                  aria-hidden="true"
+                ></span>
+                <span class="truncate">{site.cname || site.code}</span>
+              </a>
             </li>
           {/each}
         </ul>

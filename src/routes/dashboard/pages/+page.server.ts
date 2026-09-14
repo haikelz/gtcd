@@ -12,12 +12,20 @@ function parseExcludedPathIds(value: string | null): string {
   return ids.join(",");
 }
 
-export async function load({ url }) {
+export async function load({ url, parent }) {
   const { range, start, end } = getDateRangeFromUrl(url);
   const excludedPathIds = parseExcludedPathIds(url.searchParams.get("exclude"));
+  const { vhost } = await parent();
 
   try {
-    const hits = await stats.getHits(start, end, 100, excludedPathIds);
+    const hits = await stats.getHits(
+      start,
+      end,
+      100,
+      excludedPathIds,
+      undefined,
+      { vhost }
+    );
     const nextExcludedPathIds = [
       excludedPathIds,
       ...hits.hits.map((hit) => String(hit.path_id)),

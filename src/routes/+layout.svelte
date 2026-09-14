@@ -105,6 +105,21 @@
       : page.url.pathname.startsWith(href);
   }
 
+  function dashboardHref(href: string): string {
+    if (!isDashboard || !page.data.site) return href;
+
+    const url = new URL(href, page.url.origin);
+    url.searchParams.set("site", String(page.data.site.id));
+    return `${url.pathname}${url.search}`;
+  }
+
+  function switchSite(event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    const url = new URL("/dashboard", page.url.origin);
+    url.searchParams.set("site", target.value);
+    goto(resolve("/dashboard") + url.search);
+  }
+
   function closeSidebar() {
     sidebarOpen = false;
   }
@@ -237,7 +252,7 @@
                 </p>
               {/if}
               <a
-                href={resolve(item.href)}
+                href={dashboardHref(resolve(item.href))}
                 class="sidebar-link {isActive(item.href) ? 'active' : ''}"
                 aria-current={isActive(item.href) ? "page" : undefined}
                 onclick={closeSidebar}
@@ -251,7 +266,7 @@
             <li>
               <p class="sidebar-section-label px-3 pb-2 pt-5">Manage</p>
               <a
-                href={resolve("/dashboard/settings")}
+                href={dashboardHref(resolve("/dashboard/settings"))}
                 class="sidebar-link {isActive('/dashboard/settings')
                   ? 'active'
                   : ''}"
@@ -264,7 +279,7 @@
                 <span>Settings</span>
               </a>
               <a
-                href={resolve("/dashboard/exports")}
+                href={dashboardHref(resolve("/dashboard/exports"))}
                 class="sidebar-link {isActive('/dashboard/exports')
                   ? 'active'
                   : ''}"
@@ -324,6 +339,19 @@
             >
             <span class="truncate">{activeLabel}</span>
           </nav>
+          {#if page.data.sites?.length > 1}
+            <label class="sr-only" for="dashboard-site">Analytics site</label>
+            <select
+              id="dashboard-site"
+              class="select select-bordered select-sm max-w-44"
+              value={page.data.site.id}
+              onchange={switchSite}
+            >
+              {#each page.data.sites as site (site.id)}
+                <option value={site.id}>{site.cname || site.code}</option>
+              {/each}
+            </select>
+          {/if}
         </div>
       </header>
       <main

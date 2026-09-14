@@ -1,4 +1,5 @@
 import { gcFetch } from "./client.js";
+import type { GoatCounterRequestOptions } from "./client.js";
 import type {
   CountTotalResponse,
   GoatCounterUser,
@@ -73,9 +74,15 @@ export async function getMe(): Promise<GoatCounterUser> {
 
 export async function getTotal(
   start?: string,
-  end?: string
+  end?: string,
+  options?: GoatCounterRequestOptions
 ): Promise<CountTotalResponse> {
-  return gcFetch<CountTotalResponse>("/api/v0/stats/total", {}, { start, end });
+  return gcFetch<CountTotalResponse>(
+    "/api/v0/stats/total",
+    {},
+    { start, end },
+    options
+  );
 }
 
 export async function getHits(
@@ -83,7 +90,8 @@ export async function getHits(
   end?: string,
   limit?: number,
   excludePaths?: string,
-  pathByName?: boolean
+  pathByName?: boolean,
+  options?: GoatCounterRequestOptions
 ): Promise<HitsResponse> {
   const res = await gcFetch<HitsResponse>(
     "/api/v0/stats/hits",
@@ -94,7 +102,8 @@ export async function getHits(
       limit: limit?.toString(),
       exclude_paths: excludePaths,
       path_by_name: pathByName ? "true" : undefined,
-    }
+    },
+    options
   );
 
   return {
@@ -118,7 +127,8 @@ export async function getReferrals(
   start?: string,
   end?: string,
   limit?: number,
-  offset?: number
+  offset?: number,
+  options?: GoatCounterRequestOptions
 ): Promise<RefsResponse> {
   const res = await gcFetch<RefsResponse>(
     `/api/v0/stats/hits/${pathId}`,
@@ -128,7 +138,8 @@ export async function getReferrals(
       end,
       limit: limit?.toString(),
       offset: offset?.toString(),
-    }
+    },
+    options
   );
 
   return {
@@ -145,7 +156,8 @@ export async function getStats(
   start?: string,
   end?: string,
   limit?: number,
-  offset?: number
+  offset?: number,
+  options?: GoatCounterRequestOptions
 ): Promise<StatsResponse> {
   const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}`,
@@ -155,7 +167,8 @@ export async function getStats(
       end,
       limit: limit?.toString(),
       offset: offset?.toString(),
-    }
+    },
+    options
   );
 
   return {
@@ -173,7 +186,8 @@ export async function getStatsDetail(
   start?: string,
   end?: string,
   limit?: number,
-  offset?: number
+  offset?: number,
+  options?: GoatCounterRequestOptions
 ): Promise<StatsResponse> {
   const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}/${encodeURIComponent(id)}`,
@@ -183,7 +197,8 @@ export async function getStatsDetail(
       end,
       limit: limit?.toString(),
       offset: offset?.toString(),
-    }
+    },
+    options
   );
 
   return {
@@ -197,7 +212,8 @@ export async function getStatsDetail(
 
 export async function getPaths(
   limit?: number,
-  after?: number
+  after?: number,
+  options?: GoatCounterRequestOptions
 ): Promise<{
   paths: { id: number; path: string; title: string; event: boolean }[];
   more: boolean;
@@ -211,7 +227,8 @@ export async function getPaths(
     {
       limit: limit?.toString(),
       after: after?.toString(),
-    }
+    },
+    options
   );
 
   return {

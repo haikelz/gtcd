@@ -2,6 +2,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
+import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import type { Site, SiteSettings } from "$lib/server/goatcounter/types.js";
 
 const SITE_READ_PERMISSION = 8;
@@ -17,7 +18,8 @@ const COLLECT_LANGUAGE = 64;
 const COLLECT_SESSION = 128;
 const COLLECT_HITS = 256;
 
-type SettingsField = "ignoreIps" | "collectRegions" | "allowEmbed";
+type SettingsField =
+  "cname" | "public" | "ignoreIps" | "collectRegions" | "allowEmbed";
 
 type SettingsUpdateError = {
   readonly field: SettingsField | null;
@@ -153,6 +155,17 @@ function getSettingsUpdateError(error: unknown): SettingsUpdateError {
     };
   }
 
+  if (message.startsWith("cname:")) {
+    return { field: "cname", message: message.replace("cname:", "Hostname:") };
+  }
+
+  if (message.startsWith("settings.public:")) {
+    return {
+      field: "public",
+      message: message.replace("settings.public:", "Public setting:"),
+    };
+  }
+
   return { field: null, message };
 }
 
@@ -161,15 +174,12 @@ export async function load({ locals, url }) {
 
   const currentUser = await stats.getMe();
   requireSiteReadPermission(currentUser.token.permissions);
-
-  const [site, sites] = await Promise.all([
-    admin.getSite(currentUser.user.site),
-    admin.getSites(),
-  ]);
+  const siteContext = await getDashboardSiteContext(url);
+  const site = await admin.getSite(siteContext.site.id);
 
   return {
     site: toDashboardSite(site),
-    sites: sites.map(toDashboardSite),
+    sites: siteContext.sites,
     canCreateSite: hasPermission(
       currentUser.token.permissions,
       SITE_CREATE_PERMISSION
@@ -225,6 +235,7 @@ export const actions = {
 
     const formData = await request.formData();
     const siteId = parsePositiveInteger(formData.get("siteId"));
+    const cname = parseSiteHostname(formData.get("cname"));
     const dataRetentionValue = formData.get("dataRetention");
     const dataRetention = parsePositiveInteger(dataRetentionValue);
     const linkDomain = formData.get("linkDomain");
@@ -233,6 +244,14 @@ export const actions = {
     const allowEmbed = formData.get("allowEmbed");
     const values = {
       linkDomain: typeof linkDomain === "string" ? linkDomain : "",
+      cname:
+        typeof formData.get("cname") === "string"
+          ? String(formData.get("cname"))
+          : "",
+      public:
+        typeof formData.get("public") === "string"
+          ? String(formData.get("public"))
+          : "",
       dataRetention:
         typeof dataRetentionValue === "string" ? dataRetentionValue : "",
       ignoreIps: typeof ignoreIps === "string" ? ignoreIps : "",
@@ -250,7 +269,12 @@ export const actions = {
       collectLanguage: formData.get("collectLanguage") === "on",
     };
 
-    if (!siteId || dataRetention === null || typeof linkDomain !== "string") {
+    if (
+      !siteId ||
+      !cname ||
+      dataRetention === null ||
+      typeof linkDomain !== "string"
+    ) {
       return fail(400, {
         field: null,
         message: "Please provide valid site settings.",
@@ -262,7 +286,8 @@ export const actions = {
     requireSiteReadPermission(currentUser.token.permissions);
     requireSiteUpdatePermission(currentUser.token.permissions);
 
-    if (siteId !== currentUser.user.site) {
+    const siteContext = await getDashboardSiteContext(new URL(request.url));
+    if (siteId !== siteContext.site.id) {
       return fail(403, {
         field: null,
         message: "This site cannot be managed here.",
@@ -271,11 +296,13 @@ export const actions = {
     }
 
     try {
-      const site = await admin.getSite(currentUser.user.site);
-      await admin.updateSite(currentUser.user.site, {
+      const site = await admin.getSite(siteContext.site.id);
+      await admin.updateSite(siteContext.site.id, {
+        cname,
         linkDomain: linkDomain.trim(),
         settings: {
           ...site.settings,
+          public: values.public,
           data_retention: dataRetention,
           ignore_ips: parseList(ignoreIps),
           collect_regions: parseList(collectRegions),
@@ -291,6 +318,9 @@ export const actions = {
       return fail(400, { ...updateError, values });
     }
 
-    throw redirect(303, `/dashboard/settings?updated=${Date.now()}`);
+    throw redirect(
+      303,
+      `/dashboard/settings?site=${siteContext.site.id}&updated=${Date.now()}`
+    );
   },
 };

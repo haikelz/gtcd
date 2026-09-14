@@ -84,9 +84,10 @@ export function getVhost(): string {
   return (env.GOATCOUNTER_VHOST || process.env.GOATCOUNTER_VHOST || "").trim();
 }
 
-function upstreamHeaders(apiKey: string): Record<string, string> {
-  const vhost = getVhost();
-
+function upstreamHeaders(
+  apiKey: string,
+  vhost = getVhost()
+): Record<string, string> {
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${apiKey}`,
@@ -181,11 +182,17 @@ export function refreshUpstreamStatus(): void {
   gcFetch("/api/v0/me", {}, undefined, { bypassCache: true }).catch(() => {});
 }
 
+export interface GoatCounterRequestOptions {
+  readonly bypassCache?: boolean;
+  readonly ttlMs?: number;
+  readonly vhost?: string;
+}
+
 export async function gcFetch<T>(
   path: string,
   init: RequestInit = {},
   params?: Record<string, string | undefined>,
-  options: { bypassCache?: boolean; ttlMs?: number } = {}
+  options: GoatCounterRequestOptions = {}
 ): Promise<T> {
   const { baseUrl } = requireApiConfig();
   const url = new URL(`${baseUrl}${path}`);
@@ -199,7 +206,7 @@ export async function gcFetch<T>(
   }
 
   const isGet = !init.method || init.method.toUpperCase() === "GET";
-  const cacheKey = url.toString();
+  const cacheKey = `${options.vhost ?? getVhost()}::${url}`;
   const now = Date.now();
 
   if (isGet && !options.bypassCache) {
@@ -219,7 +226,7 @@ export async function gcFetch<T>(
         ...init,
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         headers: {
-          ...upstreamHeaders(getApiKey()),
+          ...upstreamHeaders(getApiKey(), options.vhost),
           ...init.headers,
         },
       });
@@ -296,7 +303,8 @@ export async function gcFetch<T>(
 
 export async function gcFetchRaw(
   path: string,
-  init: RequestInit = {}
+  init: RequestInit = {},
+  options: Pick<GoatCounterRequestOptions, "vhost"> = {}
 ): Promise<Response> {
   const baseUrl = getBaseUrl();
   if (!baseUrl) {
@@ -309,7 +317,7 @@ export async function gcFetchRaw(
 
   const url = `${baseUrl}${path}`;
   const apiKey = getApiKey();
-  const vhost = getVhost();
+  const vhost = options.vhost ?? getVhost();
 
   const response = await fetch(url, {
     ...init,

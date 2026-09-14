@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import SEO from "$lib/components/SEO.svelte";
   import {
     CircleAlert,
@@ -230,7 +231,9 @@
           </dl>
           <a
             class="btn btn-primary"
-            href={resolve(`/api/admin/exports/${job.id}`)}
+            href={resolve(
+              `/api/admin/exports/${job.id}?site=${page.data.site.id}`
+            )}
             ><Download class="h-4 w-4" /> Download {job.format.toUpperCase()}</a
           >
         {:else}
@@ -250,8 +253,9 @@
           </div>
           <a
             class="btn btn-outline"
-            href={resolve(`/dashboard/exports?export=${job.id}`)}
-            >Refresh status</a
+            href={resolve(
+              `/dashboard/exports?site=${page.data.site.id}&export=${job.id}`
+            )}>Refresh status</a
           >
         {/if}
       </section>

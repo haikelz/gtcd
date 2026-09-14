@@ -2,8 +2,10 @@ import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDateRangeFromUrl } from "$lib/server/helpers.js";
 import type { PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, parent }) => {
   const { range, start, end } = getDateRangeFromUrl(url);
+  const { vhost } = await parent();
+  const requestOptions = { vhost };
 
   const [
     totalResult,
@@ -14,13 +16,13 @@ export const load: PageServerLoad = async ({ url }) => {
     languagesResult,
     sizesResult,
   ] = await Promise.allSettled([
-    stats.getTotal(start, end),
-    stats.getHits(start, end, 20),
-    stats.getStats("browsers", start, end, 15),
-    stats.getStats("systems", start, end, 15),
-    stats.getStats("locations", start, end, 15),
-    stats.getStats("languages", start, end, 15),
-    stats.getStats("sizes", start, end, 15),
+    stats.getTotal(start, end, requestOptions),
+    stats.getHits(start, end, 20, undefined, undefined, requestOptions),
+    stats.getStats("browsers", start, end, 15, undefined, requestOptions),
+    stats.getStats("systems", start, end, 15, undefined, requestOptions),
+    stats.getStats("locations", start, end, 15, undefined, requestOptions),
+    stats.getStats("languages", start, end, 15, undefined, requestOptions),
+    stats.getStats("sizes", start, end, 15, undefined, requestOptions),
   ]);
 
   const total = totalResult.status === "fulfilled" ? totalResult.value : null;
