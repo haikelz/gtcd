@@ -21,15 +21,24 @@
   } from "$lib/components/ui/frame";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
+  import { t } from "$lib/display";
+  import { formatDate } from "$lib/preferences";
+  import { REPORT_FREQUENCIES } from "$lib/report-period";
+  import {
+    NativeSelect,
+    NativeSelectOption,
+  } from "$lib/components/ui/native-select";
   import { Switch } from "$lib/components/ui/switch";
   import {
     describeViewQuery,
-    WIDGET_LABELS,
+    WIDGET_LABEL_KEYS,
+    WIDGET_OPTION_SPECS,
     type WidgetSetting,
   } from "$lib/dashboard-layout";
   import {
     ArrowDown,
     ArrowUp,
+    Mail,
     Bookmark,
     CircleAlert,
     RotateCcw,
@@ -43,6 +52,34 @@
   let { data, form } = $props();
 
   const layout = $derived(data.dashboardLayout);
+  const preferences = $derived(data.preferences);
+  const fewerNumbersChoice = $derived(
+    layout.overrides.fewerNumbers === null
+      ? "follow"
+      : layout.overrides.fewerNumbers
+        ? "on"
+        : "off"
+  );
+
+  const STYLE_LABELS = $derived({
+    bar: t("customize.styleBar"),
+    line: t("customize.styleLine"),
+    text: t("customize.styleText"),
+  });
+
+  const FREQUENCY_LABELS = $derived({
+    biweekly: t("customize.frequencyBiweekly"),
+    daily: t("customize.frequencyDaily"),
+    monthly: t("customize.frequencyMonthly"),
+    never: t("customize.frequencyNever"),
+    weekly: t("customize.frequencyWeekly"),
+  });
+
+  function describeView(query: string): string[] {
+    return describeViewQuery(query).map((part) => t(part.key, part.params));
+  }
+
+  const reports = $derived(data.emailReports);
   const siteParam = $derived(page.url.searchParams.get("site") ?? "");
 
   let widgets = $derived<WidgetSetting[]>(
@@ -86,14 +123,14 @@
 </script>
 
 <SEO
-  description="Save report views and arrange the overview."
+  description={t("customize.seoDescription")}
   noindex
-  title="Customize dashboard — gtcd"
+  title={t("customize.seoTitle")}
 />
 
 <PageHeader
-  description="Save the report views you come back to and choose what the overview shows. These settings belong to your account."
-  title="Customize dashboard"
+  description={t("customize.description")}
+  title={t("customize.title")}
 />
 
 {#if form?.message && page.status >= 400}
@@ -108,9 +145,11 @@
     {#if data.saveQuery !== null}
       <Frame>
         <FrameHeader>
-          <FrameTitle id="save-view-heading">Save this view</FrameTitle>
+          <FrameTitle id="save-view-heading"
+            >{t("customize.saveViewTitle")}</FrameTitle
+          >
           <FrameDescription>
-            Keep the current period, filter and grouping under a name.
+            {t("customize.saveViewDescription")}
           </FrameDescription>
         </FrameHeader>
         <form action="?/saveView" method="POST" use:enhance={notifyAndUpdate}>
@@ -119,18 +158,18 @@
             <input name="returnTo" type="hidden" value={data.returnTo ?? ""} />
             <input name="site" type="hidden" value={siteParam} />
             <div class="flex flex-wrap gap-1.5">
-              {#each describeViewQuery(data.saveQuery) as part (part)}
+              {#each describeView(data.saveQuery) as part (part)}
                 <Badge variant="secondary">{part}</Badge>
               {/each}
             </div>
             <div class="grid gap-2">
-              <Label for="view-name">Name</Label>
+              <Label for="view-name">{t("customize.viewName")}</Label>
               <Input
                 autocomplete="off"
                 id="view-name"
                 maxlength={40}
                 name="name"
-                placeholder="Last month, blog only"
+                placeholder={t("customize.viewNamePlaceholder")}
                 required
               />
             </div>
@@ -140,20 +179,24 @@
             >
               <Checkbox class="mt-0.5" id="view-default" name="makeDefault" />
               <span class="grid gap-0.5">
-                <span class="text-sm font-medium">Use as default view</span>
+                <span class="text-sm font-medium"
+                  >{t("customize.useDefault")}</span
+                >
                 <span class="text-xs text-muted-foreground">
-                  Reports open with this period and filter.
+                  {t("customize.useDefaultHelp")}
                 </span>
               </span>
             </Label>
           </FramePanel>
           <FrameFooter class="flex-row justify-end gap-2">
             {#if data.returnTo}
-              <Button href={data.returnTo} variant="ghost">Cancel</Button>
+              <Button href={data.returnTo} variant="ghost"
+                >{t("customize.cancel")}</Button
+              >
             {/if}
             <Button type="submit">
               <Save />
-              Save view
+              {t("customize.saveView")}
             </Button>
           </FrameFooter>
         </form>
@@ -161,9 +204,9 @@
     {/if}
     <Frame>
       <FrameHeader>
-        <FrameTitle id="views-heading">Saved views</FrameTitle>
+        <FrameTitle id="views-heading">{t("customize.savedViews")}</FrameTitle>
         <FrameDescription>
-          Open a view from the Views menu in any report toolbar.
+          {t("customize.savedViewsDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel
@@ -182,11 +225,13 @@
                       href={viewHref(view.query)}>{view.name}</a
                     >
                     {#if isDefault}
-                      <Badge size="sm" variant="primary-light">Default</Badge>
+                      <Badge size="sm" variant="primary-light"
+                        >{t("customize.defaultBadge")}</Badge
+                      >
                     {/if}
                   </div>
                   <p class="truncate text-xs text-muted-foreground">
-                    {describeViewQuery(view.query).join(" · ")}
+                    {describeView(view.query).join(" · ")}
                   </p>
                 </div>
                 <div class="flex items-center gap-1">
@@ -202,10 +247,12 @@
                     />
                     <Button
                       aria-label={isDefault
-                        ? `Stop using ${view.name} as default`
-                        : `Use ${view.name} as default`}
+                        ? t("customize.stopDefaultNamed", { name: view.name })
+                        : t("customize.useDefaultNamed", { name: view.name })}
                       size="icon-sm"
-                      title={isDefault ? "Remove default" : "Make default"}
+                      title={isDefault
+                        ? t("customize.removeDefault")
+                        : t("customize.makeDefault")}
                       type="submit"
                       variant="ghost"
                     >
@@ -219,9 +266,11 @@
                   >
                     <input name="name" type="hidden" value={view.name} />
                     <Button
-                      aria-label="Delete {view.name}"
+                      aria-label={t("customize.deleteViewNamed", {
+                        name: view.name,
+                      })}
                       size="icon-sm"
-                      title="Delete view"
+                      title={t("customize.deleteView")}
                       type="submit"
                       variant="ghost"
                     >
@@ -234,27 +283,200 @@
           </ul>
         {:else}
           <EmptyState
-            desc="Set up a report the way you like it, then choose Views → Save current view in the toolbar."
+            desc={t("customize.noViewsDescription")}
             icon={Bookmark}
-            title="No saved views yet"
+            title={t("customize.noViews")}
           />
         {/if}
       </FramePanel>
     </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="display-heading">{t("customize.display")}</FrameTitle>
+        <FrameDescription>
+          {t("customize.displayDescription")}
+        </FrameDescription>
+      </FrameHeader>
+      <form action="?/saveDisplay" method="POST" use:enhance={notifyAndUpdate}>
+        <FramePanel aria-labelledby="display-heading" class="grid gap-5">
+          <div class="grid gap-2">
+            <Label for="display-fewer-numbers"
+              >{t("customize.fewerNumbers")}</Label
+            >
+            <NativeSelect
+              aria-describedby="display-fewer-numbers-help"
+              class="w-full sm:w-72"
+              disabled={preferences?.fewerNumbersLocked}
+              id="display-fewer-numbers"
+              name="fewerNumbers"
+              value={fewerNumbersChoice}
+            >
+              <NativeSelectOption value="follow"
+                >{t("customize.followGoatCounter")}</NativeSelectOption
+              >
+              <NativeSelectOption value="on"
+                >{t("customize.fewerNumbersOn")}</NativeSelectOption
+              >
+              <NativeSelectOption value="off"
+                >{t("customize.fewerNumbersOff")}</NativeSelectOption
+              >
+            </NativeSelect>
+            <p
+              class="text-xs text-muted-foreground"
+              id="display-fewer-numbers-help"
+            >
+              {#if preferences?.fewerNumbersLocked}
+                {t("customize.fewerNumbersLocked")}
+              {:else}
+                {t("customize.fewerNumbersHelp")}
+              {/if}
+            </p>
+          </div>
+          <div class="grid gap-2">
+            <Label for="display-locale">{t("customize.language")}</Label>
+            <NativeSelect
+              class="w-full sm:w-72"
+              id="display-locale"
+              name="locale"
+              value={layout.overrides.locale ?? "follow"}
+            >
+              <NativeSelectOption value="follow"
+                >{t("customize.followGoatCounter")}</NativeSelectOption
+              >
+              <NativeSelectOption value="en">English</NativeSelectOption>
+              <NativeSelectOption value="id"
+                >Bahasa Indonesia</NativeSelectOption
+              >
+            </NativeSelect>
+          </div>
+        </FramePanel>
+        <FrameFooter class="flex-row justify-end gap-2">
+          <Button type="submit">
+            <Save />
+            {t("customize.saveDisplay")}
+          </Button>
+        </FrameFooter>
+      </form>
+    </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="email-reports-heading"
+          >{t("customize.emailReports")}</FrameTitle
+        >
+        <FrameDescription>
+          {t("customize.emailReportsDescription", {
+            email: reports.recipient,
+          })}
+        </FrameDescription>
+      </FrameHeader>
+      {#if reports.configured}
+        <form
+          action="?/saveEmailReport"
+          method="POST"
+          use:enhance={notifyAndUpdate}
+        >
+          <FramePanel
+            aria-labelledby="email-reports-heading"
+            class="grid gap-5"
+          >
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="grid gap-2">
+                <Label for="report-frequency">{t("customize.frequency")}</Label>
+                <NativeSelect
+                  class="w-full"
+                  id="report-frequency"
+                  name="frequency"
+                  value={reports.subscription.frequency}
+                >
+                  {#each REPORT_FREQUENCIES as frequency (frequency)}
+                    <NativeSelectOption value={frequency}
+                      >{FREQUENCY_LABELS[frequency]}</NativeSelectOption
+                    >
+                  {/each}
+                </NativeSelect>
+              </div>
+              <div class="grid gap-2">
+                <Label for="report-site">{t("customize.emailSite")}</Label>
+                <NativeSelect
+                  class="w-full"
+                  id="report-site"
+                  name="siteId"
+                  value={String(reports.subscription.siteId ?? data.site.id)}
+                >
+                  {#each data.sites as site (site.id)}
+                    <NativeSelectOption value={String(site.id)}
+                      >{site.cname || site.code}</NativeSelectOption
+                    >
+                  {/each}
+                </NativeSelect>
+              </div>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              {t("customize.emailScheduleHelp")}
+              {#if reports.subscription.lastSentAt}
+                {t("customize.lastSent", {
+                  date: formatDate(
+                    new Date(reports.subscription.lastSentAt),
+                    data.preferences.dateFormat,
+                    "full",
+                    data.preferences.locale
+                  ),
+                })}
+              {/if}
+            </p>
+            {#if reports.subscription.lastError}
+              <Alert variant="destructive">
+                <CircleAlert />
+                <AlertTitle class="line-clamp-none"
+                  >{t("customize.emailFailed", {
+                    error: reports.subscription.lastError,
+                  })}</AlertTitle
+                >
+              </Alert>
+            {/if}
+          </FramePanel>
+          <FrameFooter class="flex-row flex-wrap justify-end gap-2">
+            <Button
+              formaction="?/sendTestEmail"
+              type="submit"
+              variant="outline"
+            >
+              <Mail />
+              {t("customize.sendTestEmail")}
+            </Button>
+            <Button type="submit">
+              <Save />
+              {t("customize.saveSchedule")}
+            </Button>
+          </FrameFooter>
+        </form>
+      {:else}
+        <FramePanel aria-labelledby="email-reports-heading">
+          <p class="text-sm text-muted-foreground">
+            {t("customize.emailNotConfiguredHelpBefore")}
+            <code class="font-mono text-xs">SMTP_HOST</code>
+            {t("customize.emailNotConfiguredHelpJoin")}
+            <code class="font-mono text-xs">SMTP_FROM</code>{t(
+              "customize.emailNotConfiguredHelpAfter"
+            )}
+          </p>
+        </FramePanel>
+      {/if}
+    </Frame>
   </div>
   <Frame>
     <FrameHeader>
-      <FrameTitle id="widgets-heading">Overview widgets</FrameTitle>
+      <FrameTitle id="widgets-heading">{t("customize.widgets")}</FrameTitle>
       <FrameDescription>
-        Choose which widgets the overview shows and in what order. Hidden
-        widgets also skip their GoatCounter requests.
+        {t("customize.widgetsDescription")}
       </FrameDescription>
     </FrameHeader>
     <form action="?/saveWidgets" method="POST" use:enhance={notifyAndUpdate}>
       <FramePanel aria-labelledby="widgets-heading" class="p-0">
         <ol class="divide-y divide-border">
           {#each widgets as widget, index (widget.id)}
-            <li class="flex items-center gap-3 px-4 py-2.5">
+            {@const spec = WIDGET_OPTION_SPECS[widget.id]}
+            <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
               <input name="widget" type="hidden" value={widget.id} />
               {#if widget.hidden}
                 <input name="hidden" type="hidden" value={widget.id} />
@@ -277,12 +499,14 @@
                     ? "truncate text-sm text-muted-foreground"
                     : "truncate text-sm"}
                 >
-                  {WIDGET_LABELS[widget.id]}
+                  {t(WIDGET_LABEL_KEYS[widget.id])}
                 </span>
               </Label>
               <div class="flex items-center gap-0.5">
                 <Button
-                  aria-label="Move {WIDGET_LABELS[widget.id]} up"
+                  aria-label={t("customize.moveUp", {
+                    widget: t(WIDGET_LABEL_KEYS[widget.id]),
+                  })}
                   disabled={index === 0}
                   onclick={() => move(index, -1)}
                   size="icon-sm"
@@ -291,7 +515,9 @@
                   <ArrowUp />
                 </Button>
                 <Button
-                  aria-label="Move {WIDGET_LABELS[widget.id]} down"
+                  aria-label={t("customize.moveDown", {
+                    widget: t(WIDGET_LABEL_KEYS[widget.id]),
+                  })}
                   disabled={index === widgets.length - 1}
                   onclick={() => move(index, 1)}
                   size="icon-sm"
@@ -300,6 +526,64 @@
                   <ArrowDown />
                 </Button>
               </div>
+              {#if widget.hidden}
+                <!-- Keep options of hidden widgets when the layout is saved. -->
+                {#if widget.options.limit}
+                  <input
+                    name="limit:{widget.id}"
+                    type="hidden"
+                    value={widget.options.limit}
+                  />
+                {/if}
+                {#if widget.options.style}
+                  <input
+                    name="style:{widget.id}"
+                    type="hidden"
+                    value={widget.options.style}
+                  />
+                {/if}
+              {/if}
+              {#if !widget.hidden && (spec.limit || spec.styles)}
+                <div class="flex w-full flex-wrap items-center gap-3 pl-8">
+                  {#if spec.limit}
+                    <Label
+                      class="gap-2 text-xs font-normal text-muted-foreground"
+                      for="limit-{widget.id}"
+                    >
+                      {t("customize.rows")}
+                      <Input
+                        class="h-7 w-20"
+                        id="limit-{widget.id}"
+                        max={spec.limit.max}
+                        min={spec.limit.min}
+                        name="limit:{widget.id}"
+                        type="number"
+                        value={widget.options.limit ?? spec.limit.default}
+                      />
+                    </Label>
+                  {/if}
+                  {#if spec.styles}
+                    <Label
+                      class="gap-2 text-xs font-normal text-muted-foreground"
+                      for="style-{widget.id}"
+                    >
+                      {t("customize.chart")}
+                      <NativeSelect
+                        id="style-{widget.id}"
+                        name="style:{widget.id}"
+                        size="sm"
+                        value={widget.options.style ?? spec.styles[0]}
+                      >
+                        {#each spec.styles as style (style)}
+                          <NativeSelectOption value={style}
+                            >{STYLE_LABELS[style]}</NativeSelectOption
+                          >
+                        {/each}
+                      </NativeSelect>
+                    </Label>
+                  {/if}
+                </div>
+              {/if}
             </li>
           {/each}
         </ol>
@@ -307,11 +591,11 @@
       <FrameFooter class="flex-row justify-end gap-2">
         <Button name="reset" type="submit" value="on" variant="ghost">
           <RotateCcw />
-          Reset
+          {t("customize.reset")}
         </Button>
         <Button type="submit">
           <Save />
-          Save layout
+          {t("customize.saveLayout")}
         </Button>
       </FrameFooter>
     </form>

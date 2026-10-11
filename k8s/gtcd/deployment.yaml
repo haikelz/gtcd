@@ -64,6 +64,49 @@ spec:
                 secretKeyRef:
                   name: gtcd-env
                   key: GOATCOUNTER_ADMIN_URL
+            # Optional email reports (empty values leave them off).
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: SMTP_HOST
+                  optional: true
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: SMTP_PORT
+                  optional: true
+            - name: SMTP_SECURE
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: SMTP_SECURE
+                  optional: true
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: SMTP_PASSWORD
+                  optional: true
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: SMTP_FROM
+                  optional: true
+            - name: GTCD_PUBLIC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: GTCD_PUBLIC_URL
+                  optional: true
             # In-cluster Redis deployed from redis.yaml in this directory.
             # REDIS_PASSWORD must precede REDIS_URL for $(VAR) expansion.
             - name: REDIS_PASSWORD

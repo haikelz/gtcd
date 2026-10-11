@@ -24,6 +24,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26",
+    "@types/nodemailer": "^8.0.2",
     "@vite-pwa/sveltekit": "^1.1.0",
     "bits-ui": "^2.18.0",
     "cn": "^0.4.0",
@@ -45,6 +46,7 @@
     "workbox-window": "^7.4.1"
   },
   "dependencies": {
-    "ioredis": "^6.0.0"
+    "ioredis": "^6.0.0",
+    "nodemailer": "^10.1.0"
   }
 }

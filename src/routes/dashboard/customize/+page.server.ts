@@ -2,16 +2,26 @@ import { fail, redirect } from "@sveltejs/kit";
 import {
   type DashboardLayout,
   DEFAULT_DASHBOARD_LAYOUT,
+  isLocale,
   isWidgetId,
   MAX_SAVED_VIEWS,
   normalizeWidgets,
+  sanitizeWidgetOptions,
   sanitizeViewName,
   sanitizeViewQuery,
 } from "$lib/dashboard-layout.js";
+import { translate } from "$lib/i18n/index.js";
+import { isReportFrequency } from "$lib/report-period.js";
 import {
   getDashboardLayout,
   saveDashboardLayout,
 } from "$lib/server/dashboard-layout-store.js";
+import {
+  getSubscription,
+  sendTestReport,
+  updateSubscription,
+} from "$lib/server/email-reports.js";
+import { isMailConfigured } from "$lib/server/mailer.js";
 
 /** Only return to dashboard report routes after saving a view. */
 function safeReturnPath(value: FormDataEntryValue | null): string | null {
@@ -26,10 +36,16 @@ function requireEmail(locals: App.Locals): string {
   return locals.user.email;
 }
 
-export function load({ url }) {
+export async function load({ locals, url }) {
+  const email = requireEmail(locals);
   const save = url.searchParams.get("save");
 
   return {
+    emailReports: {
+      configured: isMailConfigured(),
+      recipient: email,
+      subscription: await getSubscription(email),
+    },
     returnTo: safeReturnPath(url.searchParams.get("from")),
     saveQuery: save === null ? null : sanitizeViewQuery(save),
   };
@@ -49,7 +65,7 @@ export const actions = {
     if (!name) {
       return fail(400, {
         action: "saveView",
-        message: "Give the view a name of up to 40 characters.",
+        message: translate(locals.locale, "customize.viewNameInvalid"),
       });
     }
 
@@ -58,7 +74,9 @@ export const actions = {
     if (others.length >= MAX_SAVED_VIEWS) {
       return fail(400, {
         action: "saveView",
-        message: `You can keep up to ${MAX_SAVED_VIEWS} views. Delete one first.`,
+        message: translate(locals.locale, "customize.tooManyViews", {
+          max: MAX_SAVED_VIEWS,
+        }),
       });
     }
 
@@ -78,7 +96,10 @@ export const actions = {
       throw redirect(303, search ? `${returnTo}?${search}` : returnTo);
     }
 
-    return { action: "saveView", message: `Saved “${name}”.` };
+    return {
+      action: "saveView",
+      message: translate(locals.locale, "customize.viewSaved", { name }),
+    };
   },
   deleteView: async ({ locals, request }) => {
     const email = requireEmail(locals);
@@ -92,7 +113,10 @@ export const actions = {
       views: layout.views.filter((view) => view.name !== name),
     });
 
-    return { action: "deleteView", message: "View deleted." };
+    return {
+      action: "deleteView",
+      message: translate(locals.locale, "customize.viewDeleted"),
+    };
   },
   setDefaultView: async ({ locals, request }) => {
     const email = requireEmail(locals);
@@ -107,8 +131,10 @@ export const actions = {
     return {
       action: "setDefaultView",
       message: defaultView
-        ? `“${defaultView}” is now your default view.`
-        : "Default view cleared.",
+        ? translate(locals.locale, "customize.defaultViewSet", {
+            name: defaultView,
+          })
+        : translate(locals.locale, "customize.defaultViewCleared"),
     };
   },
   saveWidgets: async ({ locals, request }) => {
@@ -121,24 +147,117 @@ export const actions = {
         ...layout,
         widgets: DEFAULT_DASHBOARD_LAYOUT.widgets,
       });
-      return { action: "saveWidgets", message: "Overview layout reset." };
+      return {
+        action: "saveWidgets",
+        message: translate(locals.locale, "customize.widgetsReset"),
+      };
     }
 
     const hidden = new Set(formData.getAll("hidden").filter(isWidgetId));
     const order = formData.getAll("widget").filter(isWidgetId);
     const widgets: DashboardLayout["widgets"] = normalizeWidgets(
-      order.map((id) => ({ hidden: hidden.has(id), id }))
+      order.map((id) => ({
+        hidden: hidden.has(id),
+        id,
+        options: sanitizeWidgetOptions(id, {
+          limit: formData.get(`limit:${id}`) || undefined,
+          style: formData.get(`style:${id}`) || undefined,
+        }),
+      }))
     );
 
     if (widgets.every((widget) => widget.hidden)) {
       return fail(400, {
         action: "saveWidgets",
-        message: "Keep at least one widget visible.",
+        message: translate(locals.locale, "customize.keepOneWidget"),
       });
     }
 
     await saveDashboardLayout(email, { ...layout, widgets });
 
-    return { action: "saveWidgets", message: "Overview layout saved." };
+    return {
+      action: "saveWidgets",
+      message: translate(locals.locale, "customize.widgetsSaved"),
+    };
+  },
+  saveEmailReport: async ({ locals, request }) => {
+    const email = requireEmail(locals);
+    const formData = await request.formData();
+    const frequency = formData.get("frequency");
+    const site = formData.get("siteId");
+
+    if (!isReportFrequency(frequency)) {
+      return fail(400, {
+        action: "saveEmailReport",
+        message: translate(locals.locale, "customize.frequencyInvalid"),
+      });
+    }
+
+    const siteId =
+      typeof site === "string" && /^\d+$/.test(site) ? Number(site) : null;
+    await updateSubscription(email, frequency, siteId);
+
+    return {
+      action: "saveEmailReport",
+      message:
+        frequency === "never"
+          ? translate(locals.locale, "customize.emailReportsOff")
+          : translate(locals.locale, "customize.emailScheduleSaved"),
+    };
+  },
+  sendTestEmail: async ({ locals }) => {
+    const email = requireEmail(locals);
+
+    if (!isMailConfigured()) {
+      return fail(400, {
+        action: "sendTestEmail",
+        message: translate(locals.locale, "customize.emailNotConfigured"),
+      });
+    }
+
+    try {
+      await sendTestReport(email);
+    } catch (cause: unknown) {
+      return fail(502, {
+        action: "sendTestEmail",
+        message:
+          cause instanceof Error
+            ? translate(locals.locale, "customize.testEmailFailedReason", {
+                reason: cause.message,
+              })
+            : translate(locals.locale, "customize.testEmailFailed"),
+      });
+    }
+
+    return {
+      action: "sendTestEmail",
+      message: translate(locals.locale, "customize.testEmailSent", { email }),
+    };
+  },
+  saveDisplay: async ({ locals, request }) => {
+    const email = requireEmail(locals);
+    const formData = await request.formData();
+    const layout = await getDashboardLayout(email);
+    const fewerNumbers = formData.get("fewerNumbers");
+    const locale = formData.get("locale");
+
+    await saveDashboardLayout(email, {
+      ...layout,
+      overrides: {
+        // "follow" (or anything else) defers to the GoatCounter setting.
+        fewerNumbers:
+          fewerNumbers === "on" ? true : fewerNumbers === "off" ? false : null,
+        locale: isLocale(locale) ? locale : null,
+      },
+    });
+
+    return {
+      action: "saveDisplay",
+      // Confirm in the newly chosen language when one was picked.
+      message: translate(
+        isLocale(locale) ? locale : locals.locale,
+        "customize.displaySaved"
+      ),
+    };
   },
 };
