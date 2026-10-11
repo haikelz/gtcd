@@ -23,6 +23,14 @@ spec:
                 name: goatcounter
                 port:
                   number: 8080
+          # GoatCounter public visitor counter (only answers when enabled)
+          - path: /counter/
+            pathType: Prefix
+            backend:
+              service:
+                name: goatcounter
+                port:
+                  number: 8080
           # Everything else → gtcd dashboard
           - path: /
             pathType: Prefix

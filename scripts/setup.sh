@@ -117,6 +117,11 @@ ${GC_DOMAIN} {
 		reverse_proxy goatcounter:8080
 	}
 
+	# GoatCounter public visitor counter (only answers when enabled per site)
+	handle /counter/* {
+		reverse_proxy goatcounter:8080
+	}
+
 	# GoatCounter admin UI (optional)
 	handle /admin/* {
 		reverse_proxy goatcounter:8080
