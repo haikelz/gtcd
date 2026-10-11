@@ -1,30 +1,25 @@
 <script lang="ts">
   import type { HitStat } from "$lib/types";
+  import { formatCount } from "$lib/display";
 
   let {
     data,
     maxItems = 15,
     label = "Source",
-    tone = "cobalt",
+    tone = "chart-1",
     onItemClick,
   }: {
     data: HitStat[];
     maxItems?: number;
     label?: string;
-    tone?: "cobalt" | "mint" | "amber" | "coral" | "lavender";
+    tone?: "chart-1" | "chart-2" | "chart-3" | "chart-4" | "chart-5";
     onItemClick?: (id: string, name: string) => void;
   } = $props();
 
   const items = $derived(data.slice(0, maxItems));
   const maxCount = $derived(Math.max(...items.map((item) => item.count), 1));
   const total = $derived(data.reduce((sum, item) => sum + item.count, 0));
-  const tones = {
-    cobalt: "var(--color-chart-1)",
-    mint: "var(--color-chart-2)",
-    amber: "var(--color-chart-3)",
-    coral: "var(--color-chart-4)",
-    lavender: "var(--color-chart-5)",
-  };
+  const barColor = $derived(`var(--${tone})`);
 </script>
 
 <div
@@ -45,7 +40,7 @@
           >{label}</span
         >
         <span class="flex shrink-0 gap-4 font-mono text-xs tabular-nums">
-          <span class="text-foreground">{item.count.toLocaleString()}</span>
+          <span class="text-foreground">{formatCount(item.count)}</span>
           <span class="w-12 text-right text-muted-foreground">{share}%</span>
         </span>
       </div>
@@ -54,12 +49,12 @@
         aria-valuenow={item.count}
         aria-valuemin="0"
         aria-valuemax={maxCount}
-        aria-label="{label}: {item.count.toLocaleString()} visitors ({share}%)"
-        class="h-1.5 overflow-hidden rounded-full bg-base-200"
+        aria-label="{label}: {formatCount(item.count)} visitors ({share}%)"
+        class="h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <div
           class="h-full rounded-full"
-          style:background={tones[tone]}
+          style:background={barColor}
           style:width="{pct}%"
         ></div>
       </div>
@@ -68,9 +63,11 @@
       {#if onItemClick}
         <button
           type="button"
-          class="w-full min-w-0 cursor-pointer text-left px-1.5 py-3 rounded-lg hover:bg-base-200 transition-colors"
+          class="w-full min-w-0 cursor-pointer text-left px-1.5 py-3 rounded-lg hover:bg-muted transition-colors"
           onclick={() => onItemClick(item.id, label)}
-          aria-label="Explore {label}: {item.count.toLocaleString()} visitors ({share}%)"
+          aria-label="Explore {label}: {formatCount(
+            item.count
+          )} visitors ({share}%)"
         >
           {@render row()}
         </button>

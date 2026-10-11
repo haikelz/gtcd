@@ -2,6 +2,9 @@
   import { page } from "$app/state";
   import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
+  import { Badge } from "$lib/components/ui/badge";
+  import { Button } from "$lib/components/ui/button";
+  import { ArrowLeft, ArrowRight } from "@lucide/svelte";
 
   const status = $derived(page.status);
   const message = $derived(
@@ -28,43 +31,42 @@
   });
 </script>
 
-<svelte:head
-  ><title>{title} — gtcd</title><meta
-    name="robots"
-    content="noindex"
-  /></svelte:head
->
+<svelte:head>
+  <title>{title} — gtcd</title>
+  <meta content="noindex" name="robots" />
+</svelte:head>
 
 <main
+  class="flex min-h-dvh flex-col bg-background px-4 sm:px-6"
   id="main-content"
   tabindex="-1"
-  class="min-h-dvh flex flex-col px-6 sm:px-12 bg-base-100"
 >
-  <header class="flex flex-wrap items-center justify-between gap-4 py-6">
-    <Brand /><ThemeToggle />
+  <header class="flex items-center justify-between gap-4 py-4">
+    <Brand />
+    <ThemeToggle compact />
   </header>
-  <div class="flex-1 flex items-center justify-center py-16">
-    <div class="w-full max-w-xl">
-      <p class="eyebrow mb-6">Error {status}</p>
-      <h1 class="text-4xl sm:text-5xl font-medium tracking-tight mb-6">
+  <div class="flex flex-1 items-center justify-center py-16">
+    <div class="flex w-full max-w-lg flex-col items-start gap-4">
+      <Badge variant="outline">Error {status}</Badge>
+      <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">
         {title}
       </h1>
-      <p class="text-base text-muted-foreground leading-relaxed max-w-md">
+      <p class="max-w-md text-sm leading-relaxed text-muted-foreground">
         {description}
       </p>
-      <div class="flex flex-wrap gap-4 mt-8">
-        <a href="/" class="btn btn-primary px-6"
-          >Continue <span aria-hidden="true">→</span></a
-        >
-        <button
-          type="button"
-          class="btn btn-ghost"
-          onclick={() => history.back()}>Previous page</button
-        >
+      <div class="mt-2 flex flex-wrap gap-2">
+        <Button href="/">
+          Continue
+          <ArrowRight aria-hidden="true" />
+        </Button>
+        <Button onclick={() => history.back()} variant="outline">
+          <ArrowLeft aria-hidden="true" />
+          Previous page
+        </Button>
       </div>
     </div>
   </div>
-  <footer class="py-6 border-t border-border text-xs text-muted-foreground">
+  <footer class="border-t py-4 text-xs text-muted-foreground">
     gtcd · Website analytics
   </footer>
 </main>

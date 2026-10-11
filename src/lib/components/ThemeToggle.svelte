@@ -1,161 +1,121 @@
 <script lang="ts">
-  import { Check, ChevronDown, Monitor, Moon, Sun } from "@lucide/svelte";
-  import { onMount, tick } from "svelte";
+  import { Button } from "$lib/components/ui/button";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
+  import { ChevronsUpDown, Monitor, Moon, Sun } from "@lucide/svelte";
+  import { onMount } from "svelte";
 
   type Theme = "light" | "dark" | "system";
+
+  type ThemeToggleProps = {
+    /** Stretch the trigger to its container (sidebar footer). */
+    readonly block?: boolean;
+    /** Show only the icon on small screens. */
+    readonly compact?: boolean;
+    /** Open the menu above the trigger. */
+    readonly up?: boolean;
+  };
+
+  const THEMES = [
+    { icon: Sun, label: "Light", value: "light" },
+    { icon: Moon, label: "Dark", value: "dark" },
+    { icon: Monitor, label: "System", value: "system" },
+  ] as const;
+
   let {
-    compact = false,
     block = false,
+    compact = false,
     up = false,
-  }: { compact?: boolean; block?: boolean; up?: boolean } = $props();
+  }: ThemeToggleProps = $props();
 
   let currentTheme = $state<Theme>("system");
-  let open = $state(false);
-  let rootElement: HTMLDivElement | undefined = $state();
-  let triggerElement: HTMLButtonElement | undefined = $state();
-
-  const themes: { value: Theme; label: string; icon: typeof Sun }[] = [
-    { value: "light", label: "Light", icon: Sun },
-    { value: "dark", label: "Dark", icon: Moon },
-    { value: "system", label: "System", icon: Monitor },
-  ];
 
   const activeTheme = $derived(
-    themes.find((t) => t.value === currentTheme) ?? themes[2]
+    THEMES.find((theme) => theme.value === currentTheme) ?? THEMES[2]
   );
 
-  // Up opens above the trigger (sidebar footer); otherwise below. A block
-  // trigger spans the sidebar, so its menu aligns to the left edge.
-  const menuPosition = $derived(
-    up
-      ? "bottom-full left-0 mb-2"
-      : block
-        ? "top-full left-0 mt-1"
-        : "top-full right-0 mt-1"
-  );
-
-  function getSystemTheme(): "light" | "dark" {
-    if (typeof window === "undefined") return "light";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+  function isTheme(value: string | null): value is Theme {
+    return value === "light" || value === "dark" || value === "system";
   }
 
   function applyTheme(theme: Theme) {
-    const resolved = theme === "system" ? getSystemTheme() : theme;
-    document.documentElement.setAttribute(
-      "data-theme",
-      resolved === "dark" ? "gtcd-dark" : "gtcd-light"
-    );
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    const resolved =
+      theme === "system" ? (prefersDark ? "dark" : "light") : theme;
+
+    document.documentElement.classList.toggle("dark", resolved === "dark");
+    document.documentElement.style.colorScheme = resolved;
   }
 
-  function setTheme(theme: Theme) {
-    currentTheme = theme;
-    localStorage.setItem("gtcd_theme", theme);
-    applyTheme(theme);
-    open = false;
-    triggerElement?.focus();
-  }
+  function handleThemeChange(value: string) {
+    if (!isTheme(value)) return;
 
-  async function toggle() {
-    open = !open;
-    if (open) {
-      await tick();
-      rootElement
-        ?.querySelector<HTMLButtonElement>('[aria-checked="true"]')
-        ?.focus();
-    }
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape" && open) {
-      open = false;
-      triggerElement?.focus();
-    }
+    currentTheme = value;
+    localStorage.setItem("gtcd_theme", value);
+    applyTheme(value);
   }
 
   onMount(() => {
-    const saved = localStorage.getItem("gtcd_theme") as Theme | null;
-    currentTheme = saved || "system";
+    const saved = localStorage.getItem("gtcd_theme");
+    currentTheme = isTheme(saved) ? saved : "system";
     applyTheme(currentTheme);
 
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    function handleSystemChange() {
       if (currentTheme === "system") applyTheme("system");
-    };
-    mq.addEventListener("change", handler);
+    }
 
-    const onClick = (event: MouseEvent) => {
-      if (open && rootElement && !rootElement.contains(event.target as Node)) {
-        open = false;
-      }
-    };
-    document.addEventListener("click", onClick);
-    document.addEventListener("keydown", handleKeydown);
-
-    return () => {
-      mq.removeEventListener("change", handler);
-      document.removeEventListener("click", onClick);
-      document.removeEventListener("keydown", handleKeydown);
-    };
+    media.addEventListener("change", handleSystemChange);
+    return () => media.removeEventListener("change", handleSystemChange);
   });
 </script>
 
-<div
-  class="relative inline-block {block ? 'w-full' : 'tooltip tooltip-bottom'}"
-  data-tip={block ? undefined : "Color theme"}
-  bind:this={rootElement}
->
-  <button
-    bind:this={triggerElement}
-    type="button"
-    class="btn btn-ghost btn-sm gap-1.5 text-muted-foreground hover:text-foreground {block
-      ? 'w-full justify-between'
-      : ''}"
-    onclick={toggle}
-    aria-haspopup="menu"
-    aria-expanded={open}
-    aria-label="Color theme: {activeTheme.label}"
+<DropdownMenu>
+  <DropdownMenuTrigger>
+    {#snippet child({ props })}
+      <Button
+        {...props}
+        aria-label="Color theme: {activeTheme.label}"
+        class={block ? "w-full justify-between" : undefined}
+        size="sm"
+        title="Color theme"
+        variant="ghost"
+      >
+        <span class="flex items-center gap-1.5">
+          <activeTheme.icon />
+          <span class={compact && !block ? "max-sm:sr-only" : undefined}>
+            {activeTheme.label}
+          </span>
+        </span>
+        <ChevronsUpDown class="text-muted-foreground" />
+      </Button>
+    {/snippet}
+  </DropdownMenuTrigger>
+  <DropdownMenuContent
+    align={block ? "start" : "end"}
+    class={block ? undefined : "w-40"}
+    side={up ? "top" : "bottom"}
   >
-    <span class="flex items-center gap-1.5">
-      <activeTheme.icon class="h-4 w-4" strokeWidth={1.5} />
-      {#if block || !compact}
-        <span class="{block ? '' : 'hidden sm:inline'} text-xs font-medium"
-          >{activeTheme.label}</span
-        >
-      {/if}
-    </span>
-    <ChevronDown class="h-3 w-3" aria-hidden="true" />
-  </button>
-
-  {#if open}
-    <ul
-      role="menu"
-      aria-label="Color theme"
-      class="absolute z-50 flex flex-col gap-0.5 rounded-box border border-border bg-base-100 p-1.5 shadow-lg {block
-        ? 'w-full'
-        : 'w-44'} {menuPosition}"
+    <DropdownMenuLabel>Color theme</DropdownMenuLabel>
+    <DropdownMenuRadioGroup
+      onValueChange={handleThemeChange}
+      value={currentTheme}
     >
-      {#each themes as theme}
-        <li>
-          <button
-            type="button"
-            role="menuitemradio"
-            aria-checked={currentTheme === theme.value}
-            onclick={() => setTheme(theme.value)}
-            class="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors {currentTheme ===
-            theme.value
-              ? 'bg-base-200 text-foreground'
-              : 'text-muted-foreground hover:bg-base-200 hover:text-foreground'}"
-          >
-            <theme.icon class="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            <span>{theme.label}</span>
-            {#if currentTheme === theme.value}
-              <Check class="ml-auto h-3.5 w-3.5 text-primary" />
-            {/if}
-          </button>
-        </li>
+      {#each THEMES as theme (theme.value)}
+        <DropdownMenuRadioItem value={theme.value}>
+          <theme.icon />
+          {theme.label}
+        </DropdownMenuRadioItem>
       {/each}
-    </ul>
-  {/if}
-</div>
+    </DropdownMenuRadioGroup>
+  </DropdownMenuContent>
+</DropdownMenu>

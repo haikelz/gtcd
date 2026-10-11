@@ -1,6 +1,17 @@
-<a href="/" class="brand" aria-label="gtcd analytics">
-  <span class="brand-mark" aria-hidden="true">
-    <svg viewBox="0 0 24 24" fill="none">
+<script lang="ts">
+  import { resolve } from "$app/paths";
+</script>
+
+<a
+  aria-label="gtcd analytics"
+  class="inline-flex items-center gap-2 rounded-md text-sm font-semibold tracking-tight text-foreground"
+  href={resolve("/")}
+>
+  <span
+    aria-hidden="true"
+    class="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground"
+  >
+    <svg class="size-4" fill="none" viewBox="0 0 24 24">
       <path
         d="M4 18V12M9.3 18V5M14.7 18V9M20 18V3"
         stroke="currentColor"

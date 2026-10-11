@@ -1,5 +1,6 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import { Button } from "$lib/components/ui/button";
   let {
     previousHref,
     nextHref,
@@ -11,19 +12,19 @@
 
 {#if previousHref || nextHref}
   <nav
-    class="flex items-center justify-between gap-3 border-t border-border mt-5 pt-5"
+    class="mt-5 flex items-center justify-between gap-3 border-t border-border pt-5"
     aria-label="Report pagination"
   >
     {#if previousHref}
-      <a class="btn btn-outline" href={resolve(previousHref as "/dashboard")}
-        >Previous</a
+      <Button variant="outline" href={resolve(previousHref as "/dashboard")}
+        >Previous</Button
       >
     {:else}
       <span></span>
     {/if}
     {#if nextHref}
-      <a class="btn btn-outline" href={resolve(nextHref as "/dashboard")}
-        >Next</a
+      <Button variant="outline" href={resolve(nextHref as "/dashboard")}
+        >Next</Button
       >
     {/if}
   </nav>

@@ -16,7 +16,7 @@
     ogImage?: string;
     ogType?: string;
     noindex?: boolean;
-    structuredData?: Record<string, any>;
+    structuredData?: Record<string, unknown>;
   } = $props();
 
   const siteName = "gtcd — Custom GoatCounter Dashboard";
@@ -51,6 +51,10 @@
     },
     ...structuredData,
   });
+  const structuredDataMarkup = $derived(
+    `<script type="application/ld+json">${JSON.stringify(defaultStructuredData).replaceAll("<", "\\u003c")}</` +
+      "script>"
+  );
 </script>
 
 <svelte:head>
@@ -80,5 +84,6 @@
   <meta name="twitter:image" content={ogImageUrl} />
 
   <!-- JSON-LD -->
-  {@html `<script type="application/ld+json">${JSON.stringify(defaultStructuredData)}</script>`}
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+  {@html structuredDataMarkup}
 </svelte:head>

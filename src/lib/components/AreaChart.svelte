@@ -1,13 +1,21 @@
 <script lang="ts">
+  import { GROUP_LABELS, seriesPoints } from "$lib/period.js";
+  import {
+    ToggleGroup,
+    ToggleGroupItem,
+  } from "$lib/components/ui/toggle-group";
+  import { displayPreferences, formatCount } from "$lib/display";
+  import { cn } from "$lib/utils";
+  import type { Group } from "$lib/period.js";
   import type { HitListStat } from "$lib/types";
 
-  let {
-    data,
-    height = 240,
-  }: {
-    data: HitListStat[];
-    height?: number;
-  } = $props();
+  type AreaChartProps = {
+    readonly data: HitListStat[];
+    readonly group?: Group;
+    readonly height?: number;
+  };
+
+  let { data, group = "day", height = 240 }: AreaChartProps = $props();
 
   const chartId = $props.id();
 
@@ -59,8 +67,12 @@
   let containerEl: HTMLDivElement | undefined = $state(undefined);
   let width = $state(600);
   let hoveredIndex = $state<number | null>(null);
+  // GoatCounter's "view as text": the same series as a readable table.
+  let view = $state<"chart" | "table">("chart");
 
-  const points = $derived(data.map((d, i) => ({ x: i, y: d.daily })));
+  const series = $derived(seriesPoints(data, group, displayPreferences()));
+  const groupLabel = $derived(GROUP_LABELS[group]);
+  const points = $derived(series.map((d, i) => ({ x: i, y: d.value })));
   const dims = $derived(getChartDimensions(width));
   const linePath = $derived(
     buildSmoothPath(points, dims.chartWidth, dims.chartHeight)
@@ -79,19 +91,20 @@
     }));
   });
 
-  const xLabels = $derived(
-    data
-      .map((d, i) => ({ d, i }))
-      .filter(({ i }) => {
-        const total = data.length;
-        const labelCount = Math.max(2, Math.floor(dims.chartWidth / 64));
-        return i % Math.max(1, Math.ceil((total - 1) / labelCount)) === 0;
-      })
-      .map(({ d, i }) => ({
-        label: d.day.slice(5),
-        x: (i / Math.max(data.length - 1, 1)) * dims.chartWidth,
-      }))
-  );
+  const xLabels = $derived.by(() => {
+    const ticks = series
+      .map((point, i) => ({ point, i }))
+      .filter(({ point }) => point.tick);
+    const labelCount = Math.max(2, Math.floor(dims.chartWidth / 64));
+    const step = Math.max(1, Math.ceil(ticks.length / labelCount));
+    return ticks
+      .map((tick, tickIndex) => ({ ...tick, tickIndex }))
+      .filter(({ tickIndex }) => tickIndex % step === 0)
+      .map(({ point, i }) => ({
+        label: point.label,
+        x: (i / Math.max(series.length - 1, 1)) * dims.chartWidth,
+      }));
+  });
 
   const totalSum = $derived(data.reduce((s, d) => s + d.daily, 0));
   const avgDaily = $derived(
@@ -103,9 +116,9 @@
       ? points[hoveredIndex].y
       : null
   );
-  const hoveredDate = $derived(
-    hoveredIndex !== null && hoveredIndex < data.length
-      ? data[hoveredIndex].day
+  const hoveredLabel = $derived(
+    hoveredIndex !== null && hoveredIndex < series.length
+      ? series[hoveredIndex].title
       : null
   );
 
@@ -122,7 +135,7 @@
 </script>
 
 <div bind:this={containerEl} class="w-full overflow-hidden">
-  {#if data.length === 0}
+  {#if data.length === 0 || series.length === 0}
     <div
       class="flex items-center justify-center text-sm text-muted-foreground"
       style="height: {height}px;"
@@ -131,94 +144,88 @@
     </div>
   {:else}
     <!-- Summary stats -->
-    <div class="chart-summary">
+    <div class="mb-4 flex min-h-12 flex-wrap items-center gap-6">
       <div>
-        <p class="text-xs font-medium mb-0.5 text-muted-foreground">Total</p>
-        <p class="font-bold text-lg tabular-nums text-foreground">
-          {totalSum.toLocaleString()}
+        <p class="mb-0.5 text-xs font-medium text-muted-foreground">Total</p>
+        <p class="text-lg font-semibold tabular-nums text-foreground">
+          {formatCount(totalSum)}
         </p>
       </div>
-      <div class="w-px h-8 bg-border"></div>
+      <div aria-hidden="true" class="h-8 w-px bg-border"></div>
       <div>
-        <p class="text-xs font-medium mb-0.5 text-muted-foreground">
+        <p class="mb-0.5 text-xs font-medium text-muted-foreground">
           Daily avg
         </p>
-        <p class="font-bold text-lg tabular-nums text-foreground">
-          {avgDaily.toLocaleString()}
+        <p class="text-lg font-semibold tabular-nums text-foreground">
+          {formatCount(avgDaily)}
         </p>
       </div>
-      <div class="w-px h-8 bg-border"></div>
-      <div class="min-w-24">
-        <p class="text-xs font-medium mb-0.5 text-muted-foreground">
-          {hoveredDate ?? "Explore chart"}
-        </p>
-        <p class="font-bold text-lg tabular-nums text-primary">
-          {hoveredValue?.toLocaleString() ?? "—"}
-        </p>
-      </div>
+      {#if view === "chart"}
+        <div aria-hidden="true" class="h-8 w-px bg-border"></div>
+        <div class="min-w-24">
+          <p class="mb-0.5 text-xs font-medium text-muted-foreground">
+            {hoveredLabel ?? "Explore chart"}
+          </p>
+          <p class="text-lg font-semibold tabular-nums text-foreground">
+            {hoveredValue == null ? "—" : formatCount(hoveredValue)}
+          </p>
+        </div>
+      {/if}
+      <ToggleGroup
+        aria-label="Traffic view"
+        class="ml-auto"
+        onValueChange={(next) => {
+          if (next === "chart" || next === "table") view = next;
+        }}
+        size="sm"
+        spacing={0}
+        type="single"
+        value={view}
+        variant="outline"
+      >
+        <ToggleGroupItem value="chart">Chart</ToggleGroupItem>
+        <ToggleGroupItem value="table">Table</ToggleGroupItem>
+      </ToggleGroup>
     </div>
 
     <!-- SVG Area Chart with Full A11Y -->
     <svg
       role="img"
-      aria-label="Daily traffic line chart. Total visitors: {totalSum.toLocaleString()}, Daily average: {avgDaily.toLocaleString()}."
+      aria-label="{groupLabel} traffic line chart. Total visitors: {formatCount(
+        totalSum
+      )}, Daily average: {formatCount(avgDaily)}."
       viewBox="0 0 {width} {height}"
-      class="w-full"
+      class={view === "table" ? "hidden" : "w-full"}
       style="height: {height}px;"
     >
-      <title>Daily Traffic Chart</title>
+      <title>{groupLabel} Traffic Chart</title>
       <desc
-        >Line chart showing visitor traffic between {data[0]?.day} and {data[
-          data.length - 1
-        ]?.day}.</desc
+        >Line chart showing {groupLabel.toLowerCase()} visitor traffic between {series[0]
+          ?.title} and {series[series.length - 1]?.title}.</desc
       >
 
       <defs>
         <linearGradient id="{chartId}-area" x1="0" y1="0" x2="0" y2="1">
-          <stop
-            offset="0%"
-            stop-color="var(--color-primary)"
-            stop-opacity="0.15"
-          />
-          <stop
-            offset="50%"
-            stop-color="var(--color-primary)"
-            stop-opacity="0.05"
-          />
-          <stop
-            offset="100%"
-            stop-color="var(--color-primary)"
-            stop-opacity="0"
-          />
+          <stop offset="0%" stop-color="var(--chart-1)" stop-opacity="0.25" />
+          <stop offset="50%" stop-color="var(--chart-1)" stop-opacity="0.08" />
+          <stop offset="100%" stop-color="var(--chart-1)" stop-opacity="0" />
         </linearGradient>
         <linearGradient id="{chartId}-line" x1="0" y1="0" x2="1" y2="0">
-          <stop
-            offset="0%"
-            stop-color="var(--color-primary)"
-            stop-opacity="0.6"
-          />
-          <stop
-            offset="50%"
-            stop-color="var(--color-primary)"
-            stop-opacity="1"
-          />
-          <stop
-            offset="100%"
-            stop-color="var(--color-primary)"
-            stop-opacity="0.8"
-          />
+          <stop offset="0%" stop-color="var(--chart-1)" stop-opacity="0.6" />
+          <stop offset="50%" stop-color="var(--chart-1)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--chart-1)" stop-opacity="0.8" />
         </linearGradient>
       </defs>
 
       <g transform="translate({padding.left}, {padding.top})">
         <!-- Grid lines -->
-        {#each yTicks as tick, i}
+        {#each yTicks as tick, i (tick.value)}
           <line
             x1="0"
             y1={tick.y}
             x2={dims.chartWidth}
             y2={tick.y}
-            stroke="var(--color-border)"
+            stroke="var(--border)"
             stroke-width="1"
             stroke-dasharray={i === 0 ? "0" : "4 4"}
             opacity={i === 0 ? 0.6 : 0.4}
@@ -228,8 +235,8 @@
             y={tick.y}
             text-anchor="end"
             dominant-baseline="middle"
-            class="text-xs font-mono fill-muted-foreground"
-            >{tick.value.toLocaleString()}</text
+            class="fill-muted-foreground text-xs tabular-nums"
+            >{formatCount(tick.value)}</text
           >
         {/each}
 
@@ -258,7 +265,7 @@
             y1="0"
             x2={hx}
             y2={dims.chartHeight}
-            stroke="var(--color-primary)"
+            stroke="var(--chart-1)"
             stroke-opacity="0.25"
             stroke-width="1"
           />
@@ -266,20 +273,20 @@
             cx={hx}
             cy={hy}
             r="5"
-            fill="var(--color-primary)"
-            stroke="var(--color-base-100)"
+            fill="var(--chart-1)"
+            stroke="var(--card)"
             stroke-width="3"
-            class="shadow-sm"
           />
         {/if}
 
         <!-- X labels -->
-        {#each xLabels as label}
+        {#each xLabels as label (label.x)}
           <text
             x={label.x}
             y={dims.chartHeight + 22}
             text-anchor="middle"
-            class="text-xs font-mono fill-muted-foreground">{label.label}</text
+            class="fill-muted-foreground text-xs tabular-nums"
+            >{label.label}</text
           >
         {/each}
       </g>
@@ -308,20 +315,35 @@
     </svg>
 
     <!-- Accessible summary table for assistive tech (WCAG 1.1.1 Non-text Content) -->
-    <div class="sr-only">
-      <table>
-        <caption>Daily traffic statistics</caption>
-        <thead>
-          <tr>
-            <th scope="col">Date</th>
-            <th scope="col">Visitors</th>
+    <div
+      class={view === "table"
+        ? "max-h-80 overflow-auto rounded-lg border border-border"
+        : "sr-only"}
+    >
+      <table class="w-full text-sm">
+        <caption class={view === "table" ? "sr-only" : undefined}>
+          {groupLabel} traffic statistics
+        </caption>
+        <thead class="sticky top-0 bg-card">
+          <tr class="border-b border-border">
+            <th class="h-9 px-3 text-left font-medium" scope="col">Period</th>
+            <th class="h-9 px-3 text-right font-medium" scope="col">
+              Visitors
+            </th>
           </tr>
         </thead>
         <tbody>
-          {#each data as item}
-            <tr>
-              <td>{item.day}</td>
-              <td>{item.daily}</td>
+          {#each series as point (point.title)}
+            <tr
+              class={cn(
+                "border-b border-border last:border-0",
+                point.value === 0 && "text-muted-foreground"
+              )}
+            >
+              <td class="px-3 py-1.5">{point.title}</td>
+              <td class="px-3 py-1.5 text-right tabular-nums">
+                {formatCount(point.value)}
+              </td>
             </tr>
           {/each}
         </tbody>

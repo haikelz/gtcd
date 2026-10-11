@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { SvelteMap } from "svelte/reactivity";
   import { CircleAlert, CircleCheck, Info, X } from "@lucide/svelte";
   import { onMount } from "svelte";
   import { subscribeToasts, type ToastMessage } from "$lib/components/toast.js";
+  import { Alert, AlertAction, AlertTitle } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
 
   let toasts = $state<readonly ToastMessage[]>([]);
-  const timers = new Map<number, ReturnType<typeof setTimeout>>();
+  const timers = new SvelteMap<number, ReturnType<typeof setTimeout>>();
 
   function dismissToast(id: number): void {
     const timer = timers.get(id);
@@ -30,37 +33,36 @@
 </script>
 
 <div
-  class="toast toast-top toast-end z-60 w-full max-w-sm p-4 pointer-events-none"
-  aria-live="polite"
   aria-atomic="false"
+  aria-live="polite"
+  class="pointer-events-none fixed top-0 right-0 z-50 flex w-full max-w-sm flex-col gap-2 p-4"
 >
   {#each toasts as toast (toast.id)}
-    <div
-      class="toast-item alert pointer-events-auto shadow-lg {toast.variant ===
-      'success'
-        ? 'alert-success'
-        : toast.variant === 'error'
-          ? 'alert-error'
-          : 'alert-info'}"
-      role={toast.variant === "error" ? "alert" : "status"}
-    >
-      {#if toast.variant === "success"}
-        <CircleCheck class="h-5 w-5 shrink-0" aria-hidden="true" />
-      {:else if toast.variant === "error"}
-        <CircleAlert class="h-5 w-5 shrink-0" aria-hidden="true" />
-      {:else}
-        <Info class="h-5 w-5 shrink-0" aria-hidden="true" />
-      {/if}
-      <span class="text-sm font-medium">{toast.message}</span>
-      <button
-        type="button"
-        class="btn btn-ghost btn-sm btn-square ml-auto tooltip tooltip-left"
-        data-tip="Dismiss notification"
-        aria-label="Dismiss notification"
-        onclick={() => dismissToast(toast.id)}
+    <div class="toast-item pointer-events-auto">
+      <Alert
+        class="bg-popover pr-2 text-popover-foreground shadow-lg"
+        role={toast.variant === "error" ? "alert" : "status"}
       >
-        <X class="h-4 w-4" aria-hidden="true" />
-      </button>
+        {#if toast.variant === "success"}
+          <CircleCheck aria-hidden="true" class="text-success" />
+        {:else if toast.variant === "error"}
+          <CircleAlert aria-hidden="true" class="text-destructive" />
+        {:else}
+          <Info aria-hidden="true" class="text-info" />
+        {/if}
+        <AlertTitle class="line-clamp-none">{toast.message}</AlertTitle>
+        <AlertAction class="max-sm:col-start-3 max-sm:row-start-1 max-sm:mt-0">
+          <Button
+            aria-label="Dismiss notification"
+            onclick={() => dismissToast(toast.id)}
+            size="icon-xs"
+            title="Dismiss notification"
+            variant="ghost"
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </AlertAction>
+      </Alert>
     </div>
   {/each}
 </div>

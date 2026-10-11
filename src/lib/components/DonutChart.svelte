@@ -1,4 +1,6 @@
 <script lang="ts">
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import { formatCount } from "$lib/display";
   import type { HitStat } from "$lib/types";
 
   let { data, label = "Browser" }: { data: HitStat[]; label?: string } =
@@ -25,7 +27,7 @@
         ...category,
         share,
         offset,
-        color: `var(--color-chart-${index + 1})`,
+        color: `var(--chart-${index + 1})`,
       };
       offset += share;
       return segment;
@@ -34,12 +36,12 @@
 </script>
 
 {#if total > 0}
-  <div class="distribution">
-    <div class="distribution-plot">
+  <div class="flex flex-col">
+    <div class="relative mx-auto mb-5 w-full max-w-50">
       <svg viewBox="0 0 200 200" role="img" aria-label="{label} distribution">
         <title>{label} distribution</title>
         <desc
-          >{total.toLocaleString()} recorded visits, grouped by {label.toLowerCase()}.
+          >{formatCount(total)} recorded visits, grouped by {label.toLowerCase()}.
           Values are listed below.</desc
         >
         <circle
@@ -47,7 +49,7 @@
           cy="100"
           r="78"
           fill="none"
-          stroke="var(--color-base-200)"
+          stroke="var(--card)"
           stroke-width="22"
         />
         <g transform="rotate(-90 100 100)">
@@ -66,9 +68,12 @@
           {/each}
         </g>
       </svg>
-      <div class="distribution-total" aria-hidden="true">
+      <div
+        class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+        aria-hidden="true"
+      >
         <span class="text-2xl font-semibold tabular-nums tracking-tight"
-          >{total.toLocaleString()}</span
+          >{formatCount(total)}</span
         >
         <span class="text-xs text-muted-foreground mt-1">Recorded visits</span>
       </div>
@@ -85,7 +90,7 @@
             >{segment.name}</span
           >
           <span class="tabular-nums text-muted-foreground"
-            >{segment.count.toLocaleString()}</span
+            >{formatCount(segment.count)}</span
           >
           <span class="w-12 text-right tabular-nums font-medium"
             >{segment.share.toFixed(1)}%</span
@@ -111,27 +116,9 @@
     </table>
   </div>
 {:else}
-  <div class="empty-state">
-    <p class="empty-state-title">No {label.toLowerCase()} data</p>
-    <p class="empty-state-desc">
-      Try another date range to explore your audience.
-    </p>
-  </div>
+  <EmptyState
+    title="No {label.toLowerCase()} data"
+    desc="Try another date range to explore your audience."
+    class="px-0 py-8"
+  />
 {/if}
-
-<style>
-  .distribution-plot {
-    width: min(100%, 12.5rem);
-    position: relative;
-    margin: 0 auto 1.25rem;
-  }
-  .distribution-total {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-  }
-</style>

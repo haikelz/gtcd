@@ -1,11 +1,20 @@
 <script lang="ts">
+  /* eslint-disable svelte/no-navigation-without-resolve -- links are resolved from generated route IDs before preserving selected-site query state. */
   import { goto, invalidateAll } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { navigating, page } from "$app/state";
   import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
   import ToastStack from "$lib/components/ToastStack.svelte";
+  import { Button } from "$lib/components/ui/button";
   import {
+    NativeSelect,
+    NativeSelectOption,
+  } from "$lib/components/ui/native-select";
+  import { Separator } from "$lib/components/ui/separator";
+  import { cn } from "$lib/utils";
+  import {
+    ChevronRight,
     FileText,
     FolderTree,
     FolderCog,
@@ -16,8 +25,8 @@
     LogOut,
     MapPin,
     Megaphone,
-    Menu,
     Monitor,
+    PanelLeft,
     Smartphone,
     Settings,
     X,
@@ -30,73 +39,66 @@
   let desktopSidebarOpen = $state(true);
   let wideViewport = $state(false);
   let sidebarElement: HTMLElement | undefined = $state();
-  let toggleElement: HTMLButtonElement | undefined = $state();
+  let toggleElement: HTMLElement | null = $state(null);
   const navigationOpen = $derived(
     wideViewport ? desktopSidebarOpen : sidebarOpen
   );
   const isDashboard = $derived(
     page.url.pathname.startsWith("/dashboard") && page.status <= 400
   );
-  const navItems = [
+  const NAV_GROUPS = [
     {
-      label: "Overview",
-      href: "/dashboard",
-      icon: LayoutGrid,
+      label: "Workspace",
+      items: [
+        { href: "/dashboard", icon: LayoutGrid, label: "Overview" },
+        { href: "/dashboard/pages", icon: FileText, label: "Pages" },
+        { href: "/dashboard/paths", icon: FolderTree, label: "Path directory" },
+      ],
     },
     {
-      label: "Pages",
-      href: "/dashboard/pages",
-      icon: FileText,
+      label: "Audience",
+      items: [
+        { href: "/dashboard/browsers", icon: Globe, label: "Browsers" },
+        { href: "/dashboard/systems", icon: Monitor, label: "Systems" },
+        { href: "/dashboard/locations", icon: MapPin, label: "Locations" },
+        { href: "/dashboard/languages", icon: Languages, label: "Languages" },
+        { href: "/dashboard/devices", icon: Smartphone, label: "Devices" },
+      ],
     },
     {
-      label: "Path directory",
-      href: "/dashboard/paths",
-      icon: FolderTree,
-    },
-    {
-      label: "Browsers",
-      href: "/dashboard/browsers",
-      icon: Globe,
-    },
-    {
-      label: "Systems",
-      href: "/dashboard/systems",
-      icon: Monitor,
-    },
-    {
-      label: "Locations",
-      href: "/dashboard/locations",
-      icon: MapPin,
-    },
-    {
-      label: "Languages",
-      href: "/dashboard/languages",
-      icon: Languages,
-    },
-    {
-      label: "Devices",
-      href: "/dashboard/devices",
-      icon: Smartphone,
-    },
-    {
-      label: "Campaigns",
-      href: "/dashboard/campaigns",
-      icon: Megaphone,
-    },
-    {
-      label: "Referrers",
-      href: "/dashboard/referrers",
-      icon: Link2,
+      label: "Acquisition",
+      items: [
+        { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns" },
+        { href: "/dashboard/referrers", icon: Link2, label: "Referrers" },
+      ],
     },
   ] as const;
+  const ADMIN_GROUP = {
+    label: "Manage",
+    items: [
+      { href: "/dashboard/settings", icon: Settings, label: "Settings" },
+      { href: "/dashboard/exports", icon: FolderCog, label: "Exports" },
+    ],
+  } as const;
+  type NavItem =
+    | (typeof NAV_GROUPS)[number]["items"][number]
+    | (typeof ADMIN_GROUP)["items"][number];
+  type NavGroup = {
+    readonly items: readonly NavItem[];
+    readonly label: string;
+  };
+
+  const navGroups: readonly NavGroup[] = $derived(
+    data.isAdmin ? [...NAV_GROUPS, ADMIN_GROUP] : NAV_GROUPS
+  );
   const activeLabel = $derived(
-    page.url.pathname === "/dashboard/settings"
-      ? "Settings"
-      : page.url.pathname === "/dashboard/exports"
-        ? "Exports"
-        : page.url.pathname.startsWith("/dashboard/reports/")
-          ? "Report detail"
-          : (navItems.find((item) => isActive(item.href))?.label ?? "Overview")
+    page.url.pathname.startsWith("/dashboard/reports/")
+      ? "Report detail"
+      : page.url.pathname.startsWith("/dashboard/customize")
+        ? "Customize"
+        : (navGroups
+            .flatMap((group) => group.items)
+            .find((item) => isActive(item.href))?.label ?? "Overview")
   );
 
   function isActive(href: string): boolean {
@@ -113,10 +115,9 @@
     return `${url.pathname}${url.search}`;
   }
 
-  function switchSite(event: Event) {
-    const target = event.currentTarget as HTMLSelectElement;
+  function switchSite(event: Event & { currentTarget: HTMLSelectElement }) {
     const url = new URL("/dashboard", page.url.origin);
-    url.searchParams.set("site", target.value);
+    url.searchParams.set("site", event.currentTarget.value);
     goto(resolve("/dashboard") + url.search);
   }
 
@@ -201,164 +202,161 @@
   }
 </script>
 
-<a href="#main-content" class="skip-link btn btn-primary"
-  >Skip to main content</a
+<a
+  class="fixed top-3 left-3 z-50 inline-flex h-8 -translate-y-[200%] items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground focus:translate-y-0"
+  href="#main-content">Skip to main content</a
 >
 
 {#if isDashboard && data.authenticated}
   <div class="flex min-h-dvh bg-background">
     {#if sidebarOpen && !wideViewport}
       <button
-        type="button"
-        class="fixed inset-0 z-30 bg-neutral/30 lg:hidden"
+        aria-label="Close navigation overlay"
+        class="fixed inset-0 z-30 bg-black/10 supports-backdrop-filter:backdrop-blur-xs lg:hidden"
         onclick={dismissSidebar}
         tabindex="-1"
-        aria-label="Close navigation overlay"
+        type="button"
       ></button>
     {/if}
     <aside
-      id="sidebar-nav"
       bind:this={sidebarElement}
       aria-label="Analytics navigation"
-      role={sidebarOpen && !wideViewport ? "dialog" : undefined}
       aria-modal={sidebarOpen && !wideViewport ? true : undefined}
+      class={cn(
+        "fixed top-0 left-0 z-40 flex h-dvh w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 lg:sticky",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        desktopSidebarOpen
+          ? "lg:translate-x-0"
+          : "lg:invisible lg:w-0 lg:overflow-hidden"
+      )}
+      id="sidebar-nav"
       inert={!navigationOpen}
-      class="sidebar fixed lg:sticky top-0 left-0 z-40 h-dvh flex shrink-0 flex-col w-60 transition-transform duration-200 {sidebarOpen
-        ? 'translate-x-0'
-        : '-translate-x-full'} {desktopSidebarOpen
-        ? 'lg:translate-x-0'
-        : 'lg:w-0 lg:overflow-hidden lg:invisible'}"
+      role={sidebarOpen && !wideViewport ? "dialog" : undefined}
     >
-      <div class="flex items-center justify-between gap-3 px-5 h-20 shrink-0">
+      <div class="flex h-12 shrink-0 items-center justify-between gap-2 px-4">
         <Brand />
-        <button
-          type="button"
-          class="btn btn-ghost btn-square lg:hidden tooltip tooltip-right"
-          onclick={dismissSidebar}
+        <Button
           aria-label="Close navigation"
-          data-tip="Close navigation"><X class="h-4 w-4" /></button
+          class="lg:hidden"
+          onclick={dismissSidebar}
+          size="icon-sm"
+          title="Close navigation"
+          variant="ghost"><X /></Button
         >
       </div>
-      <nav class="flex-1 min-h-0 overflow-y-auto p-3 pt-6" aria-label="Reports">
-        <ul class="list-none p-0 m-0 space-y-1">
-          {#each navItems as item, i (item.href)}
-            {@const Icon = item.icon}
-            <li>
-              {#if i === 0 || i === 3 || i === 8}
-                <p
-                  class="sidebar-section-label px-3 pb-2 {i > 0 ? 'pt-5' : ''}"
-                >
-                  {i === 0 ? "Workspace" : i === 3 ? "Audience" : "Acquisition"}
-                </p>
-              {/if}
-              <a
-                href={dashboardHref(resolve(item.href))}
-                class="sidebar-link {isActive(item.href) ? 'active' : ''}"
-                aria-current={isActive(item.href) ? "page" : undefined}
-                onclick={closeSidebar}
-              >
-                <Icon class="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                <span>{item.label}</span>
-              </a>
-            </li>
-          {/each}
-          {#if data.isAdmin}
-            <li>
-              <p class="sidebar-section-label px-3 pb-2 pt-5">Manage</p>
-              <a
-                href={dashboardHref(resolve("/dashboard/settings"))}
-                class="sidebar-link {isActive('/dashboard/settings')
-                  ? 'active'
-                  : ''}"
-                aria-current={isActive("/dashboard/settings")
-                  ? "page"
-                  : undefined}
-                onclick={closeSidebar}
-              >
-                <Settings class="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                <span>Settings</span>
-              </a>
-              <a
-                href={dashboardHref(resolve("/dashboard/exports"))}
-                class="sidebar-link {isActive('/dashboard/exports')
-                  ? 'active'
-                  : ''}"
-                aria-current={isActive("/dashboard/exports")
-                  ? "page"
-                  : undefined}
-                onclick={closeSidebar}
-              >
-                <FolderCog class="h-4 w-4 shrink-0" strokeWidth={1.5} />
-                <span>Exports</span>
-              </a>
-            </li>
-          {/if}
-        </ul>
+      <nav
+        aria-label="Reports"
+        class="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      >
+        {#each navGroups as group (group.label)}
+          <section
+            aria-labelledby="nav-{group.label}"
+            class="relative flex w-full min-w-0 flex-col p-2"
+          >
+            <h2
+              class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70"
+              id="nav-{group.label}"
+            >
+              {group.label}
+            </h2>
+            <ul class="flex w-full min-w-0 flex-col gap-0.5">
+              {#each group.items as item (item.href)}
+                <li class="relative">
+                  <a
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                    class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground max-lg:h-10 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate"
+                    href={dashboardHref(resolve(item.href))}
+                    onclick={closeSidebar}
+                  >
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </a>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/each}
       </nav>
-      <div class="border-t border-border p-3 flex items-center gap-2">
-        <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-1 border-t border-sidebar-border p-2">
+        <div class="min-w-0 flex-1">
           <ThemeToggle block up />
         </div>
-        <button
-          type="button"
-          class="btn btn-ghost btn-square btn-sm text-muted-foreground hover:text-foreground tooltip tooltip-right"
-          onclick={handleLogout}
+        <Button
           aria-label="Sign out"
-          data-tip="Sign out"
+          onclick={handleLogout}
+          size="icon-sm"
+          title="Sign out"
+          variant="ghost"
         >
-          <LogOut class="h-4 w-4" />
-        </button>
+          <LogOut />
+        </Button>
       </div>
     </aside>
-    <div class="min-w-0 flex-1" inert={sidebarOpen && !wideViewport}>
-      <header class="workspace-header sticky top-0 z-20">
-        <div class="flex items-center gap-4 min-w-0">
-          <button
-            bind:this={toggleElement}
-            type="button"
-            class="btn btn-ghost btn-square text-muted-foreground tooltip tooltip-right"
-            onclick={toggleSidebar}
-            aria-expanded={navigationOpen}
-            aria-controls="sidebar-nav"
-            aria-label={navigationOpen
-              ? "Close navigation sidebar"
-              : "Open navigation sidebar"}
-            data-tip="Toggle sidebar (Ctrl+B / Cmd+B)"
+    <div
+      class="flex min-w-0 flex-1 flex-col"
+      inert={sidebarOpen && !wideViewport}
+    >
+      <header
+        class="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] supports-backdrop-filter:bg-background/80 supports-backdrop-filter:backdrop-blur-sm lg:px-6"
+      >
+        <Button
+          bind:ref={toggleElement}
+          aria-controls="sidebar-nav"
+          aria-expanded={navigationOpen}
+          aria-label={navigationOpen
+            ? "Close navigation sidebar"
+            : "Open navigation sidebar"}
+          class="-ml-1"
+          onclick={toggleSidebar}
+          size="icon-sm"
+          title="Toggle sidebar (Ctrl+B / Cmd+B)"
+          variant="ghost"
+        >
+          <PanelLeft />
+        </Button>
+        <Separator class="mx-1 h-4!" orientation="vertical" />
+        <nav aria-label="Breadcrumb" class="min-w-0">
+          <ol
+            class="flex flex-wrap items-center gap-1.5 text-sm wrap-break-word text-muted-foreground"
           >
-            <Menu class="h-5 w-5" strokeWidth={1.5} />
-          </button>
-          <nav
-            aria-label="Breadcrumb"
-            class="flex items-center gap-3 text-sm min-w-0"
+            <li class="hidden items-center gap-1 sm:inline-flex">Workspace</li>
+            <li
+              aria-hidden="true"
+              class="hidden sm:block [&>svg]:size-3.5"
+              role="presentation"
+            >
+              <ChevronRight />
+            </li>
+            <li class="inline-flex min-w-0 items-center gap-1">
+              <span
+                aria-current="page"
+                class="truncate font-normal text-foreground">{activeLabel}</span
+              >
+            </li>
+          </ol>
+        </nav>
+        {#if page.data.sites?.length > 1}
+          <label class="sr-only" for="dashboard-site">Analytics site</label>
+          <NativeSelect
+            class="ml-auto max-w-44"
+            id="dashboard-site"
+            onchange={switchSite}
+            size="sm"
+            value={String(page.data.site.id)}
           >
-            <span class="hidden sm:inline text-muted-foreground">Workspace</span
-            >
-            <span
-              class="hidden sm:inline text-muted-foreground"
-              aria-hidden="true">/</span
-            >
-            <span class="truncate">{activeLabel}</span>
-          </nav>
-          {#if page.data.sites?.length > 1}
-            <label class="sr-only" for="dashboard-site">Analytics site</label>
-            <select
-              id="dashboard-site"
-              class="select select-bordered select-sm max-w-44"
-              value={page.data.site.id}
-              onchange={switchSite}
-            >
-              {#each page.data.sites as site (site.id)}
-                <option value={site.id}>{site.cname || site.code}</option>
-              {/each}
-            </select>
-          {/if}
-        </div>
+            {#each page.data.sites as site (site.id)}
+              <NativeSelectOption value={String(site.id)}
+                >{site.cname || site.code}</NativeSelectOption
+              >
+            {/each}
+          </NativeSelect>
+        {/if}
       </header>
       <main
-        id="main-content"
-        class="workspace-content"
-        tabindex="-1"
         aria-busy={!!navigating.to}
+        class="mx-auto w-full max-w-[96rem] pt-6 pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1.5rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] lg:px-6 lg:pt-6 lg:pb-10"
+        id="main-content"
+        tabindex="-1"
       >
         {#key page.url.pathname}
           <div class="app-page">{@render children()}</div>
