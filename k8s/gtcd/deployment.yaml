@@ -65,8 +65,14 @@ spec:
                   name: gtcd-env
                   key: GOATCOUNTER_ADMIN_URL
             # In-cluster Redis deployed from redis.yaml in this directory.
+            # REDIS_PASSWORD must precede REDIS_URL for $(VAR) expansion.
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: REDIS_PASSWORD
             - name: REDIS_URL
-              value: redis://redis:6379
+              value: redis://:$(REDIS_PASSWORD)@redis:6379
           resources:
             requests:
               cpu: "50m"

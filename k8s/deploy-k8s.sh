@@ -15,13 +15,20 @@ else
 fi
 
 # Validate required vars
-required_vars=(DOMAIN EMAIL IMAGE GOATCOUNTER_URL GOATCOUNTER_API_KEY)
+required_vars=(DOMAIN EMAIL IMAGE GOATCOUNTER_URL GOATCOUNTER_API_KEY REDIS_PASSWORD)
 for var in "${required_vars[@]}"; do
   if [[ -z "${!var:-}" ]]; then
     echo "Missing required env var: ${var}. Set it in the shell or k8s/.env." >&2
     exit 1
   fi
 done
+
+# The password goes into both redis.conf and gtcd's REDIS_URL, so keep it to
+# characters that need no escaping in either.
+if [[ ! "$REDIS_PASSWORD" =~ ^[A-Za-z0-9]{16,}$ ]]; then
+  echo "REDIS_PASSWORD must be 16+ letters and digits (try: openssl rand -hex 32)." >&2
+  exit 1
+fi
 
 # render_apply
 render_apply() {
@@ -55,6 +62,7 @@ secret_vars=(
   GOATCOUNTER_API_KEY
   GTCD_ADMIN_EMAILS
   GOATCOUNTER_ADMIN_URL
+  REDIS_PASSWORD
 )
 
 echo "  Creating/updating Secret '$secret_name'..."
@@ -66,6 +74,21 @@ done
 kubectl create secret generic "$secret_name" \
   "${literal_args[@]}" \
   --dry-run=client -o yaml | kubectl apply -f -
+
+# Redis loads requirepass from this Secret, mounted as /run/secrets/redis.conf.
+# The checksum annotation restarts Redis only when the config changes, so a
+# routine deploy does not drop every session.
+redis_conf="$(printf 'requirepass %s\nsave ""\nappendonly no\n' "$REDIS_PASSWORD")"
+echo "  Creating/updating Secret 'redis-config'..."
+kubectl create secret generic redis-config \
+  --from-literal=redis.conf="$redis_conf" \
+  --dry-run=client -o yaml | kubectl apply -f -
+if command -v sha256sum >/dev/null 2>&1; then
+  REDIS_CONFIG_SHA="$(printf '%s' "$redis_conf" | sha256sum | cut -c1-16)"
+else
+  REDIS_CONFIG_SHA="$(printf '%s' "$redis_conf" | shasum -a 256 | cut -c1-16)"
+fi
+export REDIS_CONFIG_SHA
 
 # Apply in dependency order.
 apply_order=(services goatcounter redis deployment ingress)

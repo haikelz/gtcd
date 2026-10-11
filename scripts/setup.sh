@@ -19,6 +19,7 @@ ENV_FILE=".env"
 ENV_EXAMPLE=".env.example"
 COMPOSE_FILE="docker-compose.yaml"
 CADDYFILE="Caddyfile"
+REDIS_CONF="secrets/redis.conf"
 
 # ─── Preflight ────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ if [ ! -f "$ENV_FILE" ]; then
 DOMAIN=localhost
 GOATCOUNTER_URL=http://goatcounter:8080
 GOATCOUNTER_API_KEY=
-REDIS_URL=redis://redis:6379
+REDIS_URL=
 SESSION_SECRET=
 EOF
     info "Created .env with defaults"
@@ -146,6 +147,29 @@ ${GC_DOMAIN} {
 CADDY
 
 ok "Caddyfile generated"
+
+# ─── Redis password (secrets/redis.conf) ─────────────────────────────────────
+
+# Redis loads requirepass from this file; reuse an existing password so
+# re-running setup does not log everyone out.
+mkdir -p "$(dirname "$REDIS_CONF")"
+chmod 700 "$(dirname "$REDIS_CONF")"
+REDIS_PASSWORD=""
+if [ -f "$REDIS_CONF" ]; then
+  REDIS_PASSWORD="$(sed -n 's/^requirepass //p' "$REDIS_CONF" | head -n 1)"
+fi
+if ! printf '%s' "$REDIS_PASSWORD" | grep -Eq '^[A-Za-z0-9]{16,}$'; then
+  REDIS_PASSWORD="$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')"
+  printf 'requirepass %s\n' "$REDIS_PASSWORD" > "$REDIS_CONF"
+  ok "Generated Redis password in $REDIS_CONF"
+else
+  ok "Reusing Redis password from $REDIS_CONF"
+fi
+# The redis container user must read the bind-mounted file; the 700 directory
+# keeps it private on the host.
+chmod 644 "$REDIS_CONF"
+# Compose interpolates REDIS_URL for every command, before .env is rewritten.
+export REDIS_URL="redis://:${REDIS_PASSWORD}@redis:6379"
 
 # ─── Start GoatCounter and Redis ─────────────────────────────────────────────
 
@@ -269,10 +293,10 @@ cat > "$ENV_FILE" <<EOF
 DOMAIN=${GC_DOMAIN}
 GOATCOUNTER_URL=http://goatcounter:8080
 GOATCOUNTER_API_KEY=${API_KEY}
-REDIS_URL=redis://redis:6379
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
 EOF
 
-ok ".env saved (API key included)"
+ok ".env saved (API key and Redis URL included)"
 
 # ─── Start full stack ────────────────────────────────────────────────────────
 

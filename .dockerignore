@@ -12,3 +12,4 @@ tests
 Dockerfile*
 docker-compose*.yaml
 k8s
+secrets

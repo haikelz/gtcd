@@ -60,9 +60,10 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 ### 5. Delivery Schemes
 
 - **Docker Compose**: Caddy (TLS, `/count` + `/admin/*` → GoatCounter, rest → gtcd) + GoatCounter + Redis + gtcd; `scripts/setup.sh` generates the Caddyfile and `.env`.
-- **Kubernetes** (`k8s/`): envsubst-templated manifests (`${DOMAIN}`, `${IMAGE}`) applied by `k8s/deploy-k8s.sh` — kubectl-created Secret `gtcd-env` (only `GOATCOUNTER_URL` + `GOATCOUNTER_API_KEY`; `REDIS_URL` is hardcoded to the in-cluster service), ordered apply, rollout restart. Shared assets in `k8s/shared/` (cert-manager ClusterIssuer, Traefik `security-headers` middleware).
+- **Kubernetes** (`k8s/`): envsubst-templated manifests (`${DOMAIN}`, `${IMAGE}`) applied by `k8s/deploy-k8s.sh` — kubectl-created Secret `gtcd-env` (GoatCounter URL/key, admin settings, `REDIS_PASSWORD`; `REDIS_URL` is built in the Deployment from `REDIS_PASSWORD` and the in-cluster service) plus Secret `redis-config` holding `redis.conf`, ordered apply, rollout restart. Shared assets in `k8s/shared/` (cert-manager ClusterIssuer, Traefik `security-headers` middleware).
 - The gtcd Ingress references `security-headers@kubernetescrd`; a missing middleware makes Traefik 404 every route with zero pod logs, so the deploy script applies middlewares empirically (legacy `traefik.containo.us` retry) and treats failure as fatal.
 - `REDIS_URL` unset or empty makes the app fall back to `localhost:6379`, which doesn't exist in-cluster — sessions would die; keep it set or hardcoded.
+- Redis requires a password loaded from `redis.conf` (`redis-server /run/secrets/redis.conf`): Compose mounts `secrets/redis.conf` (gitignored, written by `scripts/setup.sh`), Kubernetes mounts the `redis-config` Secret. `REDIS_URL` must carry the same password; a mismatch silently drops sessions to the in-memory fallback.
 
 ### 6. Accessibility & UI Quality (WCAG 2.1 AA)
 

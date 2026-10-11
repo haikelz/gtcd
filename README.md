@@ -193,7 +193,11 @@ The setup script will:
 
 ```bash
 cp .env.example .env
-# Edit .env with your credentials and domain
+# Redis loads its password from secrets/redis.conf (gitignored)
+mkdir -p secrets && chmod 700 secrets
+printf 'requirepass %s\n' "$(openssl rand -hex 32)" > secrets/redis.conf
+chmod 644 secrets/redis.conf
+# Edit .env: credentials, domain, and REDIS_URL with the same password
 nano .env
 docker compose up -d --build
 ```
@@ -309,6 +313,9 @@ The Kubernetes setup features:
 - Traefik Ingress with automatic Let's Encrypt TLS; application security headers
 - PersistentVolumeClaim for GoatCounter data
 - Session credentials delivered through a kubectl-created Secret (`gtcd-env`)
+- Password-protected Redis: `deploy-k8s.sh` renders `requirepass` from
+  `REDIS_PASSWORD` into a `redis-config` Secret mounted as
+  `/run/secrets/redis.conf`, and gtcd builds its `REDIS_URL` from the same value
 
 If cert-manager is absent, the ClusterIssuer step is skipped with a warning. The
 Ingress does not reference optional Traefik Middleware, so an unavailable
@@ -334,17 +341,17 @@ Add the tracking snippet to your website:
 
 Configure these in your `.env` file or container environment:
 
-| Variable                | Required | Default                   | Purpose                                                                                                                                                                                             |
-| :---------------------- | :------: | :------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DOMAIN`                |    No    | `localhost`               | Custom domain for your dashboard (e.g., `analytics.example.com`)                                                                                                                                    |
-| `GOATCOUNTER_URL`       | **Yes**  | `http://goatcounter:8080` | URL of your GoatCounter instance                                                                                                                                                                    |
-| `GOATCOUNTER_API_KEY`   | **Yes**  | —                         | GoatCounter API token. Use the setup script's full-permission token (`127`), or at minimum grant the permissions required by the views you enable; site settings require site-read and site-update. |
-| `REDIS_URL`             |    No    | `redis://redis:6379`      | Redis connection for session storage                                                                                                                                                                |
-| `PORT`                  |    No    | `3000`                    | Port for the Node.js server to listen on                                                                                                                                                            |
-| `NODE_ENV`              |    No    | `production`              | Environment mode                                                                                                                                                                                    |
-| `COOKIE_SECURE`         |    No    | auto                      | Force the session cookie's `Secure` flag (`true`/`false`). By default it is set automatically from the request protocol, including `X-Forwarded-Proto` behind reverse proxies.                      |
-| `GTCD_ADMIN_EMAILS`     |    No    | —                         | Comma-separated emails permitted to manage sites and exports in gtcd.                                                                                                                               |
-| `GOATCOUNTER_ADMIN_URL` |    No    | —                         | Public HTTPS GoatCounter administration URL for users, API tokens, TOTP, imports, page management, dashboard preferences, and email reports. HTTP is allowed only on localhost.                     |
+| Variable                | Required | Default                   | Purpose                                                                                                                                                                                                        |
+| :---------------------- | :------: | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DOMAIN`                |    No    | `localhost`               | Custom domain for your dashboard (e.g., `analytics.example.com`)                                                                                                                                               |
+| `GOATCOUNTER_URL`       | **Yes**  | `http://goatcounter:8080` | URL of your GoatCounter instance                                                                                                                                                                               |
+| `GOATCOUNTER_API_KEY`   | **Yes**  | —                         | GoatCounter API token. Use the setup script's full-permission token (`127`), or at minimum grant the permissions required by the views you enable; site settings require site-read and site-update.            |
+| `REDIS_URL`             | **Yes**  | —                         | Redis connection for sessions and saved views, with the password from `secrets/redis.conf`: `redis://:<password>@redis:6379`. `scripts/setup.sh` writes both. In Kubernetes it is built from `REDIS_PASSWORD`. |
+| `PORT`                  |    No    | `3000`                    | Port for the Node.js server to listen on                                                                                                                                                                       |
+| `NODE_ENV`              |    No    | `production`              | Environment mode                                                                                                                                                                                               |
+| `COOKIE_SECURE`         |    No    | auto                      | Force the session cookie's `Secure` flag (`true`/`false`). By default it is set automatically from the request protocol, including `X-Forwarded-Proto` behind reverse proxies.                                 |
+| `GTCD_ADMIN_EMAILS`     |    No    | —                         | Comma-separated emails permitted to manage sites and exports in gtcd.                                                                                                                                          |
+| `GOATCOUNTER_ADMIN_URL` |    No    | —                         | Public HTTPS GoatCounter administration URL for users, API tokens, TOTP, imports, page management, dashboard preferences, and email reports. HTTP is allowed only on localhost.                                |
 
 The login session cookie is `HttpOnly`, `SameSite=Lax`, and its `Secure` flag
 follows the protocol the client actually used, so both `http://localhost`

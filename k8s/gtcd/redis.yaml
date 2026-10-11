@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         app: redis
+      annotations:
+        checksum/redis-config: "${REDIS_CONFIG_SHA}"
     spec:
       terminationGracePeriodSeconds: 30
       securityContext:
@@ -27,11 +29,9 @@ spec:
         - name: redis
           image: redis:7-alpine
           imagePullPolicy: IfNotPresent
-          args:
-            - --save
-            - ""
-            - --appendonly
-            - "no"
+          # requirepass, save and appendonly come from the redis-config Secret
+          # created by deploy-k8s.sh.
+          command: ["redis-server", "/run/secrets/redis.conf"]
           ports:
             - containerPort: 6379
               name: redis
@@ -41,6 +41,10 @@ spec:
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            - name: redis-config
+              mountPath: /run/secrets/redis.conf
+              subPath: redis.conf
+              readOnly: true
           resources:
             requests:
               cpu: "25m"
@@ -56,7 +60,13 @@ spec:
             timeoutSeconds: 3
           readinessProbe:
             exec:
-              command: ["redis-cli", "ping"]
+              command:
+                - sh
+                - -c
+                - >-
+                  redis-cli --no-auth-warning
+                  -a "$(sed -n 's/^requirepass //p' /run/secrets/redis.conf)"
+                  ping | grep -q PONG
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
@@ -67,6 +77,10 @@ spec:
               drop:
                 - ALL
       volumes:
+        - name: redis-config
+          secret:
+            secretName: redis-config
+            defaultMode: 0440
         - name: data
           emptyDir: {}
         - name: tmp
