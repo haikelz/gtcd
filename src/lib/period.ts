@@ -4,7 +4,9 @@ import {
   type DisplayPreferences,
   formatDate,
   formatHour,
+  monthName,
 } from "$lib/preferences";
+import type { Locale } from "$lib/dashboard-layout";
 import type { HitListStat } from "$lib/types";
 
 /**
@@ -13,44 +15,7 @@ import type { HitListStat } from "$lib/types";
  */
 export type Group = "hour" | "day" | "week" | "month";
 
-export const GROUP_LABELS: Record<Group, string> = {
-  hour: "Hourly",
-  day: "Daily",
-  week: "Weekly",
-  month: "Monthly",
-};
-
 export type MoveUnit = "day" | "week" | "month" | "year";
-
-const MONTHS_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-const MONTHS_LONG = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 const DAY_MS = 86_400_000;
 
@@ -292,9 +257,10 @@ export function previousRange(
 export function formatRangeLabel(
   start: Date,
   end: Date,
-  dateFormat: DateFormat = DEFAULT_DISPLAY_PREFERENCES.dateFormat
+  dateFormat: DateFormat = DEFAULT_DISPLAY_PREFERENCES.dateFormat,
+  locale: Locale = "en"
 ): string {
-  return `${formatDate(start, dateFormat)} – ${formatDate(end, dateFormat)}`;
+  return `${formatDate(start, dateFormat, "full", locale)} – ${formatDate(end, dateFormat, "full", locale)}`;
 }
 
 export interface SeriesPoint {
@@ -307,14 +273,14 @@ export interface SeriesPoint {
   readonly tick: boolean;
 }
 
-function dayTitle(day: string, dateFormat: DateFormat): string {
+function dayTitle(day: string, dateFormat: DateFormat, locale: Locale): string {
   const d = fromDayString(day);
-  return d ? formatDate(d, dateFormat) : day;
+  return d ? formatDate(d, dateFormat, "full", locale) : day;
 }
 
-function dayLabel(day: string, dateFormat: DateFormat): string {
+function dayLabel(day: string, dateFormat: DateFormat, locale: Locale): string {
   const d = fromDayString(day);
-  return d ? formatDate(d, dateFormat, "short") : day.slice(5);
+  return d ? formatDate(d, dateFormat, "short", locale) : day.slice(5);
 }
 
 /**
@@ -330,19 +296,19 @@ export function seriesPoints(
 ): SeriesPoint[] {
   if (!stats || stats.length === 0) return [];
 
-  const { dateFormat, twentyFourHours } = preferences;
+  const { dateFormat, locale, twentyFourHours } = preferences;
   const out: SeriesPoint[] = [];
 
   if (group === "hour") {
     const dense = stats.length <= 2;
     for (const s of stats) {
-      const title = dayTitle(s.day, dateFormat);
+      const title = dayTitle(s.day, dateFormat, locale);
       for (let h = 0; h < 24; h++) {
         out.push({
           value: s.hourly?.[h] ?? 0,
           label:
             h === 0
-              ? dayLabel(s.day, dateFormat)
+              ? dayLabel(s.day, dateFormat, locale)
               : formatHour(h, twentyFourHours),
           title: `${title}, ${formatHour(h, twentyFourHours)}`,
           tick: h === 0 || (dense && h % 6 === 0),
@@ -356,8 +322,8 @@ export function seriesPoints(
     for (const s of stats) {
       out.push({
         value: s.daily,
-        label: dayLabel(s.day, dateFormat),
-        title: dayTitle(s.day, dateFormat),
+        label: dayLabel(s.day, dateFormat, locale),
+        title: dayTitle(s.day, dateFormat, locale),
         tick: true,
       });
     }
@@ -370,10 +336,10 @@ export function seriesPoints(
       const start = fromDayString(s.day);
       out.push({
         value: s.weekly ?? 0,
-        label: dayLabel(s.day, dateFormat),
+        label: dayLabel(s.day, dateFormat, locale),
         title: start
-          ? formatRangeLabel(start, addDays(start, 6), dateFormat)
-          : dayTitle(s.day, dateFormat),
+          ? formatRangeLabel(start, addDays(start, 6), dateFormat, locale)
+          : dayTitle(s.day, dateFormat, locale),
         tick: true,
       });
     }
@@ -386,8 +352,8 @@ export function seriesPoints(
     if (!d) continue;
     out.push({
       value: s.monthly ?? 0,
-      label: `${MONTHS_SHORT[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`,
-      title: `${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`,
+      label: `${monthName(d.getMonth(), locale)} ${String(d.getFullYear()).slice(2)}`,
+      title: `${monthName(d.getMonth(), locale, "long")} ${d.getFullYear()}`,
       tick: true,
     });
   }

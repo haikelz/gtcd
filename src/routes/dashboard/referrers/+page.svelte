@@ -17,6 +17,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Link2 } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -39,14 +40,14 @@
 </script>
 
 <SEO
-  description="Top referrers for your GoatCounter site."
+  description={t("reports.referrersSeoDescription")}
   noindex
-  title="Referrers — gtcd"
+  title={t("reports.referrersSeoTitle")}
 />
 
 <PageHeader
-  description="Where visitors find your website."
-  title="Top referrers"
+  description={t("reports.referrersDescription")}
+  title={t("reports.referrersTitle")}
 />
 
 <DashboardToolbar showFilter />
@@ -58,15 +59,17 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle id="referrer-report-title">Referrer report</FrameTitle>
+      <FrameTitle id="referrer-report-title"
+        >{t("reports.referrersReport")}</FrameTitle
+      >
       <FrameDescription class="text-xs">
-        {data.refs.stats.length} sources in this period
+        {t("reports.referrersSources", { count: data.refs.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel aria-labelledby="referrer-report-title" role="region">
       <BarChart
         data={data.refs.stats}
-        label="Referrer"
+        label={t("reports.referrerLabel")}
         maxItems={100}
         onItemClick={handleDetail}
         tone="chart-2"
@@ -83,9 +86,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No incoming referrers were recorded for this period."
+        desc={t("reports.referrersEmptyDescription")}
         icon={Link2}
-        title="No referrer data"
+        title={t("reports.referrersEmptyTitle")}
       />
     </FramePanel>
   </Frame>

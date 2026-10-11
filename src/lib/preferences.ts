@@ -9,6 +9,8 @@
  * matter which timezone the server or browser runs in.
  */
 
+import type { Locale } from "./dashboard-layout";
+
 export const DATE_FORMATS = [
   "2006-01-02",
   "02-01-2006",
@@ -21,6 +23,14 @@ export type DateFormat = (typeof DATE_FORMATS)[number];
 
 export type DisplayPreferences = {
   readonly dateFormat: DateFormat;
+  /** Hide absolute counts and keep shapes and shares (GoatCounter "fewer numbers"). */
+  readonly fewerNumbers: boolean;
+  /** GoatCounter locks fewer-numbers mode on until a date; gtcd must not undo it. */
+  readonly fewerNumbersLocked: boolean;
+  /** GoatCounter interface language, e.g. "en-GB" or "id-ID". */
+  readonly language: string;
+  /** gtcd interface language: the user's override, else GoatCounter's. */
+  readonly locale: Locale;
   readonly numberSeparator: string;
   readonly timezone: string;
   readonly twentyFourHours: boolean;
@@ -29,6 +39,10 @@ export type DisplayPreferences = {
 /** GoatCounter's own defaults (UserSettings.Defaults). */
 export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
   dateFormat: "2 Jan ’06",
+  fewerNumbers: false,
+  fewerNumbersLocked: false,
+  language: "en-GB",
+  locale: "en",
   numberSeparator: " ",
   timezone: "UTC",
   twentyFourHours: false,
@@ -44,22 +58,88 @@ const NUMBER_SEPARATORS: Record<number, string> = {
   8239: " ",
 };
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+const MONTHS: Record<Locale, readonly string[]> = {
+  en: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ],
+  id: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ],
+};
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS_LONG: Record<Locale, readonly string[]> = {
+  en: [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ],
+  id: [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ],
+};
+
+const WEEKDAYS: Record<Locale, readonly string[]> = {
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  id: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
+};
+
+/** A month name in the interface language, short ("Okt") or long ("Oktober"). */
+export function monthName(
+  month: number,
+  locale: Locale = "en",
+  variant: "short" | "long" = "short"
+): string {
+  return (variant === "long" ? MONTHS_LONG : MONTHS)[locale][month];
+}
+
+/** GoatCounter language tags ("id-ID", "en-GB") mapped to a gtcd locale. */
+export function localeFromLanguage(
+  language: string | null | undefined
+): Locale {
+  return language?.toLowerCase().startsWith("id") ? "id" : "en";
+}
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -95,8 +175,20 @@ export function parseTimezone(value: unknown): string {
 }
 
 /** Validate the untrusted settings object from `/me`. */
-export function toDisplayPreferences(settings: unknown): DisplayPreferences {
+export function toDisplayPreferences(
+  settings: unknown,
+  now: Date = new Date()
+): DisplayPreferences {
   if (!isRecord(settings)) return DEFAULT_DISPLAY_PREFERENCES;
+
+  const lockUntil =
+    typeof settings.fewer_numbers_lock_until === "string"
+      ? Date.parse(settings.fewer_numbers_lock_until)
+      : Number.NaN;
+  const fewerNumbersLocked =
+    settings.fewer_numbers === true &&
+    Number.isFinite(lockUntil) &&
+    lockUntil > now.getTime();
 
   const dateFormat = DATE_FORMATS.find(
     (format) => format === settings.date_format
@@ -110,11 +202,41 @@ export function toDisplayPreferences(settings: unknown): DisplayPreferences {
 
   return {
     dateFormat: dateFormat ?? DEFAULT_DISPLAY_PREFERENCES.dateFormat,
+    fewerNumbers: settings.fewer_numbers === true,
+    fewerNumbersLocked,
+    language:
+      typeof settings.language === "string" && settings.language
+        ? settings.language
+        : DEFAULT_DISPLAY_PREFERENCES.language,
+    locale: localeFromLanguage(
+      typeof settings.language === "string" ? settings.language : null
+    ),
     numberSeparator:
       NUMBER_SEPARATORS[separatorCode] ??
       DEFAULT_DISPLAY_PREFERENCES.numberSeparator,
     timezone: parseTimezone(settings.timezone),
     twentyFourHours: settings.twenty_four_hours === true,
+  };
+}
+
+/**
+ * Apply a user's gtcd overrides (null follows GoatCounter). Fewer-numbers
+ * mode stays on while GoatCounter locks it.
+ */
+export function applyDisplayOverrides(
+  preferences: DisplayPreferences,
+  overrides: {
+    readonly fewerNumbers: boolean | null;
+    readonly locale: Locale | null;
+  }
+): DisplayPreferences {
+  return {
+    ...preferences,
+    fewerNumbers:
+      preferences.fewerNumbersLocked || overrides.fewerNumbers === null
+        ? preferences.fewerNumbers
+        : overrides.fewerNumbers,
+    locale: overrides.locale ?? preferences.locale,
   };
 }
 
@@ -221,8 +343,10 @@ export function formatNumber(value: number, separator: string): string {
 export function formatDate(
   date: Date,
   format: DateFormat,
-  variant: "full" | "short" = "full"
+  variant: "full" | "short" = "full",
+  locale: Locale = "en"
 ): string {
+  const months = MONTHS[locale];
   const day = date.getDate();
   const month = date.getMonth();
   const year = date.getFullYear();
@@ -243,12 +367,12 @@ export function formatDate(
         : `${pad(month + 1)}/${pad(day)}/${pad(year % 100)}`;
     case "Mon Jan 2 2006":
       return short
-        ? `${MONTHS[month]} ${day}`
-        : `${WEEKDAYS[date.getDay()]} ${MONTHS[month]} ${day} ${year}`;
+        ? `${months[month]} ${day}`
+        : `${WEEKDAYS[locale][date.getDay()]} ${months[month]} ${day} ${year}`;
     case "2 Jan ’06":
       return short
-        ? `${day} ${MONTHS[month]}`
-        : `${day} ${MONTHS[month]} ’${pad(year % 100)}`;
+        ? `${day} ${months[month]}`
+        : `${day} ${months[month]} ’${pad(year % 100)}`;
   }
 }
 

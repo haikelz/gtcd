@@ -2,6 +2,7 @@
   import { showToast } from "$lib/components/toast.js";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import { t } from "$lib/display";
   import { Check, Copy } from "@lucide/svelte";
 
   type CopyFieldProps = {
@@ -19,7 +20,7 @@
     try {
       await navigator.clipboard.writeText(value);
     } catch {
-      showToast("Copy failed. Select the text and copy it manually.", "error");
+      showToast(t("shell.copyFailed"), "error");
       return;
     }
 
@@ -38,10 +39,12 @@
     {value}
   />
   <Button
-    aria-label={copied ? `${label} copied` : `Copy ${label.toLowerCase()}`}
+    aria-label={copied
+      ? t("shell.copied", { label })
+      : t("shell.copyLabel", { label: label.toLowerCase() })}
     onclick={copy}
     size="icon"
-    title="Copy"
+    title={t("common.copy")}
     variant="outline"
   >
     {#if copied}

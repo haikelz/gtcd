@@ -11,6 +11,8 @@ import {
   toDisplayPreferences,
   toZonedRFC3339,
   wallClockNow,
+  applyDisplayOverrides,
+  localeFromLanguage,
 } from "./preferences.ts";
 
 assert.equal(parseTimezone("ID.Asia/Jakarta"), "Asia/Jakarta");
@@ -49,6 +51,10 @@ assert.deepEqual(
   }),
   {
     dateFormat: "2006-01-02",
+    fewerNumbers: false,
+    fewerNumbersLocked: false,
+    language: "en-GB",
+    locale: "en",
     numberSeparator: ",",
     timezone: "Asia/Jakarta",
     twentyFourHours: true,
@@ -72,5 +78,47 @@ assert.equal(formatDate(day, "Mon Jan 2 2006"), "Sun Oct 4 2026");
 assert.equal(formatHour(0, false), "12 AM");
 assert.equal(formatHour(14, false), "2 PM");
 assert.equal(formatHour(9, true), "09:00");
+
+// Fewer numbers: a future lock keeps it on despite a gtcd override.
+const now = new Date("2026-10-11T00:00:00Z");
+const locked = toDisplayPreferences(
+  { fewer_numbers: true, fewer_numbers_lock_until: "2026-11-01T00:00:00Z" },
+  now
+);
+assert.equal(locked.fewerNumbersLocked, true);
+assert.equal(
+  applyDisplayOverrides(locked, { fewerNumbers: false, locale: null })
+    .fewerNumbers,
+  true
+);
+const expired = toDisplayPreferences(
+  { fewer_numbers: true, fewer_numbers_lock_until: "2026-10-01T00:00:00Z" },
+  now
+);
+assert.equal(expired.fewerNumbersLocked, false);
+assert.equal(
+  applyDisplayOverrides(expired, { fewerNumbers: false, locale: null })
+    .fewerNumbers,
+  false
+);
+assert.equal(
+  applyDisplayOverrides(expired, { fewerNumbers: null, locale: "id" })
+    .fewerNumbers,
+  true
+);
+
+// Locale: GoatCounter language, then the gtcd override.
+assert.equal(localeFromLanguage("id-ID"), "id");
+assert.equal(localeFromLanguage("en-GB"), "en");
+assert.equal(toDisplayPreferences({ language: "id-ID" }).locale, "id");
+assert.equal(
+  applyDisplayOverrides(toDisplayPreferences({ language: "id-ID" }), {
+    fewerNumbers: null,
+    locale: "en",
+  }).locale,
+  "en"
+);
+assert.equal(formatDate(day, "2 Jan ’06", "full", "id"), "4 Okt ’26");
+assert.equal(formatDate(day, "Mon Jan 2 2006", "full", "id"), "Min Okt 4 2026");
 
 console.log("preferences: all checks passed");

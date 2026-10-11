@@ -13,6 +13,7 @@
   } from "$lib/components/ui/frame";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
+  import { t } from "$lib/display";
   import {
     ArrowRight,
     CircleAlert,
@@ -34,10 +35,7 @@
   });
 </script>
 
-<SEO
-  description="Sign in with your GoatCounter account to access your analytics dashboard."
-  title="Sign in"
-/>
+<SEO description={t("auth.seoDescription")} title={t("auth.signIn")} />
 
 <main
   class="flex min-h-dvh flex-col bg-background px-4 py-4 sm:px-6"
@@ -52,9 +50,11 @@
     <div class="flex w-full max-w-sm flex-col gap-4">
       <Frame spacing="lg">
         <FrameHeader class="gap-1 pt-3">
-          <h1 class="text-lg font-semibold tracking-tight">Welcome back</h1>
+          <h1 class="text-lg font-semibold tracking-tight">
+            {t("auth.welcome")}
+          </h1>
           <FrameDescription>
-            Sign in with your existing GoatCounter account.
+            {t("auth.intro")}
           </FrameDescription>
         </FrameHeader>
         <FramePanel>
@@ -74,35 +74,39 @@
             }}
           >
             <div class="grid gap-2">
-              <Label for="email">Email</Label>
+              <Label for="email">{t("auth.email")}</Label>
               <Input
                 autocomplete="email"
                 id="email"
                 name="email"
-                placeholder="you@example.com"
+                placeholder={t("auth.emailPlaceholder")}
                 required
                 type="email"
               />
             </div>
             <div class="grid gap-2">
-              <Label for="password">Password</Label>
+              <Label for="password">{t("auth.password")}</Label>
               <div class="relative">
                 <Input
                   autocomplete="current-password"
                   class="pr-9"
                   id="password"
                   name="password"
-                  placeholder="Your GoatCounter password"
+                  placeholder={t("auth.passwordPlaceholder")}
                   required
                   type={showPassword ? "text" : "password"}
                 />
                 <Button
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword
+                    ? t("auth.hidePassword")
+                    : t("auth.showPassword")}
                   aria-pressed={showPassword}
                   class="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
                   onclick={() => (showPassword = !showPassword)}
                   size="icon-xs"
-                  title={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword
+                    ? t("auth.hidePassword")
+                    : t("auth.showPassword")}
                   variant="ghost"
                 >
                   {#if showPassword}
@@ -127,9 +131,9 @@
             <Button class="w-full" disabled={loading} size="lg" type="submit">
               {#if loading}
                 <LoaderCircle aria-hidden="true" class="animate-spin" />
-                <span>Signing in…</span>
+                <span>{t("auth.signingIn")}</span>
               {:else}
-                <span>Sign in</span>
+                <span>{t("auth.signIn")}</span>
                 <ArrowRight aria-hidden="true" />
               {/if}
             </Button>
@@ -137,8 +141,7 @@
         </FramePanel>
       </Frame>
       <p class="px-2 text-center text-xs leading-relaxed text-muted-foreground">
-        Your analytics stay connected to your GoatCounter instance. No separate
-        account needed.
+        {t("auth.footnote")}
       </p>
     </div>
   </div>

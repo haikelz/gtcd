@@ -8,6 +8,7 @@
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
+  import { t } from "$lib/display";
   import { ChevronsUpDown, Monitor, Moon, Sun } from "@lucide/svelte";
   import { onMount } from "svelte";
 
@@ -22,11 +23,11 @@
     readonly up?: boolean;
   };
 
-  const THEMES = [
-    { icon: Sun, label: "Light", value: "light" },
-    { icon: Moon, label: "Dark", value: "dark" },
-    { icon: Monitor, label: "System", value: "system" },
-  ] as const;
+  const THEMES = $derived([
+    { icon: Sun, label: t("shell.themeLight"), value: "light" },
+    { icon: Moon, label: t("shell.themeDark"), value: "dark" },
+    { icon: Monitor, label: t("shell.themeSystem"), value: "system" },
+  ] as const);
 
   let {
     block = false,
@@ -84,10 +85,10 @@
     {#snippet child({ props })}
       <Button
         {...props}
-        aria-label="Color theme: {activeTheme.label}"
+        aria-label={t("shell.colorThemeCurrent", { theme: activeTheme.label })}
         class={block ? "w-full justify-between" : undefined}
         size="sm"
-        title="Color theme"
+        title={t("shell.colorTheme")}
         variant="ghost"
       >
         <span class="flex items-center gap-1.5">
@@ -105,7 +106,7 @@
     class={block ? undefined : "w-40"}
     side={up ? "top" : "bottom"}
   >
-    <DropdownMenuLabel>Color theme</DropdownMenuLabel>
+    <DropdownMenuLabel>{t("shell.colorTheme")}</DropdownMenuLabel>
     <DropdownMenuRadioGroup
       onValueChange={handleThemeChange}
       value={currentTheme}

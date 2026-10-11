@@ -1,0 +1,35 @@
+import type en from "../en/share";
+
+// Bahasa Indonesia: share. Must define every key of the English catalog.
+export default {
+  "share.browsers": "Komposisi browser",
+  "share.country": "Negara",
+  "share.footer":
+    "Dibagikan lewat gtcd · Analitik ramah privasi oleh GoatCounter",
+  "share.kpis": "Indikator kinerja utama",
+  "share.loading": "Memuat",
+  "share.locations": "Lokasi pengunjung",
+  "share.mostVisits": "Kunjungan terbanyak",
+  "share.mostVisitedPath": "Path paling banyak dikunjungi",
+  "share.noLocationData": "Belum ada data lokasi",
+  "share.noPageData": "Belum ada data halaman",
+  "share.noReferrerData": "Belum ada data perujuk",
+  "share.notFound": "Tautan publik ini tidak ada atau sudah dicabut.",
+  "share.pages": "Halaman paling banyak dibaca",
+  "share.pagesDescription": "Konten yang mendatangkan pengunjung",
+  "share.period": "Periode",
+  "share.rangeMonth": "Bulan lalu",
+  "share.rangeQuarter": "Kuartal lalu",
+  "share.rangeWeek": "Minggu lalu",
+  "share.rangeYear": "Tahun lalu",
+  "share.readOnly": "Analitik hanya-baca, dibagikan dari GoatCounter.",
+  "share.referrer": "Perujuk",
+  "share.referrers": "Perujuk teratas",
+  "share.title": "Analitik {site}",
+  "share.topCountry": "Negara teratas",
+  "share.topPage": "Halaman teratas",
+  "share.topPages": "Halaman teratas",
+  "share.topReferrer": "Perujuk teratas",
+  "share.traffic": "Trafik dari waktu ke waktu",
+  "share.visits": "Kunjungan",
+} satisfies Record<keyof typeof en, string>;

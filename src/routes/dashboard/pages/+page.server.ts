@@ -1,3 +1,5 @@
+import type { Locale } from "$lib/dashboard-layout";
+import { translate } from "$lib/i18n";
 import { previousRange } from "$lib/period.js";
 import {
   getFilterFromUrl,
@@ -6,24 +8,27 @@ import {
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDateRangeFromUrl, toDateRange } from "$lib/server/helpers.js";
 
-function parseExcludedPathIds(value: string | null): string {
+function parseExcludedPathIds(value: string | null, locale: Locale): string {
   if (!value) return "";
 
   const ids = value.split(",");
   if (ids.some((id) => !/^\d+$/.test(id) || Number(id) < 1)) {
-    throw new Error("Choose a valid page list.");
+    throw new Error(translate(locale, "reports.pagesInvalidList"));
   }
 
   return ids.join(",");
 }
 
-export async function load({ url, parent }) {
+export async function load({ locals, url, parent }) {
   const { preferences, vhost } = await parent();
   const { end, endWall, range, start, startWall } = getDateRangeFromUrl(
     url,
     preferences.timezone
   );
-  const excludedPathIds = parseExcludedPathIds(url.searchParams.get("exclude"));
+  const excludedPathIds = parseExcludedPathIds(
+    url.searchParams.get("exclude"),
+    locals.locale
+  );
 
   try {
     const includePaths = await resolveFilter(getFilterFromUrl(url), { vhost });
@@ -95,7 +100,10 @@ export async function load({ url, parent }) {
   } catch (e: unknown) {
     return {
       range,
-      error: e instanceof Error ? e.message : "Failed",
+      error:
+        e instanceof Error
+          ? e.message
+          : translate(locals.locale, "reports.loadFailed"),
       hits: null,
       excludedPathIds,
       nextExcludedPathIds: "",

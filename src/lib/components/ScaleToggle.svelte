@@ -5,6 +5,7 @@
     ToggleGroup,
     ToggleGroupItem,
   } from "$lib/components/ui/toggle-group";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   // Mirrors GoatCounter's chart scaling: every row on one shared maximum, or
@@ -31,7 +32,7 @@
 </script>
 
 <ToggleGroup
-  aria-label="Chart scale"
+  aria-label={t("charts.chartScale")}
   onValueChange={selectScale}
   size="sm"
   spacing={0}
@@ -40,13 +41,13 @@
   variant="outline"
 >
   <ToggleGroupItem
-    aria-label="Scale each page to its own peak"
-    title="Scale each page to its own peak"
-    value="row">Per page</ToggleGroupItem
+    aria-label={t("charts.scalePerPage")}
+    title={t("charts.scalePerPage")}
+    value="row">{t("charts.perPage")}</ToggleGroupItem
   >
   <ToggleGroupItem
-    aria-label="Scale all pages to the same maximum"
-    title="Scale all pages to the same maximum"
-    value="shared">Shared</ToggleGroupItem
+    aria-label={t("charts.scaleShared")}
+    title={t("charts.scaleShared")}
+    value="shared">{t("charts.shared")}</ToggleGroupItem
   >
 </ToggleGroup>

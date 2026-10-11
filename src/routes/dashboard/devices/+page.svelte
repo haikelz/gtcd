@@ -17,6 +17,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Smartphone } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -39,14 +40,14 @@
 </script>
 
 <SEO
-  description="Screen size breakdown for your GoatCounter site."
+  description={t("reports.devicesSeoDescription")}
   noindex
-  title="Devices — gtcd"
+  title={t("reports.devicesSeoTitle")}
 />
 
 <PageHeader
-  description="Which screen sizes your visitors use."
-  title="Screen Sizes"
+  description={t("reports.devicesDescription")}
+  title={t("reports.devicesTitle")}
 />
 
 <DashboardToolbar showFilter />
@@ -58,15 +59,15 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle>Screen size report</FrameTitle>
+      <FrameTitle>{t("reports.devicesReport")}</FrameTitle>
       <FrameDescription class="text-xs">
-        {data.stats.stats.length} entries in this period
+        {t("reports.entries", { count: data.stats.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel>
       <BarChart
         data={data.stats.stats}
-        label="Screen size"
+        label={t("reports.screenSizeLabel")}
         maxItems={50}
         onItemClick={handleDetail}
         tone="chart-2"
@@ -83,9 +84,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No device measurements recorded for this period."
+        desc={t("reports.devicesEmptyDescription")}
         icon={Smartphone}
-        title="No screen size data"
+        title={t("reports.devicesEmptyTitle")}
       />
     </FramePanel>
   </Frame>

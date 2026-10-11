@@ -15,6 +15,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { FolderTree } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -29,14 +30,14 @@
 </script>
 
 <SEO
-  description="All GoatCounter paths tracked for this site."
+  description={t("reports.pathsSeoDescription")}
   noindex
-  title="Path directory — gtcd"
+  title={t("reports.pathsSeoTitle")}
 />
 
 <PageHeader
-  description="Every tracked path, including paths without recent traffic."
-  title="Path directory"
+  description={t("reports.pathsDescription")}
+  title={t("reports.pathsTitle")}
 />
 
 {#if data.error}
@@ -46,17 +47,21 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle id="path-directory-heading">Tracked paths</FrameTitle>
+      <FrameTitle id="path-directory-heading"
+        >{t("reports.pathsList")}</FrameTitle
+      >
       <FrameDescription class="text-xs">
-        {data.paths.paths.length} paths on this page
+        {t("reports.pathsOnPage", { count: data.paths.paths.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel aria-labelledby="path-directory-heading" role="region">
-      <ul aria-label="Tracked paths" class="m-0 list-none p-0">
+      <ul aria-label={t("reports.pathsList")} class="m-0 list-none p-0">
         {#each data.paths.paths as item (item.id)}
           <li class="border-b border-border last:border-0">
             <a
-              aria-label={`${item.path}${item.event ? ", event" : ""}`}
+              aria-label={item.event
+                ? t("reports.pathEventLabel", { path: item.path })
+                : item.path}
               class="group flex min-h-11 items-center justify-between gap-3 px-2 py-2.5 no-underline transition-colors hover:bg-foreground/5"
               href={resolve(`/dashboard/pages/${item.id}`)}
             >
@@ -73,7 +78,9 @@
                 {/if}
               </div>
               {#if item.event}
-                <Badge class="shrink-0" variant="outline">Event</Badge>
+                <Badge class="shrink-0" variant="outline"
+                  >{t("reports.event")}</Badge
+                >
               {/if}
             </a>
           </li>
@@ -90,9 +97,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="Paths appear after GoatCounter receives pageviews or events."
+        desc={t("reports.pathsEmptyDescription")}
         icon={FolderTree}
-        title="No tracked paths"
+        title={t("reports.pathsEmptyTitle")}
       />
     </FramePanel>
   </Frame>

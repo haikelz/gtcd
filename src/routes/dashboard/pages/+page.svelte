@@ -18,6 +18,7 @@
   } from "$lib/components/ui/frame";
   import { statsScaleMax } from "$lib/period.js";
   import { FileText } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -39,12 +40,15 @@
 </script>
 
 <SEO
-  description="Top pages for your GoatCounter site."
+  description={t("reports.pagesSeoDescription")}
   noindex
-  title="Pages — gtcd"
+  title={t("reports.pagesSeoTitle")}
 />
 
-<PageHeader description="Which pages your visitors view." title="Pages" />
+<PageHeader
+  description={t("reports.pagesDescription")}
+  title={t("reports.pagesTitle")}
+/>
 
 <DashboardToolbar showFilter />
 
@@ -54,9 +58,9 @@
   <Frame class="animate-fade-in">
     <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
       <div class="min-w-0">
-        <FrameTitle>Page report</FrameTitle>
+        <FrameTitle>{t("reports.pagesReport")}</FrameTitle>
         <FrameDescription class="text-xs">
-          {data.hits.hits.length} tracked paths
+          {t("reports.pagesTrackedPaths", { count: data.hits.hits.length })}
         </FrameDescription>
       </div>
       <ScaleToggle />
@@ -66,10 +70,10 @@
         aria-hidden="true"
         class="flex justify-between px-2 pb-2 text-xs text-muted-foreground"
       >
-        <span>Page</span><span>Visits</span>
+        <span>{t("reports.pageColumn")}</span><span>{t("reports.visits")}</span>
       </div>
       <ul
-        aria-label="Pages list"
+        aria-label={t("reports.pagesList")}
         class="m-0 list-none border-t border-border p-0"
       >
         {#each data.hits.hits as hit, i (hit.path_id)}
@@ -97,9 +101,9 @@
   <Frame class="animate-fade-in">
     <FramePanel>
       <EmptyState
-        desc="No pages tracked for this time period."
+        desc={t("reports.pagesEmptyDescription")}
         icon={FileText}
-        title="No page data"
+        title={t("reports.pagesEmptyTitle")}
       />
     </FramePanel>
   </Frame>

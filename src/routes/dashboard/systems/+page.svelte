@@ -17,6 +17,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Monitor } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -39,14 +40,14 @@
 </script>
 
 <SEO
-  description="OS breakdown for your GoatCounter site."
+  description={t("reports.systemsSeoDescription")}
   noindex
-  title="Operating Systems — gtcd"
+  title={t("reports.systemsSeoTitle")}
 />
 
 <PageHeader
-  description="Which operating systems your visitors use."
-  title="Operating Systems"
+  description={t("reports.systemsDescription")}
+  title={t("reports.systemsTitle")}
 />
 
 <DashboardToolbar showFilter />
@@ -58,15 +59,15 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle>Operating system report</FrameTitle>
+      <FrameTitle>{t("reports.systemsReport")}</FrameTitle>
       <FrameDescription class="text-xs">
-        {data.stats.stats.length} entries in this period
+        {t("reports.entries", { count: data.stats.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel>
       <BarChart
         data={data.stats.stats}
-        label="Operating system"
+        label={t("reports.systemLabel")}
         maxItems={50}
         onItemClick={handleDetail}
         tone="chart-5"
@@ -83,9 +84,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No OS statistics recorded for this period."
+        desc={t("reports.systemsEmptyDescription")}
         icon={Monitor}
-        title="No operating system data"
+        title={t("reports.systemsEmptyTitle")}
       />
     </FramePanel>
   </Frame>

@@ -1,0 +1,140 @@
+import type en from "../en/reports";
+
+// Bahasa Indonesia: reports. Must define every key of the English catalog.
+export default {
+  "reports.audienceShare": "Porsi pengunjung",
+  "reports.backTo": "Kembali ke {parent}",
+  "reports.backToPages": "Kembali ke Halaman",
+  "reports.browserLabel": "Browser",
+  "reports.browsersDescription": "Browser yang dipakai pengunjung.",
+  "reports.browsersEmptyDescription":
+    "Belum ada kunjungan tercatat pada periode ini.",
+  "reports.browsersEmptyTitle": "Belum ada data browser",
+  "reports.browsersReport": "Laporan browser",
+  "reports.browsersSeoDescription":
+    "Rincian browser untuk situs GoatCounter Anda.",
+  "reports.browsersSeoTitle": "Browser — gtcd",
+  "reports.browsersTitle": "Browser",
+  "reports.campaignLabel": "Kampanye",
+  "reports.campaignsDescription": "Kampanye yang mendatangkan trafik.",
+  "reports.campaignsEmptyDescription":
+    "Belum ada kampanye tercatat pada periode ini.",
+  "reports.campaignsEmptyTitle": "Belum ada data kampanye",
+  "reports.campaignsReport": "Laporan kampanye",
+  "reports.campaignsSeoDescription":
+    "Rincian kampanye untuk situs GoatCounter Anda.",
+  "reports.campaignsSeoTitle": "Kampanye — gtcd",
+  "reports.campaignsTitle": "Kampanye",
+  "reports.detailBrowsers": "Versi browser",
+  "reports.detailCampaigns": "Rincian kampanye",
+  "reports.detailDescription": "{label} dalam periode terpilih.",
+  "reports.detailEmptyDescription":
+    "Belum ada entri rinci tercatat untuk item ini pada periode ini.",
+  "reports.detailEmptyTitle": "Belum ada data rinci",
+  "reports.detailLoadFailed": "Rincian gagal dimuat.",
+  "reports.detailLocations": "Rincian wilayah",
+  "reports.detailNotFound": "Laporan ini tidak punya tampilan rinci.",
+  "reports.detailSeoDescription": "Data {label} untuk situs GoatCounter Anda.",
+  "reports.detailSeoTitle": "{label} — gtcd",
+  "reports.detailSizes": "Rincian ukuran layar",
+  "reports.detailSystems": "Versi sistem",
+  "reports.detailToprefs": "Rincian perujuk",
+  "reports.devicesDescription": "Ukuran layar yang dipakai pengunjung.",
+  "reports.devicesEmptyDescription":
+    "Belum ada data perangkat tercatat pada periode ini.",
+  "reports.devicesEmptyTitle": "Belum ada data ukuran layar",
+  "reports.devicesReport": "Laporan ukuran layar",
+  "reports.devicesSeoDescription":
+    "Rincian ukuran layar untuk situs GoatCounter Anda.",
+  "reports.devicesSeoTitle": "Perangkat — gtcd",
+  "reports.devicesTitle": "Ukuran Layar",
+  "reports.entries": "{count} entri dalam periode ini",
+  "reports.event": "Event",
+  "reports.languageLabel": "Bahasa",
+  "reports.languagesDescription": "Bahasa yang dipakai pengunjung.",
+  "reports.languagesEmptyDescription":
+    "Belum ada preferensi bahasa tercatat pada periode ini.",
+  "reports.languagesEmptyTitle": "Belum ada data bahasa",
+  "reports.languagesReport": "Laporan bahasa",
+  "reports.languagesSeoDescription":
+    "Rincian bahasa untuk situs GoatCounter Anda.",
+  "reports.languagesSeoTitle": "Bahasa — gtcd",
+  "reports.languagesTitle": "Bahasa",
+  "reports.loadFailed": "Laporan ini gagal dimuat.",
+  "reports.locationLabel": "Negara",
+  "reports.locationsDescription": "Lokasi asal pengunjung.",
+  "reports.locationsEmptyDescription":
+    "Belum ada negara pengunjung tercatat pada periode ini.",
+  "reports.locationsEmptyTitle": "Belum ada data lokasi",
+  "reports.locationsReport": "Laporan negara",
+  "reports.locationsSeoDescription":
+    "Rincian geografis untuk situs GoatCounter Anda.",
+  "reports.locationsSeoTitle": "Lokasi — gtcd",
+  "reports.locationsTitle": "Lokasi",
+  "reports.pageColumn": "Halaman",
+  "reports.pageDetailDescription":
+    "Perujuk yang mendatangkan trafik ke halaman ini.",
+  "reports.pageDetailEmptyDescription":
+    "Belum ada perujuk tercatat untuk halaman ini pada rentang waktu ini.",
+  "reports.pageDetailEmptyTitle": "Belum ada perujuk",
+  "reports.pageDetailFallbackTitle": "Halaman {id}",
+  "reports.pageDetailGoTo": "Buka {url}",
+  "reports.pageDetailReferrers": "Perujuk",
+  "reports.pageDetailSeoDescription": "Rincian perujuk untuk {title}.",
+  "reports.pagesDescription": "Halaman yang dilihat pengunjung.",
+  "reports.pagesEmptyDescription":
+    "Belum ada halaman terlacak pada periode ini.",
+  "reports.pagesEmptyTitle": "Belum ada data halaman",
+  "reports.pagesInvalidList": "Pilih daftar halaman yang valid.",
+  "reports.pagesList": "Daftar halaman",
+  "reports.pagesReport": "Laporan halaman",
+  "reports.pagesSeoDescription":
+    "Halaman teratas untuk situs GoatCounter Anda.",
+  "reports.pagesSeoTitle": "Halaman — gtcd",
+  "reports.pagesTitle": "Halaman",
+  "reports.pagesTrackedPaths": "{count} path terlacak",
+  "reports.parentBrowsers": "Browser",
+  "reports.parentCampaigns": "Kampanye",
+  "reports.parentDevices": "Perangkat",
+  "reports.parentLocations": "Lokasi",
+  "reports.parentReferrers": "Perujuk",
+  "reports.parentSystems": "Sistem",
+  "reports.pathEventLabel": "{path}, event",
+  "reports.pathsDescription":
+    "Semua path terlacak, termasuk path tanpa trafik terbaru.",
+  "reports.pathsEmptyDescription":
+    "Path muncul setelah GoatCounter menerima tampilan halaman atau event.",
+  "reports.pathsEmptyTitle": "Belum ada path terlacak",
+  "reports.pathsInvalidPage": "Pilih halaman path yang valid.",
+  "reports.pathsList": "Path terlacak",
+  "reports.pathsLoadFailed": "Daftar path gagal dimuat.",
+  "reports.pathsOnPage": "{count} path di halaman ini",
+  "reports.pathsSeoDescription":
+    "Semua path GoatCounter yang terlacak untuk situs ini.",
+  "reports.pathsSeoTitle": "Direktori path — gtcd",
+  "reports.pathsTitle": "Direktori path",
+  "reports.referrerLabel": "Perujuk",
+  "reports.referrersDescription": "Dari mana pengunjung menemukan situs Anda.",
+  "reports.referrersEmptyDescription":
+    "Belum ada perujuk tercatat pada periode ini.",
+  "reports.referrersEmptyTitle": "Belum ada data perujuk",
+  "reports.referrersLoadFailed": "Data perujuk gagal dimuat.",
+  "reports.referrersReport": "Laporan perujuk",
+  "reports.referrersSeoDescription":
+    "Perujuk teratas untuk situs GoatCounter Anda.",
+  "reports.referrersSeoTitle": "Perujuk — gtcd",
+  "reports.referrersSources": "{count} sumber dalam periode ini",
+  "reports.referrersTitle": "Perujuk teratas",
+  "reports.screenSizeLabel": "Ukuran layar",
+  "reports.systemLabel": "Sistem operasi",
+  "reports.systemsDescription": "Sistem operasi yang dipakai pengunjung.",
+  "reports.systemsEmptyDescription":
+    "Belum ada statistik sistem operasi tercatat pada periode ini.",
+  "reports.systemsEmptyTitle": "Belum ada data sistem operasi",
+  "reports.systemsReport": "Laporan sistem operasi",
+  "reports.systemsSeoDescription":
+    "Rincian sistem operasi untuk situs GoatCounter Anda.",
+  "reports.systemsSeoTitle": "Sistem Operasi — gtcd",
+  "reports.systemsTitle": "Sistem Operasi",
+  "reports.visits": "Kunjungan",
+} satisfies Record<keyof typeof en, string>;

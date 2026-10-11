@@ -17,6 +17,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { MapPin } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -39,12 +40,15 @@
 </script>
 
 <SEO
-  description="Geographic breakdown for your GoatCounter site."
+  description={t("reports.locationsSeoDescription")}
   noindex
-  title="Locations — gtcd"
+  title={t("reports.locationsSeoTitle")}
 />
 
-<PageHeader description="Where your visitors are located." title="Locations" />
+<PageHeader
+  description={t("reports.locationsDescription")}
+  title={t("reports.locationsTitle")}
+/>
 
 <DashboardToolbar showFilter />
 
@@ -55,15 +59,15 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle>Country report</FrameTitle>
+      <FrameTitle>{t("reports.locationsReport")}</FrameTitle>
       <FrameDescription class="text-xs">
-        {data.stats.stats.length} entries in this period
+        {t("reports.entries", { count: data.stats.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel>
       <BarChart
         data={data.stats.stats}
-        label="Country"
+        label={t("reports.locationLabel")}
         maxItems={50}
         onItemClick={handleDetail}
         tone="chart-2"
@@ -80,9 +84,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No visitor countries recorded for this period."
+        desc={t("reports.locationsEmptyDescription")}
         icon={MapPin}
-        title="No location data"
+        title={t("reports.locationsEmptyTitle")}
       />
     </FramePanel>
   </Frame>

@@ -1,3 +1,4 @@
+import { translate } from "$lib/i18n";
 import {
   getFilterFromUrl,
   resolveFilter,
@@ -5,7 +6,7 @@ import {
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 
-export async function load({ params, url, parent }) {
+export async function load({ locals, params, url, parent }) {
   const { preferences, vhost } = await parent();
   const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
@@ -24,7 +25,10 @@ export async function load({ params, url, parent }) {
     return {
       range,
       offset,
-      error: e instanceof Error ? e.message : "Failed",
+      error:
+        e instanceof Error
+          ? e.message
+          : translate(locals.locale, "reports.loadFailed"),
       refs: null,
       hits: null,
       pathId,

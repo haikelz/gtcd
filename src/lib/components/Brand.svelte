@@ -1,9 +1,10 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import { t } from "$lib/display";
 </script>
 
 <a
-  aria-label="gtcd analytics"
+  aria-label={t("shell.brandLabel")}
   class="inline-flex items-center gap-2 rounded-md text-sm font-semibold tracking-tight text-foreground"
   href={resolve("/")}
 >

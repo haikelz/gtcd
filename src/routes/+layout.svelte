@@ -12,6 +12,7 @@
     NativeSelectOption,
   } from "$lib/components/ui/native-select";
   import { Separator } from "$lib/components/ui/separator";
+  import { t } from "$lib/display";
   import { cn } from "$lib/utils";
   import {
     ChevronRight,
@@ -46,45 +47,94 @@
   const isDashboard = $derived(
     page.url.pathname.startsWith("/dashboard") && page.status <= 400
   );
-  const NAV_GROUPS = [
+  const NAV_GROUPS = $derived([
     {
-      label: "Workspace",
+      key: "workspace",
+      label: t("shell.navWorkspace"),
       items: [
-        { href: "/dashboard", icon: LayoutGrid, label: "Overview" },
-        { href: "/dashboard/pages", icon: FileText, label: "Pages" },
-        { href: "/dashboard/paths", icon: FolderTree, label: "Path directory" },
+        { href: "/dashboard", icon: LayoutGrid, label: t("shell.navOverview") },
+        {
+          href: "/dashboard/pages",
+          icon: FileText,
+          label: t("shell.navPages"),
+        },
+        {
+          href: "/dashboard/paths",
+          icon: FolderTree,
+          label: t("shell.navPathDirectory"),
+        },
       ],
     },
     {
-      label: "Audience",
+      key: "audience",
+      label: t("shell.navAudience"),
       items: [
-        { href: "/dashboard/browsers", icon: Globe, label: "Browsers" },
-        { href: "/dashboard/systems", icon: Monitor, label: "Systems" },
-        { href: "/dashboard/locations", icon: MapPin, label: "Locations" },
-        { href: "/dashboard/languages", icon: Languages, label: "Languages" },
-        { href: "/dashboard/devices", icon: Smartphone, label: "Devices" },
+        {
+          href: "/dashboard/browsers",
+          icon: Globe,
+          label: t("shell.navBrowsers"),
+        },
+        {
+          href: "/dashboard/systems",
+          icon: Monitor,
+          label: t("shell.navSystems"),
+        },
+        {
+          href: "/dashboard/locations",
+          icon: MapPin,
+          label: t("shell.navLocations"),
+        },
+        {
+          href: "/dashboard/languages",
+          icon: Languages,
+          label: t("shell.navLanguages"),
+        },
+        {
+          href: "/dashboard/devices",
+          icon: Smartphone,
+          label: t("shell.navDevices"),
+        },
       ],
     },
     {
-      label: "Acquisition",
+      key: "acquisition",
+      label: t("shell.navAcquisition"),
       items: [
-        { href: "/dashboard/campaigns", icon: Megaphone, label: "Campaigns" },
-        { href: "/dashboard/referrers", icon: Link2, label: "Referrers" },
+        {
+          href: "/dashboard/campaigns",
+          icon: Megaphone,
+          label: t("shell.navCampaigns"),
+        },
+        {
+          href: "/dashboard/referrers",
+          icon: Link2,
+          label: t("shell.navReferrers"),
+        },
       ],
     },
-  ] as const;
-  const ADMIN_GROUP = {
-    label: "Manage",
+  ] as const);
+  const ADMIN_GROUP = $derived({
+    key: "manage",
+    label: t("shell.navManage"),
     items: [
-      { href: "/dashboard/settings", icon: Settings, label: "Settings" },
-      { href: "/dashboard/exports", icon: FolderCog, label: "Exports" },
+      {
+        href: "/dashboard/settings",
+        icon: Settings,
+        label: t("shell.navSettings"),
+      },
+      {
+        href: "/dashboard/exports",
+        icon: FolderCog,
+        label: t("shell.navExports"),
+      },
     ],
-  } as const;
+  } as const);
   type NavItem =
     | (typeof NAV_GROUPS)[number]["items"][number]
     | (typeof ADMIN_GROUP)["items"][number];
   type NavGroup = {
     readonly items: readonly NavItem[];
+    readonly key: string;
     readonly label: string;
   };
 
@@ -93,12 +143,13 @@
   );
   const activeLabel = $derived(
     page.url.pathname.startsWith("/dashboard/reports/")
-      ? "Report detail"
+      ? t("shell.reportDetail")
       : page.url.pathname.startsWith("/dashboard/customize")
-        ? "Customize"
+        ? t("shell.customize")
         : (navGroups
             .flatMap((group) => group.items)
-            .find((item) => isActive(item.href))?.label ?? "Overview")
+            .find((item) => isActive(item.href))?.label ??
+          t("shell.navOverview"))
   );
 
   function isActive(href: string): boolean {
@@ -204,7 +255,7 @@
 
 <a
   class="fixed top-3 left-3 z-50 inline-flex h-8 -translate-y-[200%] items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground focus:translate-y-0"
-  href="#main-content">Skip to main content</a
+  href="#main-content">{t("shell.skipToContent")}</a
 >
 
 {#if navigating.to}
@@ -220,7 +271,7 @@
   <div class="flex min-h-dvh bg-background">
     {#if sidebarOpen && !wideViewport}
       <button
-        aria-label="Close navigation overlay"
+        aria-label={t("shell.closeNavigationOverlay")}
         class="fixed inset-0 z-30 bg-black/10 supports-backdrop-filter:backdrop-blur-xs lg:hidden"
         onclick={dismissSidebar}
         tabindex="-1"
@@ -229,7 +280,7 @@
     {/if}
     <aside
       bind:this={sidebarElement}
-      aria-label="Analytics navigation"
+      aria-label={t("shell.analyticsNavigation")}
       aria-modal={sidebarOpen && !wideViewport ? true : undefined}
       class={cn(
         "fixed top-0 left-0 z-40 flex h-dvh w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-200 lg:sticky",
@@ -245,26 +296,26 @@
       <div class="flex h-12 shrink-0 items-center justify-between gap-2 px-4">
         <Brand />
         <Button
-          aria-label="Close navigation"
+          aria-label={t("shell.closeNavigation")}
           class="lg:hidden"
           onclick={dismissSidebar}
           size="icon-sm"
-          title="Close navigation"
+          title={t("shell.closeNavigation")}
           variant="ghost"><X /></Button
         >
       </div>
       <nav
-        aria-label="Reports"
+        aria-label={t("shell.reports")}
         class="flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        {#each navGroups as group (group.label)}
+        {#each navGroups as group (group.key)}
           <section
-            aria-labelledby="nav-{group.label}"
+            aria-labelledby="nav-{group.key}"
             class="relative flex w-full min-w-0 flex-col p-2"
           >
             <h2
               class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70"
-              id="nav-{group.label}"
+              id="nav-{group.key}"
             >
               {group.label}
             </h2>
@@ -291,10 +342,10 @@
           <ThemeToggle block up />
         </div>
         <Button
-          aria-label="Sign out"
+          aria-label={t("shell.signOut")}
           onclick={handleLogout}
           size="icon-sm"
-          title="Sign out"
+          title={t("shell.signOut")}
           variant="ghost"
         >
           <LogOut />
@@ -313,22 +364,24 @@
           aria-controls="sidebar-nav"
           aria-expanded={navigationOpen}
           aria-label={navigationOpen
-            ? "Close navigation sidebar"
-            : "Open navigation sidebar"}
+            ? t("shell.closeSidebar")
+            : t("shell.openSidebar")}
           class="-ml-1"
           onclick={toggleSidebar}
           size="icon-sm"
-          title="Toggle sidebar (Ctrl+B / Cmd+B)"
+          title={t("shell.toggleSidebar")}
           variant="ghost"
         >
           <PanelLeft />
         </Button>
         <Separator class="mx-1 h-4!" orientation="vertical" />
-        <nav aria-label="Breadcrumb" class="min-w-0">
+        <nav aria-label={t("shell.breadcrumb")} class="min-w-0">
           <ol
             class="flex flex-wrap items-center gap-1.5 text-sm wrap-break-word text-muted-foreground"
           >
-            <li class="hidden items-center gap-1 sm:inline-flex">Workspace</li>
+            <li class="hidden items-center gap-1 sm:inline-flex">
+              {t("shell.navWorkspace")}
+            </li>
             <li
               aria-hidden="true"
               class="hidden sm:block [&>svg]:size-3.5"
@@ -345,7 +398,9 @@
           </ol>
         </nav>
         {#if page.data.sites?.length > 1}
-          <label class="sr-only" for="dashboard-site">Analytics site</label>
+          <label class="sr-only" for="dashboard-site"
+            >{t("shell.analyticsSite")}</label
+          >
           <NativeSelect
             class="ml-auto max-w-44"
             id="dashboard-site"

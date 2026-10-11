@@ -17,6 +17,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Megaphone } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -39,12 +40,15 @@
 </script>
 
 <SEO
-  description="Campaign breakdown for your GoatCounter site."
+  description={t("reports.campaignsSeoDescription")}
   noindex
-  title="Campaigns — gtcd"
+  title={t("reports.campaignsSeoTitle")}
 />
 
-<PageHeader description="Which campaigns drive traffic." title="Campaigns" />
+<PageHeader
+  description={t("reports.campaignsDescription")}
+  title={t("reports.campaignsTitle")}
+/>
 
 <DashboardToolbar showFilter />
 
@@ -55,15 +59,15 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle>Campaign report</FrameTitle>
+      <FrameTitle>{t("reports.campaignsReport")}</FrameTitle>
       <FrameDescription class="text-xs">
-        {data.stats.stats.length} entries in this period
+        {t("reports.entries", { count: data.stats.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel>
       <BarChart
         data={data.stats.stats}
-        label="Campaign"
+        label={t("reports.campaignLabel")}
         maxItems={50}
         onItemClick={handleDetail}
         tone="chart-3"
@@ -80,9 +84,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No campaigns recorded for this time period."
+        desc={t("reports.campaignsEmptyDescription")}
         icon={Megaphone}
-        title="No campaign data"
+        title={t("reports.campaignsEmptyTitle")}
       />
     </FramePanel>
   </Frame>

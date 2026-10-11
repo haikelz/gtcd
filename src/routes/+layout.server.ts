@@ -7,6 +7,7 @@ import {
 export const load: LayoutServerLoad = async ({ locals }) => {
   return {
     authenticated: !!locals.user,
+    locale: locals.locale,
     user: locals.user,
     isAdmin: locals.user ? isDashboardAdmin(locals.user.email) : false,
     goatCounterAdminUrl: getGoatCounterAdminUrl(),

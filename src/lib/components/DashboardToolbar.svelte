@@ -16,7 +16,8 @@
   import { Frame, FrameFooter, FramePanel } from "$lib/components/ui/frame";
   import { Input } from "$lib/components/ui/input";
   import { sanitizeViewQuery } from "$lib/dashboard-layout";
-  import { displayPreferences } from "$lib/display";
+  import { displayPreferences, t } from "$lib/display";
+  import type { MessageKey } from "$lib/i18n";
   import { wallClockNow } from "$lib/preferences";
   import {
     ToggleGroup,
@@ -58,14 +59,21 @@
   let { showFilter = false, showGroup = false }: DashboardToolbarProps =
     $props();
 
-  const PRESETS = [
-    { value: "day", label: "day" },
-    { value: "week", label: "week" },
-    { value: "month", label: "month" },
-    { value: "quarter", label: "quarter" },
-    { value: "half-year", label: "half year" },
-    { value: "year", label: "year" },
-  ];
+  const PRESETS = $derived([
+    { value: "day", label: t("shell.unitDay") },
+    { value: "week", label: t("shell.unitWeek") },
+    { value: "month", label: t("shell.unitMonth") },
+    { value: "quarter", label: t("shell.unitQuarter") },
+    { value: "half-year", label: t("shell.unitHalfYear") },
+    { value: "year", label: t("shell.unitYear") },
+  ]);
+  const UNIT_KEYS: Record<Group | MoveUnit, MessageKey> = {
+    hour: "shell.unitHour",
+    day: "shell.unitDay",
+    week: "shell.unitWeek",
+    month: "shell.unitMonth",
+    year: "shell.unitYear",
+  };
 
   const MOVE_UNITS: MoveUnit[] = ["day", "week", "month", "year"];
 
@@ -74,7 +82,12 @@
   const now = $derived(wallClockNow(preferences.timezone));
   const current = $derived(rangeFromParams(page.url.searchParams, now));
   const rangeLabel = $derived(
-    formatRangeLabel(current.start, current.end, preferences.dateFormat)
+    formatRangeLabel(
+      current.start,
+      current.end,
+      preferences.dateFormat,
+      preferences.locale
+    )
   );
   const groups = $derived(
     groupForRange(
@@ -214,9 +227,9 @@
   }
 </script>
 
-<section aria-label="Report period controls" class="mb-4">
+<section aria-label={t("shell.reportPeriodControls")} class="mb-4">
   <p class="mb-3 hidden text-sm text-muted-foreground print:block">
-    Report for {rangeLabel}
+    {t("shell.reportFor", { range: rangeLabel })}
   </p>
   <Frame spacing="sm">
     <FramePanel
@@ -224,11 +237,12 @@
     >
       <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
         <form
-          aria-label="Custom date range"
+          aria-label={t("shell.customDateRange")}
           class="flex flex-wrap items-center gap-1.5"
           onsubmit={applyDates}
         >
-          <label class="sr-only" for="range-start">Start date</label>
+          <label class="sr-only" for="range-start">{t("shell.startDate")}</label
+          >
           <Input
             bind:value={startDraft}
             class="w-36"
@@ -237,9 +251,9 @@
             type="date"
           />
           <span aria-hidden="true" class="text-xs text-muted-foreground"
-            >to</span
+            >{t("shell.to")}</span
           >
-          <label class="sr-only" for="range-end">End date</label>
+          <label class="sr-only" for="range-end">{t("shell.endDate")}</label>
           <Input
             bind:value={endDraft}
             class="w-36"
@@ -248,15 +262,15 @@
             type="date"
           />
           <Button disabled={datesInvalid} type="submit" variant="outline">
-            Apply
+            {t("shell.apply")}
           </Button>
         </form>
         <div class="flex min-w-0 flex-wrap items-center gap-2">
           <span aria-hidden="true" class="text-xs text-muted-foreground">
-            Last
+            {t("shell.last")}
           </span>
           <ToggleGroup
-            aria-label="Last period"
+            aria-label={t("shell.lastPeriod")}
             class="flex-wrap"
             onValueChange={selectPreset}
             size="sm"
@@ -267,7 +281,7 @@
           >
             {#each PRESETS as preset (preset.value)}
               <ToggleGroupItem
-                aria-label="Last {preset.label}"
+                aria-label={t("shell.lastUnit", { period: preset.label })}
                 value={preset.value}
               >
                 {preset.label}
@@ -279,11 +293,13 @@
       <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
         {#if showFilter}
           <form
-            aria-label="Filter paths"
+            aria-label={t("shell.filterPaths")}
             class="flex flex-wrap items-center gap-1.5"
             onsubmit={applyFilter}
           >
-            <label class="sr-only" for="filter-paths">Filter paths</label>
+            <label class="sr-only" for="filter-paths"
+              >{t("shell.filterPaths")}</label
+            >
             <div class="relative">
               <Search
                 aria-hidden="true"
@@ -296,38 +312,37 @@
                 id="filter-paths"
                 maxlength={200}
                 name="filter"
-                placeholder="Filter paths"
+                placeholder={t("shell.filterPaths")}
               />
             </div>
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger
-                  aria-label="Filter syntax help"
+                  aria-label={t("shell.filterSyntaxHelp")}
                   class={buttonVariants({ size: "icon", variant: "ghost" })}
                 >
                   <CircleHelp class="text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent class="max-w-72" side="bottom" sideOffset={6}>
                   <div class="space-y-1.5 text-left">
-                    <p>
-                      Filter the list of paths; matched case-insensitive on path
-                      and title.
-                    </p>
+                    <p>{t("shell.filterHelpIntro")}</p>
                     <ul class="list-disc space-y-0.5 pl-4">
                       <li>
-                        {@render code("at:start")}, {@render code("at:end")} — match
-                        only at the start or end of path or title.
+                        {@render code("at:start")}, {@render code("at:end")} —
+                        {t("shell.filterHelpAt")}
                       </li>
                       <li>
-                        {@render code("in:path")}, {@render code("in:title")} — match
-                        only the path or only the title.
+                        {@render code("in:path")}, {@render code("in:title")} —
+                        {t("shell.filterHelpIn")}
                       </li>
                       <li>
                         {@render code("is:event")}, {@render code(
                           "is:pageview"
-                        )} — show only events or pageviews.
+                        )} — {t("shell.filterHelpIs")}
                       </li>
-                      <li>{@render code(":not")} — negate the match.</li>
+                      <li>
+                        {@render code(":not")} — {t("shell.filterHelpNot")}
+                      </li>
                     </ul>
                   </div>
                 </TooltipContent>
@@ -335,7 +350,7 @@
             </TooltipProvider>
             {#if filterValue}
               <Button
-                aria-label="Clear filter"
+                aria-label={t("shell.clearFilter")}
                 onclick={clearFilter}
                 size="icon"
                 type="button"
@@ -344,16 +359,16 @@
                 <X />
               </Button>
             {/if}
-            <Button type="submit" variant="outline">Filter</Button>
+            <Button type="submit" variant="outline">{t("shell.filter")}</Button>
           </form>
         {/if}
         {#if showGroup}
           <div class="flex items-center gap-2">
             <span aria-hidden="true" class="text-xs text-muted-foreground">
-              View by
+              {t("shell.viewBy")}
             </span>
             <ToggleGroup
-              aria-label="View by"
+              aria-label={t("shell.viewBy")}
               onValueChange={selectGroup}
               size="sm"
               spacing={0}
@@ -362,8 +377,13 @@
               variant="outline"
             >
               {#each groups.allow as group (group)}
-                <ToggleGroupItem aria-label="View by {group}" value={group}>
-                  {group}
+                <ToggleGroupItem
+                  aria-label={t("shell.viewByUnit", {
+                    unit: t(UNIT_KEYS[group]),
+                  })}
+                  value={group}
+                >
+                  {t(UNIT_KEYS[group])}
                 </ToggleGroupItem>
               {/each}
             </ToggleGroup>
@@ -375,14 +395,14 @@
               {#snippet child({ props })}
                 <Button {...props} variant="outline">
                   <Bookmark />
-                  Views
+                  {t("shell.views")}
                   <ChevronDown class="text-muted-foreground" />
                 </Button>
               {/snippet}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" class="w-60">
               {#if savedViews.length}
-                <DropdownMenuLabel>Saved views</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("shell.savedViews")}</DropdownMenuLabel>
                 {#each savedViews as view (view.name)}
                   <DropdownMenuItem>
                     {#snippet child({ props })}
@@ -403,7 +423,7 @@
                 {#snippet child({ props })}
                   <a {...props} href={saveViewHref}>
                     <BookmarkPlus />
-                    Save current view…
+                    {t("shell.saveCurrentView")}
                   </a>
                 {/snippet}
               </DropdownMenuItem>
@@ -411,7 +431,7 @@
                 {#snippet child({ props })}
                   <a {...props} href={customizeHref}>
                     <SlidersHorizontal />
-                    Manage views and widgets
+                    {t("shell.manageViews")}
                   </a>
                 {/snippet}
               </DropdownMenuItem>
@@ -424,18 +444,18 @@
       class="flex-row flex-wrap items-center justify-between gap-x-4 gap-y-2"
     >
       <nav
-        aria-label="Move period back"
+        aria-label={t("shell.movePeriodBack")}
         class="flex items-center gap-0.5 max-sm:w-full max-sm:justify-between"
       >
         {#each MOVE_UNITS as unit (unit)}
           <Button
-            aria-label="Back one {unit}"
+            aria-label={t("shell.backOne", { unit: t(UNIT_KEYS[unit]) })}
             onclick={() => move(unit, -1)}
             size="xs"
             variant="ghost"
           >
             <ChevronLeft aria-hidden="true" />
-            {unit}
+            {t(UNIT_KEYS[unit])}
           </Button>
         {/each}
       </nav>
@@ -446,18 +466,18 @@
         {rangeLabel}
       </p>
       <nav
-        aria-label="Move period forward"
+        aria-label={t("shell.movePeriodForward")}
         class="flex items-center gap-0.5 max-sm:w-full max-sm:justify-between"
       >
         {#each MOVE_UNITS as unit (unit)}
           <Button
-            aria-label="Forward one {unit}"
+            aria-label={t("shell.forwardOne", { unit: t(UNIT_KEYS[unit]) })}
             disabled={forwardDisabled[unit]}
             onclick={() => move(unit, 1)}
             size="xs"
             variant="ghost"
           >
-            {unit}
+            {t(UNIT_KEYS[unit])}
             <ChevronRight aria-hidden="true" />
           </Button>
         {/each}

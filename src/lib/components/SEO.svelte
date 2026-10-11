@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import { t } from "$lib/display";
 
   let {
     title,
@@ -19,7 +20,7 @@
     structuredData?: Record<string, unknown>;
   } = $props();
 
-  const siteName = "gtcd — Custom GoatCounter Dashboard";
+  const siteName = $derived(t("shell.siteName"));
   const fullTitle = $derived(title === siteName ? title : `${title} — gtcd`);
 
   // Derive the canonical URL from the request origin so self-hosted

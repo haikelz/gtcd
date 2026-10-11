@@ -15,6 +15,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Languages } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -29,14 +30,14 @@
 </script>
 
 <SEO
-  description="Language breakdown for your GoatCounter site."
+  description={t("reports.languagesSeoDescription")}
   noindex
-  title="Languages — gtcd"
+  title={t("reports.languagesSeoTitle")}
 />
 
 <PageHeader
-  description="Which languages your visitors use."
-  title="Languages"
+  description={t("reports.languagesDescription")}
+  title={t("reports.languagesTitle")}
 />
 
 <DashboardToolbar showFilter />
@@ -48,15 +49,15 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle>Language report</FrameTitle>
+      <FrameTitle>{t("reports.languagesReport")}</FrameTitle>
       <FrameDescription class="text-xs">
-        {data.stats.stats.length} entries in this period
+        {t("reports.entries", { count: data.stats.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel>
       <BarChart
         data={data.stats.stats}
-        label="Language"
+        label={t("reports.languageLabel")}
         maxItems={50}
         tone="chart-4"
       />
@@ -72,9 +73,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No language preferences recorded for this period."
+        desc={t("reports.languagesEmptyDescription")}
         icon={Languages}
-        title="No language data"
+        title={t("reports.languagesEmptyTitle")}
       />
     </FramePanel>
   </Frame>

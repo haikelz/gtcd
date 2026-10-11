@@ -1,19 +1,22 @@
+import type { Locale } from "$lib/dashboard-layout";
+import { translate } from "$lib/i18n";
 import { getPaths } from "$lib/server/goatcounter/stats.js";
 
-function parseAfter(value: string | null): number | undefined {
+function parseAfter(value: string | null, locale: Locale): number | undefined {
   if (!value) return undefined;
-  if (!/^\d+$/.test(value)) throw new Error("Choose a valid path page.");
+  if (!/^\d+$/.test(value))
+    throw new Error(translate(locale, "reports.pathsInvalidPage"));
 
   const after = Number(value);
   if (!Number.isSafeInteger(after) || after < 1) {
-    throw new Error("Choose a valid path page.");
+    throw new Error(translate(locale, "reports.pathsInvalidPage"));
   }
 
   return after;
 }
 
-export async function load({ url, parent }) {
-  const after = parseAfter(url.searchParams.get("after"));
+export async function load({ locals, url, parent }) {
+  const after = parseAfter(url.searchParams.get("after"), locals.locale);
   const { vhost } = await parent();
 
   try {
@@ -25,7 +28,10 @@ export async function load({ url, parent }) {
       after,
       nextAfter: undefined,
       paths: null,
-      error: cause instanceof Error ? cause.message : "Failed to load paths.",
+      error:
+        cause instanceof Error
+          ? cause.message
+          : translate(locals.locale, "reports.pathsLoadFailed"),
     };
   }
 }

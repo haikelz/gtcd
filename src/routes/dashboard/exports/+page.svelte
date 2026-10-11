@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatCount } from "$lib/display";
+  import { formatCount, t } from "$lib/display";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -31,12 +31,12 @@
 
   const formatOptions = [
     {
-      description: "Individual pageviews for spreadsheets and data tools.",
+      description: "exports.csvDescription",
       label: "CSV",
       value: "csv",
     },
     {
-      description: "Aggregate data for a portable analytics backup.",
+      description: "exports.jsonDescription",
       label: "JSON",
       value: "json",
     },
@@ -44,19 +44,16 @@
 
   const exportSteps = [
     {
-      description:
-        "Choose CSV for individual pageviews or JSON for aggregate data.",
-      title: "Create an export",
+      description: "exports.stepCreateDescription",
+      title: "exports.stepCreateTitle",
     },
     {
-      description:
-        "The request runs in GoatCounter, so it does not interrupt dashboard use.",
-      title: "Wait for preparation",
+      description: "exports.stepWaitDescription",
+      title: "exports.stepWaitTitle",
     },
     {
-      description:
-        "The completed file is available through this protected dashboard.",
-      title: "Download securely",
+      description: "exports.stepDownloadDescription",
+      title: "exports.stepDownloadTitle",
     },
   ] as const;
 
@@ -68,28 +65,25 @@
   const isReady = $derived(job?.finished_at && !job.error);
   const exportState = $derived(
     job?.error
-      ? "Export failed"
+      ? t("exports.stateFailed")
       : isReady
-        ? "Ready to download"
-        : "Preparing export"
+        ? t("exports.stateReady")
+        : t("exports.statePreparing")
   );
 </script>
 
 <SEO
-  description="Export GoatCounter analytics data."
+  description={t("exports.seoDescription")}
   noindex
-  title="Exports — gtcd"
+  title={t("exports.seoTitle")}
 />
 
-<PageHeader
-  description="Package your GoatCounter analytics for your own reporting workflow."
-  title="Data exports"
-/>
+<PageHeader description={t("exports.description")} title={t("exports.title")} />
 
 {#if form?.error}
   <Alert class="mb-4" variant="destructive">
     <CircleAlert />
-    <AlertTitle>Export not requested</AlertTitle>
+    <AlertTitle>{t("exports.notRequested")}</AlertTitle>
     <AlertDescription>{form.error}</AlertDescription>
   </Alert>
 {/if}
@@ -98,9 +92,11 @@
   <form action="?/create" class="min-w-0" method="POST">
     <Frame>
       <FrameHeader>
-        <FrameTitle id="export-create-heading">Create an export</FrameTitle>
+        <FrameTitle id="export-create-heading"
+          >{t("exports.stepCreateTitle")}</FrameTitle
+        >
         <FrameDescription>
-          GoatCounter prepares a gzip-compressed file in the background.
+          {t("exports.createDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel
@@ -109,7 +105,8 @@
         role="region"
       >
         <fieldset class="grid gap-2">
-          <legend class="mb-2 text-sm font-medium">Format</legend>
+          <legend class="mb-2 text-sm font-medium">{t("exports.format")}</legend
+          >
           <RadioGroup
             bind:value={format}
             class="gap-2 sm:grid-cols-2"
@@ -128,7 +125,7 @@
                 <span class="grid gap-0.5">
                   <span class="text-sm font-medium">{option.label}</span>
                   <span class="text-xs text-muted-foreground">
-                    {option.description}
+                    {t(option.description)}
                   </span>
                 </span>
               </Label>
@@ -138,8 +135,10 @@
         {#if format === "csv"}
           <div class="grid gap-2">
             <Label for="export-start-hit">
-              Start after hit ID
-              <span class="font-normal text-muted-foreground">(optional)</span>
+              {t("exports.startAfterHitId")}
+              <span class="font-normal text-muted-foreground"
+                >{t("exports.optional")}</span
+              >
             </Label>
             <Input
               aria-describedby="csv-cursor-help"
@@ -151,15 +150,16 @@
               value={form?.values?.startFromHitId ?? ""}
             />
             <p class="text-xs text-muted-foreground" id="csv-cursor-help">
-              Paste the last hit ID from an earlier CSV export to download only
-              newer pageviews.
+              {t("exports.csvCursorHelp")}
             </p>
           </div>
         {:else}
           <div class="grid gap-2">
             <Label for="export-start-day">
-              Start date
-              <span class="font-normal text-muted-foreground">(optional)</span>
+              {t("exports.startDate")}
+              <span class="font-normal text-muted-foreground"
+                >{t("exports.optional")}</span
+              >
             </Label>
             <Input
               aria-describedby="json-date-help"
@@ -169,8 +169,7 @@
               value={form?.values?.startFromDay ?? ""}
             />
             <p class="text-xs text-muted-foreground" id="json-date-help">
-              Leave blank to include all aggregate data, or choose a day to
-              export newer data only.
+              {t("exports.jsonDateHelp")}
             </p>
           </div>
         {/if}
@@ -179,12 +178,11 @@
         class="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
         <p class="text-xs text-muted-foreground">
-          One export request per hour. Completed files stay available for 24
-          hours.
+          {t("exports.limitsHelp")}
         </p>
         <Button class="shrink-0 self-end sm:self-auto" type="submit">
           <FileArchive />
-          Create export
+          {t("exports.createExport")}
         </Button>
       </FrameFooter>
     </Frame>
@@ -201,24 +199,31 @@
         role="region"
       >
         <p class="text-sm text-muted-foreground">
-          Export #{job.id}, {job.format.toUpperCase()} file.
+          {t("exports.jobSummary", {
+            format: job.format.toUpperCase(),
+            id: job.id,
+          })}
         </p>
         {#if job.error}
           <Alert variant="destructive">
             <CircleAlert />
-            <AlertTitle>GoatCounter reported an error</AlertTitle>
+            <AlertTitle>{t("exports.goatCounterError")}</AlertTitle>
             <AlertDescription>{job.error}</AlertDescription>
           </Alert>
         {:else if isReady}
           <dl class="grid grid-cols-2 gap-4">
             <div class="grid gap-1">
-              <dt class="text-xs text-muted-foreground">Rows included</dt>
+              <dt class="text-xs text-muted-foreground">
+                {t("exports.rowsIncluded")}
+              </dt>
               <dd class="text-xl font-semibold tabular-nums">
                 {job.num_rows == null ? "—" : formatCount(job.num_rows)}
               </dd>
             </div>
             <div class="grid gap-1">
-              <dt class="text-xs text-muted-foreground">File size</dt>
+              <dt class="text-xs text-muted-foreground">
+                {t("exports.fileSize")}
+              </dt>
               <dd class="text-xl font-semibold tabular-nums">
                 {job.size ?? "—"}
               </dd>
@@ -227,9 +232,9 @@
         {:else}
           <Alert role="status" variant="info">
             <RefreshCw class="animate-spin motion-reduce:animate-none" />
-            <AlertTitle>GoatCounter is preparing this export</AlertTitle>
+            <AlertTitle>{t("exports.preparingTitle")}</AlertTitle>
             <AlertDescription>
-              Refresh the status when the file is ready to download.
+              {t("exports.preparingDescription")}
             </AlertDescription>
           </Alert>
         {/if}
@@ -242,7 +247,7 @@
             )}
           >
             <Download />
-            Download {job.format.toUpperCase()}
+            {t("exports.download", { format: job.format.toUpperCase() })}
           </Button>
         </FrameFooter>
       {:else if !job.error}
@@ -254,15 +259,17 @@
             variant="outline"
           >
             <RefreshCw />
-            Refresh status
+            {t("exports.refreshStatus")}
           </Button>
         </FrameFooter>
       {/if}
     {:else}
       <FrameHeader>
-        <FrameTitle id="export-status-heading">Export status</FrameTitle>
+        <FrameTitle id="export-status-heading"
+          >{t("exports.statusTitle")}</FrameTitle
+        >
         <FrameDescription>
-          Requested exports show their progress and download here.
+          {t("exports.statusDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="export-status-heading" role="region">
@@ -276,8 +283,10 @@
                 {index + 1}
               </span>
               <div class="grid gap-0.5">
-                <p class="text-sm font-medium">{step.title}</p>
-                <p class="text-xs text-muted-foreground">{step.description}</p>
+                <p class="text-sm font-medium">{t(step.title)}</p>
+                <p class="text-xs text-muted-foreground">
+                  {t(step.description)}
+                </p>
               </div>
             </li>
           {/each}

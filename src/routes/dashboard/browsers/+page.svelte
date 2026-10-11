@@ -18,6 +18,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Globe } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -40,12 +41,15 @@
 </script>
 
 <SEO
-  description="Browser breakdown for your GoatCounter site."
+  description={t("reports.browsersSeoDescription")}
   noindex
-  title="Browsers — gtcd"
+  title={t("reports.browsersSeoTitle")}
 />
 
-<PageHeader description="Which browsers your visitors use." title="Browsers" />
+<PageHeader
+  description={t("reports.browsersDescription")}
+  title={t("reports.browsersTitle")}
+/>
 
 <DashboardToolbar showFilter />
 
@@ -57,15 +61,15 @@
       <FrameHeader
         class="flex-row flex-wrap items-baseline justify-between gap-3"
       >
-        <FrameTitle>Browser report</FrameTitle>
+        <FrameTitle>{t("reports.browsersReport")}</FrameTitle>
         <FrameDescription class="text-xs">
-          {data.stats.stats.length} entries in this period
+          {t("reports.entries", { count: data.stats.stats.length })}
         </FrameDescription>
       </FrameHeader>
       <FramePanel>
         <BarChart
           data={data.stats.stats}
-          label="Browser"
+          label={t("reports.browserLabel")}
           maxItems={50}
           onItemClick={handleDetail}
         />
@@ -79,7 +83,9 @@
     </Frame>
     <Frame>
       <FrameHeader>
-        <FrameTitle id="browser-share-heading">Audience share</FrameTitle>
+        <FrameTitle id="browser-share-heading"
+          >{t("reports.audienceShare")}</FrameTitle
+        >
       </FrameHeader>
       <FramePanel aria-labelledby="browser-share-heading" role="region">
         <DonutChart data={data.stats.stats} />
@@ -90,9 +96,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No visits recorded for this time period."
+        desc={t("reports.browsersEmptyDescription")}
         icon={Globe}
-        title="No browser data"
+        title={t("reports.browsersEmptyTitle")}
       />
     </FramePanel>
   </Frame>

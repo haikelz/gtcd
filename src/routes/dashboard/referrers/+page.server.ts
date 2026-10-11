@@ -1,3 +1,4 @@
+import { translate } from "$lib/i18n";
 import {
   getFilterFromUrl,
   resolveFilter,
@@ -5,7 +6,7 @@ import {
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 
-export async function load({ url, parent }) {
+export async function load({ locals, url, parent }) {
   const { preferences, vhost } = await parent();
   const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
@@ -27,7 +28,9 @@ export async function load({ url, parent }) {
       range,
       offset,
       error:
-        error instanceof Error ? error.message : "Failed to load referrers.",
+        error instanceof Error
+          ? error.message
+          : translate(locals.locale, "reports.referrersLoadFailed"),
       refs: null,
     };
   }

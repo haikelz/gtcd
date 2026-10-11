@@ -5,6 +5,7 @@
   import { subscribeToasts, type ToastMessage } from "$lib/components/toast.js";
   import { Alert, AlertAction, AlertTitle } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
+  import { t } from "$lib/display";
 
   let toasts = $state<readonly ToastMessage[]>([]);
   const timers = new SvelteMap<number, ReturnType<typeof setTimeout>>();
@@ -53,10 +54,10 @@
         <AlertTitle class="line-clamp-none">{toast.message}</AlertTitle>
         <AlertAction class="max-sm:col-start-3 max-sm:row-start-1 max-sm:mt-0">
           <Button
-            aria-label="Dismiss notification"
+            aria-label={t("shell.dismissNotification")}
             onclick={() => dismissToast(toast.id)}
             size="icon-xs"
-            title="Dismiss notification"
+            title={t("shell.dismissNotification")}
             variant="ghost"
           >
             <X aria-hidden="true" />

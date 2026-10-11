@@ -4,6 +4,8 @@ import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import type { ExportRequest } from "$lib/server/goatcounter/types.js";
+import type { Locale } from "$lib/dashboard-layout";
+import { translate } from "$lib/i18n";
 
 const EXPORT_PERMISSION = 4;
 
@@ -32,7 +34,8 @@ function parseOptionalPositiveInteger(
 }
 
 function parseExportRequest(
-  formData: FormData
+  formData: FormData,
+  locale: Locale
 ):
   | { readonly input: ExportRequest; readonly values: Record<string, string> }
   | { readonly error: string; readonly values: Record<string, string> } {
@@ -46,13 +49,13 @@ function parseExportRequest(
   };
 
   if (format !== "csv" && format !== "json") {
-    return { error: "Choose an export format.", values };
+    return { error: translate(locale, "exports.invalidFormat"), values };
   }
 
   if (format === "csv") {
     const cursor = parseOptionalPositiveInteger(startFromHitId);
     if (cursor === null) {
-      return { error: "CSV cursor must be a positive whole number.", values };
+      return { error: translate(locale, "exports.invalidCursor"), values };
     }
 
     return {
@@ -72,7 +75,7 @@ function parseExportRequest(
     typeof startFromDay !== "string" ||
     !/^\d{4}-\d{2}-\d{2}$/.test(startFromDay)
   ) {
-    return { error: "Choose a valid JSON export start date.", values };
+    return { error: translate(locale, "exports.invalidStartDate"), values };
   }
 
   const date = new Date(`${startFromDay}T00:00:00.000Z`);
@@ -80,7 +83,7 @@ function parseExportRequest(
     Number.isNaN(date.getTime()) ||
     date.toISOString().slice(0, 10) !== startFromDay
   ) {
-    return { error: "Choose a valid JSON export start date.", values };
+    return { error: translate(locale, "exports.invalidStartDate"), values };
   }
 
   return {
@@ -96,17 +99,14 @@ export async function load({ locals, url }) {
   const currentUser = await stats.getMe();
   const siteContext = await getDashboardSiteContext(url);
   if (!hasExportPermission(currentUser.token.permissions)) {
-    throw error(
-      403,
-      "Exports need the GoatCounter API token to have export permission. Grant export permission to GOATCOUNTER_API_KEY, then reload."
-    );
+    throw error(403, translate(locals.locale, "exports.permissionReload"));
   }
   const job = exportId
     ? await admin.getExport(exportId, { vhost: siteContext.vhost })
     : null;
 
   if (job && job.site_id !== siteContext.site.id) {
-    throw error(404, "Export not found.");
+    throw error(404, translate(locals.locale, "exports.notFound"));
   }
 
   return { job };
@@ -116,7 +116,7 @@ export const actions = {
   create: async ({ locals, request, url }) => {
     requireDashboardAdmin(locals.user);
 
-    const parsed = parseExportRequest(await request.formData());
+    const parsed = parseExportRequest(await request.formData(), locals.locale);
     if ("error" in parsed) {
       return fail(400, parsed);
     }
@@ -125,8 +125,7 @@ export const actions = {
     const siteContext = await getDashboardSiteContext(url);
     if (!hasExportPermission(currentUser.token.permissions)) {
       return fail(403, {
-        error:
-          "Exports need the GoatCounter API token to have export permission.",
+        error: translate(locals.locale, "exports.permission"),
         values: parsed.values,
       });
     }

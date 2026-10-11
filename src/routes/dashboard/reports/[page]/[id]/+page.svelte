@@ -16,9 +16,12 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { ArrowLeft, ChartNoAxesColumnIncreasing } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
+
+  const label = $derived(t(data.report.labelKey));
 
   function reportHref(offset: number): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
@@ -30,13 +33,15 @@
 </script>
 
 <SEO
-  description={`Detailed ${data.report.label.toLowerCase()} for your GoatCounter site.`}
+  description={t("reports.detailSeoDescription", {
+    label: label.toLowerCase(),
+  })}
   noindex
-  title={`${data.report.label} — gtcd`}
+  title={t("reports.detailSeoTitle", { label })}
 />
 
 <PageHeader
-  description={`${data.report.label} in the selected period.`}
+  description={t("reports.detailDescription", { label })}
   title={data.detailId}
 >
   {#snippet eyebrow()}
@@ -44,8 +49,8 @@
       class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       href={resolve(data.report.parentHref)}
     >
-      <ArrowLeft aria-hidden="true" class="size-4" /> Back to {data.report
-        .parent}
+      <ArrowLeft aria-hidden="true" class="size-4" />
+      {t("reports.backTo", { parent: t(data.report.parentKey) })}
     </a>
   {/snippet}
 </PageHeader>
@@ -59,17 +64,13 @@
     <FrameHeader
       class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      <FrameTitle id="detail-report-heading">{data.report.label}</FrameTitle>
+      <FrameTitle id="detail-report-heading">{label}</FrameTitle>
       <FrameDescription class="text-xs">
-        {data.detail.stats.length} entries in this period
+        {t("reports.entries", { count: data.detail.stats.length })}
       </FrameDescription>
     </FrameHeader>
     <FramePanel aria-labelledby="detail-report-heading" role="region">
-      <BarChart
-        data={data.detail.stats}
-        label={data.report.label}
-        maxItems={50}
-      />
+      <BarChart data={data.detail.stats} {label} maxItems={50} />
       <ReportPagination
         nextHref={data.detail.more ? reportHref(data.offset + 50) : undefined}
         previousHref={data.offset > 0
@@ -82,9 +83,9 @@
   <Frame>
     <FramePanel>
       <EmptyState
-        desc="No detailed entries were recorded for this item in this time period."
+        desc={t("reports.detailEmptyDescription")}
         icon={ChartNoAxesColumnIncreasing}
-        title="No detailed data"
+        title={t("reports.detailEmptyTitle")}
       />
     </FramePanel>
   </Frame>

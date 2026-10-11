@@ -17,6 +17,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { ArrowLeft, Link2 } from "@lucide/svelte";
+  import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -31,7 +32,7 @@
 
   const pageTitle = $derived(
     data.hits?.hits?.find((hit) => hit.path_id === data.pathId)?.path ||
-      `Page ${data.pathId}`
+      t("reports.pageDetailFallbackTitle", { id: data.pathId })
   );
 
   const currentHit = $derived(
@@ -50,13 +51,13 @@
 </script>
 
 <SEO
-  description="Referrer breakdown for {pageTitle}."
+  description={t("reports.pageDetailSeoDescription", { title: pageTitle })}
   noindex
   title={pageTitle}
 />
 
 <PageHeader
-  description="Referrers driving traffic to this page."
+  description={t("reports.pageDetailDescription")}
   title={pageTitle}
   titleClass="font-mono"
 >
@@ -65,7 +66,8 @@
       class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       href={resolve("/dashboard/pages")}
     >
-      <ArrowLeft aria-hidden="true" class="size-4" /> Back to Pages
+      <ArrowLeft aria-hidden="true" class="size-4" />
+      {t("reports.backToPages")}
     </a>
   {/snippet}
   {#snippet actions()}
@@ -76,7 +78,9 @@
         rel="noopener noreferrer"
         target="_blank"
       >
-        Go to {goHref.replace(/^https?:\/\//i, "")}
+        {t("reports.pageDetailGoTo", {
+          url: goHref.replace(/^https?:\/\//i, ""),
+        })}
       </a>
     {/if}
   {/snippet}
@@ -89,10 +93,14 @@
 {:else if data.refs?.refs && data.refs.refs.length > 0}
   <Frame class="animate-fade-in">
     <FrameHeader>
-      <FrameTitle>Referrers</FrameTitle>
+      <FrameTitle>{t("reports.pageDetailReferrers")}</FrameTitle>
     </FrameHeader>
     <FramePanel>
-      <BarChart data={data.refs.refs} label="Referrer" maxItems={30} />
+      <BarChart
+        data={data.refs.refs}
+        label={t("reports.referrerLabel")}
+        maxItems={30}
+      />
       <ReportPagination
         nextHref={data.refs.more ? refsHref(data.offset + 30) : undefined}
         previousHref={data.offset > 0
@@ -105,9 +113,9 @@
   <Frame class="animate-fade-in">
     <FramePanel>
       <EmptyState
-        desc="No incoming referrers recorded for this page in this time window."
+        desc={t("reports.pageDetailEmptyDescription")}
         icon={Link2}
-        title="No referrers"
+        title={t("reports.pageDetailEmptyTitle")}
       />
     </FramePanel>
   </Frame>

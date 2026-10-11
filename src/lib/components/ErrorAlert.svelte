@@ -6,6 +6,7 @@
     AlertTitle,
   } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
+  import { t } from "$lib/display";
   import { TriangleAlert } from "@lucide/svelte";
 
   type ErrorAlertProps = {
@@ -14,20 +15,16 @@
     readonly title?: string;
   };
 
-  let {
-    class: className,
-    message,
-    title = "This report could not load",
-  }: ErrorAlertProps = $props();
+  let { class: className, message, title }: ErrorAlertProps = $props();
 </script>
 
 <Alert class={className} variant="destructive">
   <TriangleAlert />
-  <AlertTitle>{title}</AlertTitle>
+  <AlertTitle>{title ?? t("common.reportLoadFailed")}</AlertTitle>
   <AlertDescription>{message}</AlertDescription>
   <AlertAction>
     <Button onclick={() => location.reload()} size="sm" variant="outline">
-      Retry
+      {t("common.retry")}
     </Button>
   </AlertAction>
 </Alert>

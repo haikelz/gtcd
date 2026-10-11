@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit";
+import { type MessageKey, translate } from "$lib/i18n";
 import {
   getFilterFromUrl,
   resolveFilter,
@@ -11,46 +12,54 @@ import {
 
 const REPORTS = {
   browsers: {
-    label: "Browser versions",
-    parent: "Browsers",
+    labelKey: "reports.detailBrowsers",
+    parentKey: "reports.parentBrowsers",
     parentHref: "/dashboard/browsers",
     route: "browsers",
   },
   systems: {
-    label: "System versions",
-    parent: "Systems",
+    labelKey: "reports.detailSystems",
+    parentKey: "reports.parentSystems",
     parentHref: "/dashboard/systems",
     route: "systems",
   },
   locations: {
-    label: "Regional detail",
-    parent: "Locations",
+    labelKey: "reports.detailLocations",
+    parentKey: "reports.parentLocations",
     parentHref: "/dashboard/locations",
     route: "locations",
   },
   sizes: {
-    label: "Screen-size detail",
-    parent: "Devices",
+    labelKey: "reports.detailSizes",
+    parentKey: "reports.parentDevices",
     parentHref: "/dashboard/devices",
     route: "sizes",
   },
   campaigns: {
-    label: "Campaign detail",
-    parent: "Campaigns",
+    labelKey: "reports.detailCampaigns",
+    parentKey: "reports.parentCampaigns",
     parentHref: "/dashboard/campaigns",
     route: "campaigns",
   },
   toprefs: {
-    label: "Referrer detail",
-    parent: "Referrers",
+    labelKey: "reports.detailToprefs",
+    parentKey: "reports.parentReferrers",
     parentHref: "/dashboard/referrers",
     route: "toprefs",
   },
-} as const;
+} as const satisfies Record<
+  string,
+  {
+    labelKey: MessageKey;
+    parentHref: string;
+    parentKey: MessageKey;
+    route: string;
+  }
+>;
 
-export async function load({ params, url, parent }) {
+export async function load({ locals, params, url, parent }) {
   if (!isStatsDetailPage(params.page)) {
-    throw error(404, "This report does not have a detail view.");
+    throw error(404, translate(locals.locale, "reports.detailNotFound"));
   }
 
   const report = REPORTS[params.page];
@@ -79,7 +88,10 @@ export async function load({ params, url, parent }) {
       report,
       detail: null,
       detailId: params.id,
-      error: cause instanceof Error ? cause.message : "Failed to load detail.",
+      error:
+        cause instanceof Error
+          ? cause.message
+          : translate(locals.locale, "reports.detailLoadFailed"),
     };
   }
 }

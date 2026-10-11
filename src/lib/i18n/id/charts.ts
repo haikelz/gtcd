@@ -1,0 +1,58 @@
+import type en from "../en/charts";
+
+// Bahasa Indonesia: charts. Must define every key of the English catalog.
+export default {
+  "charts.breakdownChart": "Grafik rincian",
+  "charts.changeVsPrevious": "Perubahan dibanding periode sebelumnya",
+  "charts.chart": "Grafik",
+  "charts.chartDescription":
+    "Grafik garis kunjungan {group} dari {start} sampai {end}.",
+  "charts.chartLabel":
+    "Grafik garis kunjungan {group}. Total kunjungan: {total}, rata-rata harian: {average}.",
+  "charts.chartScale": "Skala grafik",
+  "charts.chartTitle": "Grafik kunjungan {group}",
+  "charts.dailyAverage": "Rata-rata harian",
+  "charts.defaultBreakdownLabel": "Sumber",
+  "charts.defaultDonutLabel": "Browser",
+  "charts.distribution": "Distribusi {label}",
+  "charts.donutDescription":
+    "{count} kunjungan tercatat, dikelompokkan menurut {label}. Nilainya tercantum di bawah.",
+  "charts.donutDescriptionHidden":
+    "Kunjungan, dikelompokkan menurut {label}. Nilainya tercantum di bawah.",
+  "charts.event": "event",
+  "charts.exploreChart": "Jelajahi grafik",
+  "charts.exploreItem": "Jelajahi {label}: {count} kunjungan ({share}%)",
+  "charts.exploreItemHidden": "Jelajahi {label}: {share}%",
+  "charts.goTo": "Buka {url}",
+  "charts.groupDay": "Harian",
+  "charts.groupHour": "Per jam",
+  "charts.groupMonth": "Bulanan",
+  "charts.groupWeek": "Mingguan",
+  "charts.itemVisits": "{label}: {count} kunjungan ({share}%)",
+  "charts.loadingLabel": "{label}: memuat",
+  "charts.new": "(baru)",
+  "charts.noData": "Belum ada data",
+  "charts.noLabelData": "Belum ada data {label}",
+  "charts.noLabelDataHint":
+    "Coba rentang tanggal lain untuk melihat data audiens.",
+  "charts.numbersHidden": "Angka disembunyikan dalam mode sembunyikan angka.",
+  "charts.other": "Lainnya",
+  "charts.perPage": "Per halaman",
+  "charts.period": "Periode",
+  "charts.recordedVisits": "Kunjungan tercatat",
+  "charts.scalePerPage": "Skalakan setiap halaman ke puncaknya sendiri",
+  "charts.scaleShared": "Skalakan semua halaman ke maksimum yang sama",
+  "charts.share": "Porsi",
+  "charts.shared": "Seragam",
+  "charts.shares": "Porsi",
+  "charts.sharesList": "Porsi {label}",
+  "charts.showingSources": "Menampilkan {shown} dari {total} sumber",
+  "charts.table": "Tabel",
+  "charts.tableCaption": "Statistik kunjungan {group}",
+  "charts.total": "Total",
+  "charts.trafficView": "Tampilan kunjungan",
+  "charts.trendDown": "Turun:",
+  "charts.trendUp": "Naik:",
+  "charts.unknown": "Tidak diketahui",
+  "charts.visits": "Kunjungan",
+} satisfies Record<keyof typeof en, string>;
