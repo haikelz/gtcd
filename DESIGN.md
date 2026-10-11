@@ -1,76 +1,119 @@
 # gtcd design system
 
-## 1. Atmosphere & identity
+## Direction
 
-A modern analytics studio: cloud canvas, ink typography, cobalt actions and a warm categorical data palette. The signature is an asymmetric overview: an emphasized traffic metric, a wide time-series chart beside an audience ring, then a content table beside geographic rankings. Reports differ by purpose instead of repeating equal-weight panels.
+gtcd uses the [ReUI](https://reui.io/) design system: the reui.io theme on top
+of shadcn/ui `base-nova`, with ReUI's own primitives (Frame, Alert, Badge) as
+the main surfaces. ReUI ships React; gtcd ports its tokens and class recipes to
+Svelte 5 with Bits UI, Tailwind v4, `tailwind-variants` and `cn`. No React
+runtime is involved.
 
-The Stripe reference informs chromatic elevation, navy typography and dense data with spacious controls, not brand cloning. Preserve self-hosted fonts, Lucide, Svelte and DaisyUI. Home continues to redirect to login/dashboard; no landing page is introduced.
+Sources of truth, in order:
 
-## 2. Color
+1. ReUI registry items, fetched as `https://reui.io/r/base-nova/<name>.json`
+   (the same payload the ReUI MCP server installs).
+2. shadcn/ui `base-nova` items, `https://ui.shadcn.com/r/styles/base-nova/<name>.json`,
+   for stock primitives ReUI does not replace.
+3. The live reui.io stylesheet for theme values.
 
-All colors are theme tokens in src/app.css.
+When porting, keep the upstream class strings and variant names. Deviate only
+for Svelte/Bits UI mechanics or a documented reason, and record the reason in
+a comment next to the deviation.
 
-| Role              | Light OKLCH  | Dark OKLCH   |
-| ----------------- | ------------ | ------------ |
-| Panels / base-100 | 100% 0 0     | 22% .018 265 |
-| Canvas / base-200 | 97% .006 265 | 17% .018 265 |
-| Border / base-300 | 91% .012 265 | 32% .022 265 |
-| Text              | 25% .035 265 | 96% .006 265 |
-| Primary / actions | 49% .20 265  | 76% .13 265  |
-| Muted text        | 47% .025 265 | 73% .025 265 |
-| Chart cobalt      | 59% .19 265  | 76% .13 265  |
-| Chart mint        | 68% .12 175  | 76% .12 175  |
-| Chart amber       | 77% .14 75   | 82% .14 75   |
-| Chart coral       | 68% .15 30   | 76% .13 30   |
-| Chart lavender    | 67% .14 305  | 79% .11 305  |
+## Tokens
 
-Categorical colors distinguish distribution parts, not success/failure. All marks have labels and numeric equivalents. Featured metric/login art use fixed ink-blue 28% .075 265 with 97% .005 265 text and 75% .13 265 highlights. Icon wells use 12% category tints. Existing semantic success/warning/error tokens retain their meaning.
+`src/app.css` owns every token. Values mirror the reui.io theme:
 
-## 3. Typography
+- Neutral surfaces: white canvas and cards, `#f5f5f5` muted, `#e5e5e5` borders.
+  Dark uses `#0a0a0a` canvas, `#171717` cards, `#262626` muted and 10% white
+  borders.
+- Primary is neutral (`#171717` light, `#e5e5e5` dark). It marks actions,
+  focus and selection, never data.
+- `--muted-foreground` is ReUI's `#696969`, darker than stock shadcn, for AA
+  contrast on small text.
+- ReUI extended tokens: `--success`, `--info`, `--warning`, `--invert` and
+  `--destructive-foreground`, each with a foreground. Use them for real states
+  only.
+- `--chart-1`…`--chart-5` are the multi-hue reui.io chart palette (orange,
+  teal, slate, yellow, amber in light; blue, emerald, amber, violet, rose in
+  dark). Data series read chart tokens and never `--primary`.
+- Radius scale is fixed pixels from reui.io: xs 2, sm 4, md 6, lg 8, xl 12,
+  2xl 16.
+- Focus outline uses `--primary`. ReUI's `--ring` grey falls below 3:1 against
+  white, so it styles control rings only.
 
-Self-hosted Inter with stylistic display alternates; JetBrains Mono for paths and precise data. Body 14/16px, secondary 12/13px, panel titles 16px, page headings 32px, featured numbers 36px, login display 48px. Headings 500/600, body 400, controls 500. Display tracking -.04em, metrics -.02em. Tabular figures throughout. Long labels wrap or visibly truncate with full accessible text.
+Never hardcode hex values or raw Tailwind palette classes in components.
 
-## 4. Spacing & layout
+## Primitives
 
-Tailwind 4px scale; controls 44px. Panel padding 20/24px and corners 16px; control corners 8px; icon wells 12px. Sidebar 240px, header 64px, content maximum 1440px. Canvas padding 32px desktop, 16px mobile.
+`src/lib/components/ui/` holds the ported primitives:
 
-Overview uses 2:1 traffic/audience and 3:2 pages/locations grids above 1280px. Three compact technical reports share the final row at wide sizes; stack below 1280px. KPIs use four columns above 1280px and two below; small-screen long values use 24px. Document owns scrolling; sticky sidebar navigation owns vertical overflow. Below 1024px preserve modal navigation and background focus lock.
+| Primitive                 | Upstream                   | Notes                                                 |
+| ------------------------- | -------------------------- | ----------------------------------------------------- |
+| Frame + parts             | ReUI `frame`               | `variant`, `spacing` xs–lg, `stacked`, `dense`, `fit` |
+| Alert + parts             | ReUI `alert`               | default, destructive, info, success, warning, invert  |
+| Badge                     | ReUI `badge`               | solid, `-light`, `-outline` variants; sizes; radius   |
+| Button, Input, Textarea … | shadcn `base-nova`         | Bits UI where behavior is needed                      |
+| Empty + parts             | shadcn `base-nova` `empty` | composed by `EmptyState`                              |
+| NativeSelect              | shadcn `base-nova`         | site switcher                                         |
+| ToggleGroup               | shadcn `base-nova`         | segmented period and grouping controls                |
 
-## 5. Components
+Deviations: `FrameTitle` renders an `h2` (ReUI uses a div) to keep report
+sections in the document outline. Badge omits ReUI's `focus` variants because
+ReUI documents no `--focus` token.
 
-- **Brand**: existing live SVG histogram with cobalt mark.
-- **StatCard**: label, value, supporting text; default/cobalt/mint/amber tones, optional typed Lucide icon and featured ink surface. No invented growth comparisons. Missing metrics remain an em dash.
-- **AreaChart**: responsive SVG time series, hover readout, title/description/role, screen-reader table, empty state.
-- **DonutChart**: actual category counts, top four plus summed remainder, SVG ring with total and visible count/share legend. Accessible title, description and table. No-data state when total is zero. Shared by overview and browsers.
-- **BarChart**: ranked rows and accessible meters; optional category tone differentiates geographic/technical reports. Buttons only for real drill-down.
-- **ReportPagination**: a compact previous/next navigation below paged data. It uses ordinary links so date filters, history, and keyboard behavior remain native.
-- **Report panels**: consistent headers/actions but composition varies by chart, ring, table or list. No static hover elevation.
-- **Management panels**: a single primary form is divided by structural rules into named settings groups; a sticky secondary rail carries current-site context and the GoatCounter handoff. Export creation and request status use an explicit two-step composition rather than equal-weight cards.
-- **DateRangePicker**: existing query-driven radio controls and arrow keys.
-- **ThemeToggle**: existing light/dark/system dropdown, upward sidebar placement, persistence and focus behavior.
-- **ToastStack**: DaisyUI alert stack for real action feedback, with status icons,
-  auto-dismiss, and a keyboard-accessible dismissal control.
-- **Tooltip**: DaisyUI hints on compact icon actions; visible labels remain the
-  accessible name and tooltips never carry required information.
-- **Shell**: grouped navigation, selected cobalt surface, workspace context, breadcrumb, actual loading status, persisted collapse and shortcut.
-- **Login**: split analytics illustration and native form. Illustration has no fake metrics or production claims; mobile prioritizes form. Preserve password visibility, pending and focused error states.
-- **Error/empty**: existing actionable copy/links, shared themed surfaces.
+## Frame composition
 
-## 6. Motion & interaction
+Report surfaces, KPI tiles, forms, the toolbar and login use `Frame` +
+`FramePanel`. The Frame is the muted, bordered surround; FrameHeader and
+FrameFooter sit in that surround as chrome; FramePanel is the content surface.
+FramePanel pads itself from the Frame's `spacing` (default 16px), so content
+goes straight inside it with no padding wrapper. Use `class="p-0"` or `dense`
+only when rows carry their own padding to the edge. Panel radii stay concentric
+through `--frame-radius`, `--frame-px` and `--frame-panel-radius`.
 
-Preserve 200ms drawer transition/focus handling. Every route enters once with
-an 180ms opacity/6px transform settle; controls use 150ms color and press
-feedback, sidebar links shift 2px only on hover, and toasts settle from -8px
-over 180ms. These are purposeful route, affordance, and status changes, never
-decorative card hover or entrance cascades. Reduced-motion preference suppresses
-motion transitions while preserving the settled interaction states.
+## Layout and typography
 
-## 7. Depth & surface
+- Sidebar 256px, shadcn sidebar recipes: 48px header, grouped navigation with
+  group labels, 32px menu buttons (40px below 1024px for touch), active state
+  from `aria-current="page"`.
+- Topbar 48px: sidebar trigger, separator, breadcrumb, site switcher.
+- Content max width 96rem; 24px padding on desktop, 16px plus safe-area insets
+  on mobile. Frames sit on a `gap-4` grid.
+- `PageHeader` owns every page's h1 (text-xl semibold), description, optional
+  eyebrow (back link) and actions. Section titles are `FrameTitle` (text-sm
+  semibold). Body text-sm, meta text-xs muted.
+- Self-hosted Inter for the interface; JetBrains Mono for paths and code.
+  Numbers use tabular numerals.
 
-White/slate panels above cloud/navy canvas. Near edge plus soft blue-tinted ambient shadows: 0 1px 2px at 3%, 0 8px 24px at 3%. Featured metric/login illustration use contrasting ink surfaces. Chart color, proportion and whitespace provide variety without gradient wallpaper or fake floating notifications.
+## Components
 
-## 8. Accessibility constraints & accepted debt
+- `DashboardToolbar`: Frame with controls in the panel (date range, preset
+  ToggleGroup, path filter, grouping ToggleGroup) and period navigation in the
+  FrameFooter. The URL stays the source of report state.
+- `StatCard`: compact Frame KPI tile with a `-light` trend Badge.
+- `AreaChart`, `DonutChart`, `BarChart`, `SparkLine`: chart tokens, SVG
+  title/desc and sr-only tables. DonutChart caps at five segments to stay
+  within the palette.
+- `ErrorAlert`: the standard report load failure (destructive Alert with
+  Retry). `EmptyState`: Empty primitive with icon, title and description.
+- `ScaleToggle`: ToggleGroup switching page sparklines between per-page and
+  shared scale via `?scale=shared`.
+- `CopyField`: read-only Input with a copy Button, for share links and
+  counter embeds.
+- `/dashboard/customize`: saved views and overview widget order; the overview
+  lays widgets on a 12-column dense grid where wide widgets span 8 and narrow
+  ones 4, so any order tiles into full rows.
+- Dates, hours and counts go through `$lib/preferences` / `$lib/display`
+  (`formatCount`) so they follow the user's GoatCounter settings; never call
+  `toLocaleString()` for report numbers.
+- `ThemeToggle`: DropdownMenu radio items; persists light, dark or system.
+- `ToastStack`: Alert on an opaque popover surface with a semantic icon color.
 
-WCAG 2.1 AA target, 4.5:1 text contrast, visible primary focus, keyboard navigation, 44px touch controls, reduced motion and skip link. Personas: site owner checking traffic; analyst exploring content/audience; mobile/keyboard user navigating filters/details. Backend mediation, auth, sessions and data contracts stay unchanged.
+## Accessibility and motion
 
-No new accepted accessibility debt. Verify every route at 375, 768 and 1280px in both themes with synthetic data isolated in the local QA upstream.
+Keep skip navigation, visible focus, form labels, chart text equivalents,
+`role="meter"` bars and drawer focus trapping. Target WCAG 2.1 AA. Motion is
+limited to route entry, popovers and toasts, and `prefers-reduced-motion`
+disables it. Verify filled, empty and error states in both themes at desktop
+and mobile widths; visual QA uses the local synthetic upstream only.

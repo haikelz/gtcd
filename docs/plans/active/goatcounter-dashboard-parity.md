@@ -65,3 +65,37 @@ than falsely emulate it.
 - `pnpm lint`: changed files are clean; eight existing violations remain in
   `AreaChart.svelte`, `Brand.svelte`, `SEO.svelte`, `ThemeToggle.svelte`,
   `ToastStack.svelte`, and `+error.svelte`.
+
+## Phase 2: preferences, sharing, and layout (2026-10-11)
+
+Gap analysis against GoatCounter's API spec, source, and help pages found that
+every API endpoint except `POST /count` and all ten widget types were already
+covered. This phase closes the remaining gaps.
+
+- Complete: display preferences from `/me` (`$lib/preferences.ts`). Report
+  ranges are built as wall-clock dates in the user's GoatCounter timezone and
+  sent with that zone's offset; dates, hours, and numbers follow the user's
+  date format, clock, and thousands separator. `sunday_starts_week` is not
+  applied: GoatCounter only uses it in its own date picker, and gtcd uses
+  native date inputs. Runnable check: `node --experimental-strip-types
+src/lib/preferences.check.ts`.
+- Complete: event totals from `/stats/total` on the overview.
+- Complete: dashboard visibility as private/secret/public with token
+  generation and share link. Decision: the site `secret` is now sent to the
+  admin-only settings page when the site is in secret mode. It is a view-only
+  token that GoatCounter's own settings page shows to the same admins; other
+  routes still strip it.
+- Complete: visitor-counter embed builder; `/counter/*` routed to GoatCounter
+  in the generated Caddyfile, `scripts/setup.sh`, and the Kubernetes Ingress.
+- Complete: shared/per-page sparkline scale (`?scale=shared`) and a table view
+  for the traffic chart.
+- Complete: saved views, default view, and overview widget order/visibility,
+  stored per user in Redis with an in-memory fallback
+  (`$lib/server/dashboard-layout-store.ts`, `/dashboard/customize`). Hidden
+  widgets skip their upstream requests.
+- Not done by design: email reports (needs gtcd-run mail delivery).
+- `gcFetch` now shares one in-flight request between identical concurrent GETs.
+
+Evidence: `pnpm check`, `pnpm lint` (src), `pnpm build`, the preferences check,
+and browser QA against a synthetic upstream with a Jakarta-timezone user while
+the server ran with `TZ=UTC` (upstream received `+07:00` boundaries).

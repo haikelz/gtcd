@@ -3,7 +3,7 @@
 - **Language**: TypeScript
 - **Framework**: SvelteKit 2 (Svelte 5 Runes)
 - **Package Manager**: pnpm
-- **Styling**: Tailwind CSS v4, DaisyUI v5
+- **Styling**: Tailwind CSS v4, ReUI design system (shadcn base-nova recipes ported to Svelte with Bits UI); see `DESIGN.md`
 - **Runtime**: Node.js 26 (`@sveltejs/adapter-node`; Node 20 is EOL — bump deliberately, together with the Dockerfile)
 - **State & Caching**: Redis 7 (`ioredis`) with in-memory fallback, memory query cache
 - **Containerization & Orchestration**: Docker (multi-stage non-root, `node:26-alpine`), Kubernetes (envsubst-templated manifests + `k8s/deploy-k8s.sh`)
