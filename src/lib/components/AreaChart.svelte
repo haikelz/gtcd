@@ -198,7 +198,7 @@
     <!-- SVG Area Chart with Full A11Y -->
     <svg
       role="img"
-      aria-label="{groupLabel} traffic line chart. Total visitors: {formatCount(
+      aria-label="{groupLabel} traffic line chart. Total visits: {formatCount(
         totalSum
       )}, Daily average: {formatCount(avgDaily)}."
       viewBox="0 0 {width} {height}"
@@ -207,7 +207,7 @@
     >
       <title>{groupLabel} Traffic Chart</title>
       <desc
-        >Line chart showing {groupLabel.toLowerCase()} visitor traffic between {series[0]
+        >Line chart showing {groupLabel.toLowerCase()} visits between {series[0]
           ?.title} and {series[series.length - 1]?.title}.</desc
       >
 
@@ -335,7 +335,7 @@
           <tr class="border-b border-border">
             <th class="h-9 px-3 text-left font-medium" scope="col">Period</th>
             <th class="h-9 px-3 text-right font-medium" scope="col">
-              Visitors
+              Visits
             </th>
           </tr>
         </thead>

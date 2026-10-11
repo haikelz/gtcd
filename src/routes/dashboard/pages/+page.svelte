@@ -66,7 +66,7 @@
         aria-hidden="true"
         class="flex justify-between px-2 pb-2 text-xs text-muted-foreground"
       >
-        <span>Page</span><span>Views</span>
+        <span>Page</span><span>Visits</span>
       </div>
       <ul
         aria-label="Pages list"

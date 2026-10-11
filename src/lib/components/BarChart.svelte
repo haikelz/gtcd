@@ -27,7 +27,7 @@
   aria-hidden="true"
 >
   <span>{label}</span>
-  <span>Visitors <span class="inline-block w-16 text-right">Share</span></span>
+  <span>Visits <span class="inline-block w-16 text-right">Share</span></span>
 </div>
 <ul class="list-none p-0 m-0" aria-label="Breakdown chart">
   {#each items as item, index (index)}
@@ -49,7 +49,7 @@
         aria-valuenow={item.count}
         aria-valuemin="0"
         aria-valuemax={maxCount}
-        aria-label="{label}: {formatCount(item.count)} visitors ({share}%)"
+        aria-label="{label}: {formatCount(item.count)} visits ({share}%)"
         class="h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <div
@@ -67,7 +67,7 @@
           onclick={() => onItemClick(item.id, label)}
           aria-label="Explore {label}: {formatCount(
             item.count
-          )} visitors ({share}%)"
+          )} visits ({share}%)"
         >
           {@render row()}
         </button>
