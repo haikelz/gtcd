@@ -3,19 +3,23 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
-  import DateRangePicker from "$lib/components/DateRangePicker.svelte";
-  import SEO from "$lib/components/SEO.svelte";
+  import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import ErrorAlert from "$lib/components/ErrorAlert.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
-  import { Smartphone, TriangleAlert } from "@lucide/svelte";
+  import SEO from "$lib/components/SEO.svelte";
+  import {
+    Frame,
+    FrameDescription,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { Smartphone } from "@lucide/svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
-  let datePreset = $derived(data.range || "7d");
-
-  function handleDateChange(preset: string) {
-    datePreset = preset;
-    goto(resolve(`/dashboard/devices?range=${preset}`), { replaceState: true });
-  }
 
   function reportHref(offset: number): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
@@ -35,70 +39,54 @@
 </script>
 
 <SEO
-  title="Devices — gtcd"
   description="Screen size breakdown for your GoatCounter site."
   noindex
+  title="Devices — gtcd"
 />
 
-<header
-  class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8"
->
-  <div>
-    <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1
-      class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground"
-    >
-      Screen Sizes
-    </h1>
-    <p class="text-sm mt-1.5 text-muted-foreground">
-      Which screen sizes your visitors use.
-    </p>
-  </div>
-  <DateRangePicker value={datePreset} onchange={handleDateChange} />
-</header>
+<PageHeader
+  description="Which screen sizes your visitors use."
+  title="Screen Sizes"
+/>
+
+<DashboardToolbar showFilter />
 
 {#if data.error}
-  <div role="alert" class="alert alert-error">
-    <TriangleAlert class="h-5 w-5 shrink-0" />
-    <span class="text-sm font-medium">{data.error}</span>
-    <button
-      type="button"
-      class="btn btn-sm btn-outline"
-      onclick={() => location.reload()}
-    >
-      Retry
-    </button>
-  </div>
+  <ErrorAlert message={data.error} />
 {:else if data.stats?.stats && data.stats.stats.length > 0}
-  <div class="panel">
-    <div class="flex flex-wrap items-baseline justify-between gap-3 mb-6">
-      <h2 class="section-title">Screen size report</h2>
-      <span class="text-xs text-muted-foreground"
-        >{data.stats.stats.length} entries in this period</span
-      >
-    </div>
-    <BarChart
-      tone="mint"
-      data={data.stats.stats}
-      maxItems={50}
-      label="Screen size"
-      onItemClick={handleDetail}
-    />
-    <ReportPagination
-      previousHref={data.offset > 0
-        ? reportHref(Math.max(0, data.offset - 50))
-        : undefined}
-      nextHref={data.stats.more ? reportHref(data.offset + 50) : undefined}
-    />
-  </div>
+  <Frame>
+    <FrameHeader
+      class="flex-row flex-wrap items-baseline justify-between gap-3"
+    >
+      <FrameTitle>Screen size report</FrameTitle>
+      <FrameDescription class="text-xs">
+        {data.stats.stats.length} entries in this period
+      </FrameDescription>
+    </FrameHeader>
+    <FramePanel>
+      <BarChart
+        data={data.stats.stats}
+        label="Screen size"
+        maxItems={50}
+        onItemClick={handleDetail}
+        tone="chart-2"
+      />
+      <ReportPagination
+        nextHref={data.stats.more ? reportHref(data.offset + 50) : undefined}
+        previousHref={data.offset > 0
+          ? reportHref(Math.max(0, data.offset - 50))
+          : undefined}
+      />
+    </FramePanel>
+  </Frame>
 {:else}
-  <div class="panel empty-state">
-    <div class="empty-state-icon" aria-hidden="true">
-      <Smartphone class="h-6 w-6" strokeWidth={1.5} />
-    </div>
-    <p class="empty-state-title">No screen size data</p>
-    <p class="empty-state-desc">
-      No device measurements recorded for this period.
-    </p>
-  </div>
+  <Frame>
+    <FramePanel>
+      <EmptyState
+        desc="No device measurements recorded for this period."
+        icon={Smartphone}
+        title="No screen size data"
+      />
+    </FramePanel>
+  </Frame>
 {/if}

@@ -1,315 +1,288 @@
 <script lang="ts">
+  import { formatCount } from "$lib/display";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
+  import PageHeader from "$lib/components/PageHeader.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import {
+    Alert,
+    AlertDescription,
+    AlertTitle,
+  } from "$lib/components/ui/alert";
+  import { Badge } from "$lib/components/ui/badge";
+  import { Button } from "$lib/components/ui/button";
+  import {
+    Frame,
+    FrameDescription,
+    FrameFooter,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { Input } from "$lib/components/ui/input";
+  import { Label } from "$lib/components/ui/label";
+  import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
+  import {
     CircleAlert,
-    CircleCheck,
-    Clock3,
     Download,
     FileArchive,
     RefreshCw,
   } from "@lucide/svelte";
 
+  const formatOptions = [
+    {
+      description: "Individual pageviews for spreadsheets and data tools.",
+      label: "CSV",
+      value: "csv",
+    },
+    {
+      description: "Aggregate data for a portable analytics backup.",
+      label: "JSON",
+      value: "json",
+    },
+  ] as const;
+
+  const exportSteps = [
+    {
+      description:
+        "Choose CSV for individual pageviews or JSON for aggregate data.",
+      title: "Create an export",
+    },
+    {
+      description:
+        "The request runs in GoatCounter, so it does not interrupt dashboard use.",
+      title: "Wait for preparation",
+    },
+    {
+      description:
+        "The completed file is available through this protected dashboard.",
+      title: "Download securely",
+    },
+  ] as const;
+
   let { data, form } = $props();
-  const job = $derived(data.job);
+
   let format = $derived(form?.values?.format ?? "csv");
+
+  const job = $derived(data.job);
   const isReady = $derived(job?.finished_at && !job.error);
   const exportState = $derived(
     job?.error
-      ? "Failed"
+      ? "Export failed"
       : isReady
         ? "Ready to download"
-        : job
-          ? "Preparing"
-          : "No active export"
+        : "Preparing export"
   );
 </script>
 
 <SEO
-  title="Exports — gtcd"
   description="Export GoatCounter analytics data."
   noindex
+  title="Exports — gtcd"
 />
 
-<header class="mb-6">
-  <div class="max-w-2xl">
-    <p class="eyebrow mb-2">Data portability</p>
-    <h1
-      class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground"
-    >
-      Data exports
-    </h1>
-    <p class="text-sm leading-6 text-muted-foreground mt-2">
-      Package your GoatCounter analytics for your own reporting workflow.
-    </p>
-  </div>
-</header>
+<PageHeader
+  description="Package your GoatCounter analytics for your own reporting workflow."
+  title="Data exports"
+/>
 
 {#if form?.error}
-  <div class="alert alert-error mb-5" role="alert">
-    <CircleAlert class="h-5 w-5 shrink-0" />
-    <span>{form.error}</span>
-  </div>
+  <Alert class="mb-4" variant="destructive">
+    <CircleAlert />
+    <AlertTitle>Export not requested</AlertTitle>
+    <AlertDescription>{form.error}</AlertDescription>
+  </Alert>
 {/if}
 
-<div class="grid max-w-5xl gap-5">
-  <form method="POST" action="?/create" class="panel !p-0 overflow-hidden">
-    <section class="p-5 sm:p-6" aria-labelledby="export-create-heading">
-      <div class="flex items-start gap-3">
-        <span class="metric-icon shrink-0" aria-hidden="true"
-          ><FileArchive class="h-5 w-5" /></span
-        >
-        <div>
-          <p class="eyebrow mb-1">Step 1</p>
-          <h2 id="export-create-heading" class="section-title">
-            Create an export
-          </h2>
-          <p class="text-sm leading-6 text-muted-foreground mt-1">
-            GoatCounter prepares a gzip-compressed file in the background.
-          </p>
-        </div>
-      </div>
-    </section>
-    <section class="border-t border-border p-5 sm:p-6">
-      <fieldset class="mb-6">
-        <legend class="label-text font-medium">Format</legend>
-        <div class="grid gap-3 mt-3 sm:grid-cols-2">
-          <label
-            class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
+<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+  <form action="?/create" class="min-w-0" method="POST">
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="export-create-heading">Create an export</FrameTitle>
+        <FrameDescription>
+          GoatCounter prepares a gzip-compressed file in the background.
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel
+        aria-labelledby="export-create-heading"
+        class="grid gap-5"
+        role="region"
+      >
+        <fieldset class="grid gap-2">
+          <legend class="mb-2 text-sm font-medium">Format</legend>
+          <RadioGroup
+            bind:value={format}
+            class="gap-2 sm:grid-cols-2"
+            name="format"
           >
-            <input
-              class="radio radio-primary shrink-0"
-              name="format"
-              type="radio"
-              value="csv"
-              bind:group={format}
+            {#each formatOptions as option (option.value)}
+              <Label
+                class="cursor-pointer items-start gap-3 rounded-lg border border-border p-3 leading-normal font-normal has-data-checked:bg-muted/50"
+                for="export-format-{option.value}"
+              >
+                <RadioGroupItem
+                  class="mt-0.5"
+                  id="export-format-{option.value}"
+                  value={option.value}
+                />
+                <span class="grid gap-0.5">
+                  <span class="text-sm font-medium">{option.label}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {option.description}
+                  </span>
+                </span>
+              </Label>
+            {/each}
+          </RadioGroup>
+        </fieldset>
+        {#if format === "csv"}
+          <div class="grid gap-2">
+            <Label for="export-start-hit">
+              Start after hit ID
+              <span class="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              aria-describedby="csv-cursor-help"
+              id="export-start-hit"
+              inputmode="numeric"
+              min="1"
+              name="startFromHitId"
+              type="number"
+              value={form?.values?.startFromHitId ?? ""}
             />
-            <span
-              ><span class="block text-sm font-medium">CSV</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Individual pageviews for spreadsheets and data tools.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="radio radio-primary shrink-0"
-              name="format"
-              type="radio"
-              value="json"
-              bind:group={format}
+            <p class="text-xs text-muted-foreground" id="csv-cursor-help">
+              Paste the last hit ID from an earlier CSV export to download only
+              newer pageviews.
+            </p>
+          </div>
+        {:else}
+          <div class="grid gap-2">
+            <Label for="export-start-day">
+              Start date
+              <span class="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              aria-describedby="json-date-help"
+              id="export-start-day"
+              name="startFromDay"
+              type="date"
+              value={form?.values?.startFromDay ?? ""}
             />
-            <span
-              ><span class="block text-sm font-medium">JSON</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Aggregate data for a portable analytics backup.</span
-              ></span
-            >
-          </label>
-        </div>
-      </fieldset>
-      {#if format === "csv"}
-        <label class="form-control">
-          <span class="label-text font-medium"
-            >Start after hit ID <span class="font-normal text-muted-foreground"
-              >(optional)</span
-            ></span
-          >
-          <input
-            class="input input-bordered w-full mt-3"
-            name="startFromHitId"
-            type="number"
-            min="1"
-            inputmode="numeric"
-            value={form?.values?.startFromHitId ?? ""}
-            aria-describedby="csv-cursor-help"
-          />
-          <span
-            id="csv-cursor-help"
-            class="text-sm leading-6 text-muted-foreground"
-            >Paste the last hit ID from an earlier CSV export to download only
-            newer pageviews.</span
-          >
-        </label>
-      {:else}
-        <label class="form-control">
-          <span class="label-text font-medium"
-            >Start date <span class="font-normal text-muted-foreground"
-              >(optional)</span
-            ></span
-          >
-          <input
-            class="input input-bordered w-full mt-3"
-            name="startFromDay"
-            type="date"
-            value={form?.values?.startFromDay ?? ""}
-            aria-describedby="json-date-help"
-          />
-          <span
-            id="json-date-help"
-            class="text-sm leading-6 text-muted-foreground"
-            >Leave blank to include all aggregate data, or choose a day to
-            export newer data only.</span
-          >
-        </label>
-      {/if}
-    </section>
-    <footer
-      class="flex flex-col gap-5 border-t border-border p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6"
-    >
-      <div class="flex max-w-2xl gap-3">
-        <Clock3
-          class="h-5 w-5 shrink-0 text-muted-foreground"
-          aria-hidden="true"
-        />
-        <p class="text-sm leading-6 text-muted-foreground">
-          GoatCounter permits one export request per hour. Completed files
-          remain available upstream for 24 hours.
+            <p class="text-xs text-muted-foreground" id="json-date-help">
+              Leave blank to include all aggregate data, or choose a day to
+              export newer data only.
+            </p>
+          </div>
+        {/if}
+      </FramePanel>
+      <FrameFooter
+        class="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <p class="text-xs text-muted-foreground">
+          One export request per hour. Completed files stay available for 24
+          hours.
         </p>
-      </div>
-      <button class="btn btn-primary shrink-0" type="submit"
-        ><FileArchive class="h-4 w-4" /> Create export</button
-      >
-    </footer>
+        <Button class="shrink-0 self-end sm:self-auto" type="submit">
+          <FileArchive />
+          Create export
+        </Button>
+      </FrameFooter>
+    </Frame>
   </form>
-
-  <aside>
+  <Frame aria-live={job ? "polite" : undefined}>
     {#if job}
-      <section
-        class="panel p-5 sm:p-6"
-        aria-live="polite"
+      <FrameHeader class="flex-row items-center justify-between gap-3">
+        <FrameTitle id="export-status-heading">{exportState}</FrameTitle>
+        <Badge class="uppercase" variant="outline">{job.format}</Badge>
+      </FrameHeader>
+      <FramePanel
         aria-labelledby="export-status-heading"
+        class="grid gap-4"
+        role="region"
       >
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex items-start gap-3">
-            <span class="metric-icon shrink-0" aria-hidden="true">
-              {#if job.error}
-                <CircleAlert class="h-5 w-5 text-error" />
-              {:else if isReady}
-                <CircleCheck class="h-5 w-5 text-success" />
-              {:else}
-                <RefreshCw class="h-5 w-5 animate-spin" />
-              {/if}
-            </span>
-            <div>
-              <p class="eyebrow mb-1">Current request</p>
-              <h2 id="export-status-heading" class="section-title">
-                {exportState}
-              </h2>
-              <p class="text-sm leading-6 text-muted-foreground mt-1">
-                Export #{job.id} is being prepared as a {job.format.toUpperCase()}
-                file.
-              </p>
-            </div>
-          </div>
-          <span class="badge badge-outline uppercase shrink-0"
-            >{job.format}</span
-          >
-        </div>
+        <p class="text-sm text-muted-foreground">
+          Export #{job.id}, {job.format.toUpperCase()} file.
+        </p>
         {#if job.error}
-          <div class="alert alert-error mt-6">
-            <CircleAlert class="h-5 w-5 shrink-0" />
-            {job.error}
-          </div>
+          <Alert variant="destructive">
+            <CircleAlert />
+            <AlertTitle>GoatCounter reported an error</AlertTitle>
+            <AlertDescription>{job.error}</AlertDescription>
+          </Alert>
         {:else if isReady}
-          <dl
-            class="grid grid-cols-2 gap-4 border-y border-border my-6 py-5 text-sm"
-          >
-            <div class="border-r border-border pr-4">
-              <dt class="text-muted-foreground">Rows included</dt>
-              <dd class="metric-value text-2xl mt-1">
-                {job.num_rows?.toLocaleString() ?? "—"}
+          <dl class="grid grid-cols-2 gap-4">
+            <div class="grid gap-1">
+              <dt class="text-xs text-muted-foreground">Rows included</dt>
+              <dd class="text-xl font-semibold tabular-nums">
+                {job.num_rows == null ? "—" : formatCount(job.num_rows)}
               </dd>
             </div>
-            <div>
-              <dt class="text-muted-foreground">File size</dt>
-              <dd class="metric-value text-2xl mt-1">{job.size ?? "—"}</dd>
+            <div class="grid gap-1">
+              <dt class="text-xs text-muted-foreground">File size</dt>
+              <dd class="text-xl font-semibold tabular-nums">
+                {job.size ?? "—"}
+              </dd>
             </div>
           </dl>
-          <a
-            class="btn btn-primary"
+        {:else}
+          <Alert role="status" variant="info">
+            <RefreshCw class="animate-spin motion-reduce:animate-none" />
+            <AlertTitle>GoatCounter is preparing this export</AlertTitle>
+            <AlertDescription>
+              Refresh the status when the file is ready to download.
+            </AlertDescription>
+          </Alert>
+        {/if}
+      </FramePanel>
+      {#if isReady}
+        <FrameFooter class="flex-row justify-end gap-2">
+          <Button
             href={resolve(
               `/api/admin/exports/${job.id}?site=${page.data.site.id}`
             )}
-            ><Download class="h-4 w-4" /> Download {job.format.toUpperCase()}</a
           >
-        {:else}
-          <div class="border-y border-border my-6 py-5 flex gap-3">
-            <RefreshCw
-              class="h-5 w-5 shrink-0 text-primary animate-spin"
-              aria-hidden="true"
-            />
-            <div>
-              <p class="text-sm font-medium">
-                GoatCounter is preparing this export
-              </p>
-              <p class="text-sm leading-6 text-muted-foreground mt-1">
-                Refresh the status when the file is ready to download.
-              </p>
-            </div>
-          </div>
-          <a
-            class="btn btn-outline"
+            <Download />
+            Download {job.format.toUpperCase()}
+          </Button>
+        </FrameFooter>
+      {:else if !job.error}
+        <FrameFooter class="flex-row justify-end gap-2">
+          <Button
             href={resolve(
               `/dashboard/exports?site=${page.data.site.id}&export=${job.id}`
-            )}>Refresh status</a
+            )}
+            variant="outline"
           >
-        {/if}
-      </section>
+            <RefreshCw />
+            Refresh status
+          </Button>
+        </FrameFooter>
+      {/if}
     {:else}
-      <section class="panel p-5 sm:p-6" aria-labelledby="export-status-heading">
-        <div class="flex items-start gap-3">
-          <span class="metric-icon shrink-0" aria-hidden="true"
-            ><Download class="h-5 w-5" /></span
-          >
-          <div>
-            <p class="eyebrow mb-1">Step 2</p>
-            <h2 id="export-status-heading" class="section-title">
-              Your export status
-            </h2>
-            <p class="text-sm leading-6 text-muted-foreground mt-1">
-              When an export is requested, its preparation and download action
-              appear here.
-            </p>
-          </div>
-        </div>
-        <ol class="list-none m-0 mt-6 p-0 border-l border-border space-y-5">
-          <li class="relative pl-6">
-            <span
-              class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-primary"
-              aria-hidden="true"
-            ></span>
-            <p class="text-sm font-medium">Create an export</p>
-            <p class="text-sm leading-6 text-muted-foreground mt-1">
-              Choose CSV for individual pageviews or JSON for aggregate data.
-            </p>
-          </li>
-          <li class="relative pl-6">
-            <span
-              class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-base-300"
-              aria-hidden="true"
-            ></span>
-            <p class="text-sm font-medium">Wait for preparation</p>
-            <p class="text-sm leading-6 text-muted-foreground mt-1">
-              The request runs in GoatCounter, so it does not interrupt
-              dashboard use.
-            </p>
-          </li>
-          <li class="relative pl-6">
-            <span
-              class="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full bg-base-300"
-              aria-hidden="true"
-            ></span>
-            <p class="text-sm font-medium">Download securely</p>
-            <p class="text-sm leading-6 text-muted-foreground mt-1">
-              The completed file is available through this protected dashboard.
-            </p>
-          </li>
+      <FrameHeader>
+        <FrameTitle id="export-status-heading">Export status</FrameTitle>
+        <FrameDescription>
+          Requested exports show their progress and download here.
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel aria-labelledby="export-status-heading" role="region">
+        <ol class="grid gap-4">
+          {#each exportSteps as step, index (step.title)}
+            <li class="flex gap-3">
+              <span
+                aria-hidden="true"
+                class="grid size-6 shrink-0 place-items-center rounded-full border border-border bg-muted text-xs font-medium tabular-nums text-muted-foreground"
+              >
+                {index + 1}
+              </span>
+              <div class="grid gap-0.5">
+                <p class="text-sm font-medium">{step.title}</p>
+                <p class="text-xs text-muted-foreground">{step.description}</p>
+              </div>
+            </li>
+          {/each}
         </ol>
-      </section>
+      </FramePanel>
     {/if}
-  </aside>
+  </Frame>
 </div>

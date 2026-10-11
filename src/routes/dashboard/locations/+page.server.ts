@@ -1,19 +1,25 @@
+import {
+  getFilterFromUrl,
+  resolveFilter,
+} from "$lib/server/goatcounter/filter.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import type { StatsPage } from "$lib/server/goatcounter/types.js";
 import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 
 export async function load({ url, parent }) {
-  const { range, start, end } = getDateRangeFromUrl(url);
+  const { preferences, vhost } = await parent();
+  const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
-  const { vhost } = await parent();
 
   try {
+    const includePaths = await resolveFilter(getFilterFromUrl(url), { vhost });
     const result = await stats.getStats(
       "locations" as StatsPage,
       start,
       end,
       50,
       offset,
+      includePaths,
       { vhost }
     );
     return { range, offset, stats: result };

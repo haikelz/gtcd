@@ -1,4 +1,8 @@
 import { error } from "@sveltejs/kit";
+import {
+  getFilterFromUrl,
+  resolveFilter,
+} from "$lib/server/goatcounter/filter.js";
 import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 import {
   getStatsDetail,
@@ -50,11 +54,12 @@ export async function load({ params, url, parent }) {
   }
 
   const report = REPORTS[params.page];
-  const { range, start, end } = getDateRangeFromUrl(url);
+  const { preferences, vhost } = await parent();
+  const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
-  const { vhost } = await parent();
 
   try {
+    const includePaths = await resolveFilter(getFilterFromUrl(url), { vhost });
     const detail = await getStatsDetail(
       params.page,
       params.id,
@@ -62,6 +67,7 @@ export async function load({ params, url, parent }) {
       end,
       50,
       offset,
+      includePaths,
       { vhost }
     );
 

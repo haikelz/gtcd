@@ -1,23 +1,25 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  /* eslint-disable svelte/no-navigation-without-resolve -- the "Go to path"
+     href is an external live-site URL, not an internal route. */
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { SvelteURLSearchParams } from "svelte/reactivity";
   import BarChart from "$lib/components/BarChart.svelte";
-  import DateRangePicker from "$lib/components/DateRangePicker.svelte";
-  import { Link2, TriangleAlert } from "@lucide/svelte";
-  import SEO from "$lib/components/SEO.svelte";
+  import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import ErrorAlert from "$lib/components/ErrorAlert.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
+  import SEO from "$lib/components/SEO.svelte";
+  import {
+    Frame,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { ArrowLeft, Link2 } from "@lucide/svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
-  let datePreset = $derived(data.range || "7d");
-
-  function handleDateChange(preset: string) {
-    datePreset = preset;
-    goto(resolve(`/dashboard/pages/${data.pathId}?range=${preset}`), {
-      replaceState: true,
-    });
-  }
 
   function refsHref(offset: number): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
@@ -31,68 +33,82 @@
     data.hits?.hits?.find((hit) => hit.path_id === data.pathId)?.path ||
       `Page ${data.pathId}`
   );
+
+  const currentHit = $derived(
+    data.hits?.hits?.find((hit) => hit.path_id === data.pathId)
+  );
+
+  const goHref = $derived.by(() => {
+    const linkDomain = data.site?.linkDomain;
+    if (!linkDomain || currentHit?.event) return null;
+    const base = /^https?:\/\//i.test(linkDomain)
+      ? linkDomain
+      : `http://${linkDomain}`;
+    const path = pageTitle.startsWith("/") ? pageTitle : `/${pageTitle}`;
+    return `${base.replace(/\/+$/, "")}${path}`;
+  });
 </script>
 
 <SEO
-  title={pageTitle}
   description="Referrer breakdown for {pageTitle}."
   noindex
+  title={pageTitle}
 />
 
-<header
-  class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
+<PageHeader
+  description="Referrers driving traffic to this page."
+  title={pageTitle}
+  titleClass="font-mono"
 >
-  <div>
+  {#snippet eyebrow()}
     <a
+      class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       href={resolve("/dashboard/pages")}
-      class="text-sm font-medium mb-2 inline-flex items-center gap-1 text-primary hover:underline"
     >
-      <span aria-hidden="true">←</span> Back to Pages
+      <ArrowLeft aria-hidden="true" class="size-4" /> Back to Pages
     </a>
-    <p class="eyebrow mb-1.5">Page Detail</p>
-    <h1
-      class="text-2xl sm:text-3xl font-extrabold tracking-tight font-mono text-foreground"
-    >
-      {pageTitle}
-    </h1>
-    <p class="text-sm mt-1.5 text-muted-foreground">
-      Referrers driving traffic to this page.
-    </p>
-  </div>
-  <DateRangePicker value={datePreset} onchange={handleDateChange} />
-</header>
+  {/snippet}
+  {#snippet actions()}
+    {#if goHref}
+      <a
+        class="inline-block max-w-full truncate text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        href={goHref}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        Go to {goHref.replace(/^https?:\/\//i, "")}
+      </a>
+    {/if}
+  {/snippet}
+</PageHeader>
+
+<DashboardToolbar showFilter />
 
 {#if data.error}
-  <div role="alert" class="alert alert-error animate-fade-in">
-    <TriangleAlert class="h-5 w-5 shrink-0" />
-    <span class="text-sm font-medium">{data.error}</span>
-    <button
-      type="button"
-      class="btn btn-sm btn-outline"
-      onclick={() => location.reload()}
-    >
-      Retry
-    </button>
-  </div>
+  <ErrorAlert message={data.error} />
 {:else if data.refs?.refs && data.refs.refs.length > 0}
-  <div class="panel animate-fade-in">
-    <h2 class="section-title mb-4">Referrers</h2>
-    <BarChart data={data.refs.refs} maxItems={30} label="Referrer" />
-    <ReportPagination
-      previousHref={data.offset > 0
-        ? refsHref(Math.max(0, data.offset - 30))
-        : undefined}
-      nextHref={data.refs.more ? refsHref(data.offset + 30) : undefined}
-    />
-  </div>
+  <Frame class="animate-fade-in">
+    <FrameHeader>
+      <FrameTitle>Referrers</FrameTitle>
+    </FrameHeader>
+    <FramePanel>
+      <BarChart data={data.refs.refs} label="Referrer" maxItems={30} />
+      <ReportPagination
+        nextHref={data.refs.more ? refsHref(data.offset + 30) : undefined}
+        previousHref={data.offset > 0
+          ? refsHref(Math.max(0, data.offset - 30))
+          : undefined}
+      />
+    </FramePanel>
+  </Frame>
 {:else}
-  <div class="panel empty-state animate-fade-in">
-    <div class="empty-state-icon" aria-hidden="true">
-      <Link2 class="h-6 w-6" strokeWidth={1.5} />
-    </div>
-    <p class="empty-state-title">No referrers</p>
-    <p class="empty-state-desc">
-      No incoming referrers recorded for this page in this time window.
-    </p>
-  </div>
+  <Frame class="animate-fade-in">
+    <FramePanel>
+      <EmptyState
+        desc="No incoming referrers recorded for this page in this time window."
+        icon={Link2}
+        title="No referrers"
+      />
+    </FramePanel>
+  </Frame>
 {/if}

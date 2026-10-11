@@ -1,288 +1,431 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import AreaChart from "$lib/components/AreaChart.svelte";
   import BarChart from "$lib/components/BarChart.svelte";
-  import DateRangePicker from "$lib/components/DateRangePicker.svelte";
+  import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import DonutChart from "$lib/components/DonutChart.svelte";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import PageRow from "$lib/components/PageRow.svelte";
+  import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
+  import ErrorAlert from "$lib/components/ErrorAlert.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
+  import {
+    Alert,
+    AlertAction,
+    AlertDescription,
+    AlertTitle,
+  } from "$lib/components/ui/alert";
+  import { Button } from "$lib/components/ui/button";
+  import {
+    Frame,
+    FrameDescription,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { displayPreferences, formatCount } from "$lib/display";
+  import {
+    formatRangeLabel,
+    groupForRange,
+    previousRange,
+    rangeFromParams,
+    statsScaleMax,
+  } from "$lib/period.js";
+  import { wallClockNow } from "$lib/preferences";
   import {
     ArrowUpRight,
     ChartNoAxesCombined,
     FileText,
     Globe,
     Languages,
+    Info,
     MapPin,
     Monitor,
+    SlidersHorizontal,
     Smartphone,
-    TriangleAlert,
   } from "@lucide/svelte";
 
   let { data } = $props();
-  let datePreset = $derived(data.range || "7d");
 
-  function handleDateChange(preset: string) {
-    datePreset = preset;
-    goto(resolve(`/dashboard?range=${preset}`), { replaceState: true });
-  }
+  const preferences = $derived(displayPreferences());
+  const range = $derived(
+    rangeFromParams(page.url.searchParams, wallClockNow(preferences.timezone))
+  );
+  const groups = $derived(
+    groupForRange(range.start, range.end, page.url.searchParams.get("group"))
+  );
+  const sharedScaleMax = $derived(
+    page.url.searchParams.get("scale") === "shared" && data.hits?.hits
+      ? statsScaleMax(data.hits.hits.slice(0, 6), groups.group)
+      : undefined
+  );
+  const prev = $derived(previousRange(range.start, range.end));
+
+  const linkDomain = $derived(data.site?.linkDomain ?? "");
+  const customizeHref = $derived(
+    page.url.searchParams.get("site")
+      ? `${resolve("/dashboard/customize")}?site=${page.url.searchParams.get("site")}`
+      : resolve("/dashboard/customize")
+  );
+  const receivedData = $derived(data.site?.receivedData !== false);
+  const snippetEndpoint = $derived(
+    data.vhost ? `https://${data.vhost}` : page.url.origin
+  );
+  const trafficDescription = $derived(
+    {
+      hour: "Hourly activity across your website",
+      day: "Daily activity across your website",
+      week: "Weekly activity across your website",
+      month: "Monthly activity across your website",
+    }[groups.group]
+  );
+  const prevPeriodLabel = $derived(
+    formatRangeLabel(prev.start, prev.end, preferences.dateFormat)
+  );
+
+  const visibleWidgets = $derived(
+    (data.dashboardLayout?.widgets ?? [])
+      .filter((widget) => !widget.hidden)
+      .map((widget) => widget.id)
+  );
+
+  type TechnicalReport = (typeof technicalReports)[number];
 
   const technicalReports = $derived([
     {
+      id: "systems" as const,
       title: "Operating systems",
       label: "System",
       href: "/dashboard/systems" as const,
       stats: data.systems?.stats,
       icon: Monitor,
-      tone: "lavender" as const,
+      tone: "chart-5" as const,
     },
     {
+      id: "languages" as const,
       title: "Languages",
       label: "Language",
       href: "/dashboard/languages" as const,
       stats: data.languages?.stats,
       icon: Languages,
-      tone: "coral" as const,
+      tone: "chart-4" as const,
     },
     {
+      id: "sizes" as const,
       title: "Screen sizes",
       label: "Screen size",
       href: "/dashboard/devices" as const,
       stats: data.sizes?.stats,
       icon: Smartphone,
-      tone: "mint" as const,
+      tone: "chart-2" as const,
     },
   ]);
 </script>
 
 <SEO
-  title="Dashboard overview"
   description="Explore your website traffic, most-viewed pages, and audience breakdowns."
   noindex
+  title="Dashboard overview"
 />
 
-<header
-  class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5 mb-8"
+<PageHeader
+  description="A closer look at the people behind your pageviews."
+  title="Traffic overview"
 >
-  <div>
-    <p class="text-sm text-muted-foreground mb-2">Website analytics</p>
-    <h1 class="tracking-tight text-foreground">Traffic overview</h1>
-    <p class="text-sm text-muted-foreground mt-2">
-      A closer look at the people behind your pageviews.
-    </p>
-  </div>
-  <DateRangePicker value={datePreset} onchange={handleDateChange} />
-</header>
+  {#snippet actions()}
+    <Button href={customizeHref} variant="outline">
+      <SlidersHorizontal />
+      Customize
+    </Button>
+  {/snippet}
+</PageHeader>
 
-{#if data.error}
-  <div role="alert" class="alert alert-error mb-6">
-    <TriangleAlert class="h-5 w-5 shrink-0" />
-    <div>
-      <p class="font-medium">We couldn't load your analytics</p>
-      <p class="text-sm mt-1">{data.error}</p>
-    </div>
-    <button
-      type="button"
-      class="btn btn-sm btn-outline"
-      onclick={() => location.reload()}>Retry</button
-    >
-  </div>
+<DashboardToolbar showFilter showGroup />
+
+{#if !receivedData}
+  <Alert class="mb-4" role="status" variant="info">
+    <Info />
+    <AlertTitle>No data received yet</AlertTitle>
+    <AlertDescription>
+      <p>
+        gtcd is connected, but GoatCounter hasn't received any hits yet. Add the
+        tracking snippet anywhere on your page:
+      </p>
+      <pre
+        class="w-full max-w-full overflow-x-auto rounded-md border border-border bg-muted p-2.5 font-mono text-xs text-foreground"><code
+          >&lt;script data-goatcounter="{snippetEndpoint}/count"
+        async src="//gc.zgo.at/count.js"&gt;&lt;/script&gt;</code
+        ></pre>
+      <p>
+        Check if your adblocker is blocking GoatCounter if you don't see any
+        pageviews. This message disappears once data arrives.
+      </p>
+    </AlertDescription>
+    <AlertAction>
+      <Button href={resolve("/dashboard/settings")} size="sm" variant="outline">
+        Site settings
+      </Button>
+    </AlertAction>
+  </Alert>
 {/if}
 
-<section class="metric-grid mb-6" aria-label="Key performance indicators">
-  <StatCard
-    label="Pageviews"
-    value={data.total?.total?.toLocaleString() ?? "—"}
-    subtext="In the selected period"
-    icon={ChartNoAxesCombined}
-    featured
+{#if data.error}
+  <ErrorAlert
+    class="mb-4"
+    message={data.error}
+    title="We couldn't load your analytics"
   />
-  <StatCard
-    label="Tracked pages"
-    value={data.hits?.hits?.length?.toLocaleString() ?? "—"}
-    subtext="Paths in this report"
-    icon={FileText}
-  />
-  <StatCard
-    label="Top browser"
-    class="metric-text"
-    value={data.browsers?.stats?.[0]?.name?.trim() || "—"}
-    subtext={data.browsers?.stats?.[0]
-      ? `${data.browsers.stats[0].count.toLocaleString()} visitors`
-      : "No browser data"}
-    icon={Globe}
-    tone="mint"
-  />
-  <StatCard
-    label="Top country"
-    class="metric-text"
-    value={data.locations?.stats?.[0]?.name?.trim() || "—"}
-    subtext={data.locations?.stats?.[0]
-      ? `${data.locations.stats[0].count.toLocaleString()} visitors`
-      : "No location data"}
-    icon={MapPin}
-    tone="amber"
-  />
-</section>
+{/if}
 
-<div class="traffic-grid mb-6">
-  <section class="chart-container" aria-labelledby="heading-traffic">
-    <div class="panel-heading">
-      <div>
-        <h2 id="heading-traffic" class="section-title">Traffic over time</h2>
-        <p class="text-xs text-muted-foreground mt-1">
-          Daily activity across your website
-        </p>
-      </div>
-      <span class="flex items-center gap-2 text-xs text-muted-foreground"
-        ><span class="w-2 h-2 rounded-full bg-chart-1" aria-hidden="true"
-        ></span>Pageviews</span
-      >
-    </div>
-    <AreaChart data={data.total?.stats ?? []} height={280} />
-  </section>
-  <section class="panel" aria-labelledby="heading-audience">
-    <div class="panel-heading">
-      <div>
-        <h2 id="heading-audience" class="section-title">Browser mix</h2>
-        <p class="text-xs text-muted-foreground mt-1">
-          How your audience gets here
-        </p>
-      </div>
-      <a
-        href={resolve("/dashboard/browsers")}
-        class="btn btn-ghost btn-square btn-sm tooltip tooltip-left"
-        aria-label="View browser report"
-        data-tip="View browser report"><ArrowUpRight class="h-4 w-4" /></a
-      >
-    </div>
-    <DonutChart data={data.browsers?.stats ?? []} />
-  </section>
+<div class="grid gap-4 xl:grid-flow-dense xl:grid-cols-12">
+  {#each visibleWidgets as widgetId (widgetId)}
+    {#if widgetId === "kpis"}
+      {@render kpiWidget()}
+    {:else if widgetId === "traffic"}
+      {@render trafficWidget()}
+    {:else if widgetId === "browsers"}
+      {@render browsersWidget()}
+    {:else if widgetId === "pages"}
+      {@render pagesWidget()}
+    {:else if widgetId === "locations"}
+      {@render locationsWidget()}
+    {:else}
+      {@const report = technicalReports.find((entry) => entry.id === widgetId)}
+      {#if report}
+        {@render technicalWidget(report)}
+      {/if}
+    {/if}
+  {/each}
 </div>
 
-<div class="content-grid mb-8">
-  <section class="panel" aria-labelledby="heading-pages">
-    <div class="panel-heading">
-      <div>
-        <h2 id="heading-pages" class="section-title">Your most-read pages</h2>
-        <p class="text-xs text-muted-foreground mt-1">
+{#snippet kpiWidget()}
+  <section
+    aria-label="Key performance indicators"
+    class="grid grid-cols-2 gap-4 xl:col-span-12 xl:grid-cols-4"
+  >
+    <StatCard
+      icon={ChartNoAxesCombined}
+      label="Pageviews"
+      subtext={data.total?.total_events
+        ? `Includes ${formatCount(data.total.total_events)} events`
+        : "In the selected period"}
+      value={data.total ? formatCount(data.total.total) : "—"}
+    />
+    <StatCard
+      icon={FileText}
+      label="Tracked pages"
+      subtext="Paths in this report"
+      value={data.hits ? formatCount(data.hits.hits.length) : "—"}
+    />
+    <StatCard
+      compact
+      icon={Globe}
+      label="Top browser"
+      subtext={data.browsers?.stats?.[0]
+        ? `${formatCount(data.browsers.stats[0].count)} visitors`
+        : "No browser data"}
+      value={data.browsers?.stats?.[0]?.name?.trim() || "—"}
+    />
+    <StatCard
+      compact
+      icon={MapPin}
+      label="Top country"
+      subtext={data.locations?.stats?.[0]
+        ? `${formatCount(data.locations.stats[0].count)} visitors`
+        : "No location data"}
+      value={data.locations?.stats?.[0]?.name?.trim() || "—"}
+    />
+  </section>
+{/snippet}
+
+{#snippet trafficWidget()}
+  <Frame aria-labelledby="heading-traffic" class="xl:col-span-8" role="region">
+    <FrameHeader class="flex-row items-center justify-between gap-3">
+      <div class="min-w-0">
+        <FrameTitle id="heading-traffic">Traffic over time</FrameTitle>
+        <FrameDescription class="text-xs">{trafficDescription}</FrameDescription
+        >
+      </div>
+      <span
+        class="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"
+      >
+        <span aria-hidden="true" class="size-2 rounded-full bg-chart-1"></span>
+        Pageviews
+      </span>
+    </FrameHeader>
+    <FramePanel>
+      <AreaChart
+        data={data.total?.stats ?? []}
+        group={groups.group}
+        height={280}
+      />
+    </FramePanel>
+  </Frame>
+{/snippet}
+
+{#snippet browsersWidget()}
+  <Frame aria-labelledby="heading-audience" class="xl:col-span-4" role="region">
+    <FrameHeader class="flex-row items-center justify-between gap-3">
+      <div class="min-w-0">
+        <FrameTitle id="heading-audience">Browser mix</FrameTitle>
+        <FrameDescription class="text-xs">
+          How your audience gets here
+        </FrameDescription>
+      </div>
+      <Button
+        aria-label="View browser report"
+        href={resolve("/dashboard/browsers")}
+        size="icon-sm"
+        title="View browser report"
+        variant="ghost"
+      >
+        <ArrowUpRight />
+      </Button>
+    </FrameHeader>
+    <FramePanel>
+      <DonutChart data={data.browsers?.stats ?? []} />
+    </FramePanel>
+  </Frame>
+{/snippet}
+
+{#snippet pagesWidget()}
+  <Frame aria-labelledby="heading-pages" class="xl:col-span-8" role="region">
+    <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <FrameTitle id="heading-pages">Your most-read pages</FrameTitle>
+        <FrameDescription class="text-xs">
           The content bringing people in
-        </p>
+        </FrameDescription>
       </div>
-      <a href={resolve("/dashboard/pages")} class="section-link"
-        >All pages <ArrowUpRight class="h-4 w-4" /></a
-      >
-    </div>
-    {#if data.hits?.hits?.length}
-      <div
-        class="flex justify-between text-xs text-muted-foreground pb-3 border-b border-border"
-        aria-hidden="true"
-      >
-        <span>Page</span><span>Pageviews</span>
+      <div class="flex items-center gap-1">
+        <ScaleToggle />
+        <Button href={resolve("/dashboard/pages")} size="sm" variant="ghost">
+          All pages
+          <ArrowUpRight />
+        </Button>
       </div>
-      <ul class="list-none p-0 m-0" aria-label="Top pages">
-        {#each data.hits.hits.slice(0, 6) as hit, i (hit.path_id)}
-          <li class="border-b border-border last:border-0">
-            <a
+    </FrameHeader>
+    <FramePanel>
+      {#if data.hits?.hits?.length}
+        <div
+          aria-hidden="true"
+          class="flex justify-between border-b border-border px-2 pb-2 text-xs text-muted-foreground"
+        >
+          <span>Page</span><span>Pageviews</span>
+        </div>
+        <ul aria-label="Top pages" class="m-0 list-none p-0">
+          {#each data.hits.hits.slice(0, 6) as hit, i (hit.path_id)}
+            <PageRow
+              diff={data.diffs?.[hit.path_id]}
+              group={groups.group}
+              {hit}
               href={resolve("/dashboard/pages/[id]", {
                 id: String(hit.path_id),
               })}
-              class="list-row no-underline group"
-              aria-label="{hit.path}, {hit.count.toLocaleString()} views"
-            >
-              <span class="flex items-center gap-3 min-w-0">
-                <span class="list-index" aria-hidden="true"
-                  >{String(i + 1).padStart(2, "0")}</span
-                >
-                <span
-                  class="list-name font-mono group-hover:text-primary"
-                  title={hit.path}>{hit.path}</span
-                >
-              </span>
-              <span class="list-count">{hit.count.toLocaleString()}</span>
-            </a>
-          </li>
-        {/each}
-      </ul>
-    {:else}
-      <div class="empty-state">
-        <p class="empty-state-title">No page data</p>
-        <p class="empty-state-desc">
-          Try another date range to explore your traffic.
+              {linkDomain}
+              rank={i + 1}
+              scaleMax={sharedScaleMax}
+            />
+          {/each}
+        </ul>
+        <p class="mt-3 px-2 text-xs text-muted-foreground">
+          Change vs. previous period: {prevPeriodLabel}.
         </p>
-      </div>
-    {/if}
-  </section>
-  <section class="panel" aria-labelledby="heading-locations">
-    <div class="panel-heading">
-      <div>
-        <h2 id="heading-locations" class="section-title">Where visitors are</h2>
-        <p class="text-xs text-muted-foreground mt-1">
-          Your audience, by country
-        </p>
-      </div>
-      <a
-        href={resolve("/dashboard/locations")}
-        class="btn btn-ghost btn-square btn-sm tooltip tooltip-left"
-        aria-label="View locations report"
-        data-tip="View locations report"><ArrowUpRight class="h-4 w-4" /></a
-      >
-    </div>
-    {#if data.locations?.stats?.length}
-      <BarChart
-        data={data.locations.stats}
-        maxItems={5}
-        label="Country"
-        tone="mint"
-      />
-    {:else}
-      <div class="empty-state">
-        <p class="empty-state-title">No location data</p>
-        <p class="empty-state-desc">
-          Try another date range to explore your audience.
-        </p>
-      </div>
-    {/if}
-  </section>
-</div>
+      {:else}
+        <EmptyState
+          desc="Try another date range or filter to explore your traffic."
+          icon={FileText}
+          title="No page data"
+        />
+      {/if}
+    </FramePanel>
+  </Frame>
+{/snippet}
 
-<div class="flex items-center justify-between gap-4 mb-4">
-  <h2 class="text-lg font-medium">A little more about your audience</h2>
-  <span class="hidden sm:block text-xs text-muted-foreground"
-    >Devices & preferences</span
+{#snippet locationsWidget()}
+  <Frame
+    aria-labelledby="heading-locations"
+    class="xl:col-span-4"
+    role="region"
   >
-</div>
-<section class="technical-grid" aria-label="Technical audience reports">
-  {#each technicalReports as report (report.href)}
-    <div class="panel">
-      <div class="panel-heading">
-        <div class="flex items-center gap-2">
-          <report.icon class="h-4 w-4 text-muted-foreground" />
-          <h3 class="section-title">{report.title}</h3>
-        </div>
-        <a
-          href={resolve(report.href)}
-          class="btn btn-ghost btn-square btn-sm tooltip tooltip-left"
-          aria-label="View {report.title.toLowerCase()} report"
-          data-tip="View {report.title.toLowerCase()} report"
-          ><ArrowUpRight class="h-4 w-4" /></a
-        >
+    <FrameHeader class="flex-row items-center justify-between gap-3">
+      <div class="min-w-0">
+        <FrameTitle id="heading-locations">Where visitors are</FrameTitle>
+        <FrameDescription class="text-xs">
+          Your audience, by country
+        </FrameDescription>
       </div>
+      <Button
+        aria-label="View locations report"
+        href={resolve("/dashboard/locations")}
+        size="icon-sm"
+        title="View locations report"
+        variant="ghost"
+      >
+        <ArrowUpRight />
+      </Button>
+    </FrameHeader>
+    <FramePanel>
+      {#if data.locations?.stats?.length}
+        <BarChart
+          data={data.locations.stats}
+          label="Country"
+          maxItems={5}
+          tone="chart-2"
+        />
+      {:else}
+        <EmptyState
+          desc="Try another date range to explore your audience."
+          icon={MapPin}
+          title="No location data"
+        />
+      {/if}
+    </FramePanel>
+  </Frame>
+{/snippet}
+
+{#snippet technicalWidget(report: TechnicalReport)}
+  <Frame
+    aria-labelledby="heading-{report.id}"
+    class="xl:col-span-4"
+    role="region"
+  >
+    <FrameHeader class="flex-row items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <report.icon
+          aria-hidden="true"
+          class="size-4 shrink-0 text-muted-foreground"
+        />
+        <FrameTitle id="heading-{report.id}">{report.title}</FrameTitle>
+      </div>
+      <Button
+        aria-label="View {report.title.toLowerCase()} report"
+        href={resolve(report.href)}
+        size="icon-sm"
+        title="View {report.title.toLowerCase()} report"
+        variant="ghost"
+      >
+        <ArrowUpRight />
+      </Button>
+    </FrameHeader>
+    <FramePanel>
       {#if report.stats?.length}
         <BarChart
           data={report.stats}
-          maxItems={4}
           label={report.label}
+          maxItems={4}
           tone={report.tone}
         />
       {:else}
-        <div class="empty-state">
-          <p class="empty-state-title">No {report.title.toLowerCase()} data</p>
-          <p class="empty-state-desc">
-            Try another date range to explore your audience.
-          </p>
-        </div>
+        <EmptyState
+          desc="Try another date range to explore your audience."
+          icon={report.icon}
+          title="No {report.title.toLowerCase()} data"
+        />
       {/if}
-    </div>
-  {/each}
-</section>
+    </FramePanel>
+  </Frame>
+{/snippet}

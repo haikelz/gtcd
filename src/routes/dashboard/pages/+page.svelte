@@ -1,20 +1,33 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
-  import { SvelteURLSearchParams } from "svelte/reactivity";
-  import DateRangePicker from "$lib/components/DateRangePicker.svelte";
-  import SEO from "$lib/components/SEO.svelte";
+  import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import ErrorAlert from "$lib/components/ErrorAlert.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
+  import PageRow from "$lib/components/PageRow.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
-  import { FileText, TriangleAlert } from "@lucide/svelte";
+  import ScaleToggle from "$lib/components/ScaleToggle.svelte";
+  import SEO from "$lib/components/SEO.svelte";
+  import {
+    Frame,
+    FrameDescription,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { statsScaleMax } from "$lib/period.js";
+  import { FileText } from "@lucide/svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
-  let datePreset = $derived(data.range || "7d");
 
-  function handleDateChange(preset: string) {
-    datePreset = preset;
-    goto(resolve(`/dashboard/pages?range=${preset}`), { replaceState: true });
-  }
+  const linkDomain = $derived(data.site?.linkDomain ?? "");
+  const sharedScaleMax = $derived(
+    page.url.searchParams.get("scale") === "shared" && data.hits?.hits
+      ? statsScaleMax(data.hits.hits, "day")
+      : undefined
+  );
 
   function pagesHref(exclude: string): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
@@ -26,92 +39,68 @@
 </script>
 
 <SEO
-  title="Pages — gtcd"
   description="Top pages for your GoatCounter site."
   noindex
+  title="Pages — gtcd"
 />
 
-<header
-  class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 sm:mb-8 animate-fade-in"
->
-  <div>
-    <p class="eyebrow mb-1.5">Breakdown</p>
-    <h1
-      class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground"
-    >
-      Pages
-    </h1>
-    <p class="text-sm mt-1.5 text-muted-foreground">
-      Which pages your visitors view.
-    </p>
-  </div>
-  <DateRangePicker value={datePreset} onchange={handleDateChange} />
-</header>
+<PageHeader description="Which pages your visitors view." title="Pages" />
+
+<DashboardToolbar showFilter />
 
 {#if data.error}
-  <div role="alert" class="alert alert-error animate-fade-in">
-    <TriangleAlert class="h-5 w-5 shrink-0" />
-    <span class="text-sm font-medium">{data.error}</span>
-    <button
-      type="button"
-      class="btn btn-sm btn-outline"
-      onclick={() => location.reload()}
-    >
-      Retry
-    </button>
-  </div>
+  <ErrorAlert message={data.error} />
 {:else if data.hits?.hits && data.hits.hits.length > 0}
-  <div class="panel animate-fade-in">
-    <div class="flex items-baseline justify-between gap-3 mb-6">
-      <h2 class="section-title">Page report</h2>
-      <span class="text-xs text-muted-foreground"
-        >{data.hits.hits.length} tracked paths</span
+  <Frame class="animate-fade-in">
+    <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <FrameTitle>Page report</FrameTitle>
+        <FrameDescription class="text-xs">
+          {data.hits.hits.length} tracked paths
+        </FrameDescription>
+      </div>
+      <ScaleToggle />
+    </FrameHeader>
+    <FramePanel>
+      <div
+        aria-hidden="true"
+        class="flex justify-between px-2 pb-2 text-xs text-muted-foreground"
       >
-    </div>
-    <div
-      class="flex justify-between text-xs text-muted-foreground pb-3"
-      aria-hidden="true"
-    >
-      <span>Page</span><span>Views</span>
-    </div>
-    <ul
-      class="list-none p-0 m-0 border-t border-border"
-      aria-label="Pages list"
-    >
-      {#each data.hits.hits as hit, i (hit.path_id)}
-        <li class="border-b border-border">
-          <a
+        <span>Page</span><span>Views</span>
+      </div>
+      <ul
+        aria-label="Pages list"
+        class="m-0 list-none border-t border-border p-0"
+      >
+        {#each data.hits.hits as hit, i (hit.path_id)}
+          <PageRow
+            diff={data.diffs?.[hit.path_id]}
+            {hit}
             href={resolve(`/dashboard/pages/${hit.path_id}`)}
-            class="list-row no-underline group"
-            aria-label="{hit.path}, {hit.count.toLocaleString()} visits"
-          >
-            <div class="flex items-center gap-2.5 min-w-0 flex-1">
-              <span class="list-index" aria-hidden="true">{i + 1}</span>
-              <span
-                class="list-name font-mono group-hover:text-primary transition-colors"
-                >{hit.path}</span
-              >
-            </div>
-            <span class="list-count">{hit.count.toLocaleString()}</span>
-          </a>
-        </li>
-      {/each}
-    </ul>
-    <ReportPagination
-      previousHref={data.excludedPathIds
-        ? pagesHref(data.previousExcludedPathIds)
-        : undefined}
-      nextHref={data.hits.more
-        ? pagesHref(data.nextExcludedPathIds)
-        : undefined}
-    />
-  </div>
+            {linkDomain}
+            rank={i + 1}
+            scaleMax={sharedScaleMax}
+          />
+        {/each}
+      </ul>
+      <ReportPagination
+        nextHref={data.hits.more
+          ? pagesHref(data.nextExcludedPathIds)
+          : undefined}
+        previousHref={data.excludedPathIds
+          ? pagesHref(data.previousExcludedPathIds)
+          : undefined}
+      />
+    </FramePanel>
+  </Frame>
 {:else}
-  <div class="panel empty-state animate-fade-in">
-    <div class="empty-state-icon" aria-hidden="true">
-      <FileText class="h-6 w-6" strokeWidth={1.5} />
-    </div>
-    <p class="empty-state-title">No page data</p>
-    <p class="empty-state-desc">No pages tracked for this time period.</p>
-  </div>
+  <Frame class="animate-fade-in">
+    <FramePanel>
+      <EmptyState
+        desc="No pages tracked for this time period."
+        icon={FileText}
+        title="No page data"
+      />
+    </FramePanel>
+  </Frame>
 {/if}

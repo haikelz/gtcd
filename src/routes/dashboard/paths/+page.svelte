@@ -1,10 +1,21 @@
 <script lang="ts">
-  import { page } from "$app/state";
   import { resolve } from "$app/paths";
-  import { SvelteURLSearchParams } from "svelte/reactivity";
+  import { page } from "$app/state";
+  import EmptyState from "$lib/components/EmptyState.svelte";
+  import ErrorAlert from "$lib/components/ErrorAlert.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
   import SEO from "$lib/components/SEO.svelte";
-  import { FolderTree, TriangleAlert } from "@lucide/svelte";
+  import { Badge } from "$lib/components/ui/badge";
+  import {
+    Frame,
+    FrameDescription,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { FolderTree } from "@lucide/svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
 
@@ -18,86 +29,71 @@
 </script>
 
 <SEO
-  title="Path directory — gtcd"
   description="All GoatCounter paths tracked for this site."
   noindex
+  title="Path directory — gtcd"
 />
 
-<header class="flex flex-col gap-3 mb-6 sm:mb-8">
-  <div>
-    <p class="eyebrow mb-1.5">Content inventory</p>
-    <h1
-      class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground"
-    >
-      Path directory
-    </h1>
-    <p class="text-sm mt-1.5 text-muted-foreground">
-      Every tracked path, including paths without recent traffic.
-    </p>
-  </div>
-</header>
+<PageHeader
+  description="Every tracked path, including paths without recent traffic."
+  title="Path directory"
+/>
 
 {#if data.error}
-  <div role="alert" class="alert alert-error">
-    <TriangleAlert class="h-5 w-5 shrink-0" />
-    <span class="text-sm font-medium">{data.error}</span>
-    <button
-      type="button"
-      class="btn btn-sm btn-outline"
-      onclick={() => location.reload()}>Retry</button
-    >
-  </div>
+  <ErrorAlert message={data.error} />
 {:else if data.paths?.paths && data.paths.paths.length > 0}
-  <section class="panel" aria-labelledby="path-directory-heading">
-    <div class="flex flex-wrap items-baseline justify-between gap-3 mb-6">
-      <h2 id="path-directory-heading" class="section-title">Tracked paths</h2>
-      <span class="text-xs text-muted-foreground"
-        >{data.paths.paths.length} paths on this page</span
-      >
-    </div>
-    <ul
-      class="list-none p-0 m-0 border-t border-border"
-      aria-label="Tracked paths"
+  <Frame>
+    <FrameHeader
+      class="flex-row flex-wrap items-baseline justify-between gap-3"
     >
-      {#each data.paths.paths as item (item.id)}
-        <li class="border-b border-border">
-          <a
-            href={resolve(`/dashboard/pages/${item.id}`)}
-            class="list-row no-underline group"
-            aria-label={`${item.path}${item.event ? ", event" : ""}`}
-          >
-            <div class="min-w-0 flex-1">
-              <span
-                class="list-name font-mono group-hover:text-primary transition-colors"
-                >{item.path}</span
-              >
-              {#if item.title && item.title !== item.path}
-                <span class="block truncate text-xs text-muted-foreground mt-1"
-                  >{item.title}</span
+      <FrameTitle id="path-directory-heading">Tracked paths</FrameTitle>
+      <FrameDescription class="text-xs">
+        {data.paths.paths.length} paths on this page
+      </FrameDescription>
+    </FrameHeader>
+    <FramePanel aria-labelledby="path-directory-heading" role="region">
+      <ul aria-label="Tracked paths" class="m-0 list-none p-0">
+        {#each data.paths.paths as item (item.id)}
+          <li class="border-b border-border last:border-0">
+            <a
+              aria-label={`${item.path}${item.event ? ", event" : ""}`}
+              class="group flex min-h-11 items-center justify-between gap-3 px-2 py-2.5 no-underline transition-colors hover:bg-foreground/5"
+              href={resolve(`/dashboard/pages/${item.id}`)}
+            >
+              <div class="min-w-0 flex-1">
+                <span
+                  class="block min-w-0 truncate font-mono text-sm font-medium transition-colors group-hover:text-primary"
+                  >{item.path}</span
                 >
+                {#if item.title && item.title !== item.path}
+                  <span
+                    class="mt-1 block truncate text-xs text-muted-foreground"
+                    >{item.title}</span
+                  >
+                {/if}
+              </div>
+              {#if item.event}
+                <Badge class="shrink-0" variant="outline">Event</Badge>
               {/if}
-            </div>
-            {#if item.event}<span class="badge badge-outline shrink-0"
-                >Event</span
-              >{/if}
-          </a>
-        </li>
-      {/each}
-    </ul>
-    <ReportPagination
-      nextHref={data.paths.more && data.nextAfter
-        ? pathsHref(data.nextAfter)
-        : undefined}
-    />
-  </section>
+            </a>
+          </li>
+        {/each}
+      </ul>
+      <ReportPagination
+        nextHref={data.paths.more && data.nextAfter
+          ? pathsHref(data.nextAfter)
+          : undefined}
+      />
+    </FramePanel>
+  </Frame>
 {:else}
-  <div class="panel empty-state">
-    <div class="empty-state-icon" aria-hidden="true">
-      <FolderTree class="h-6 w-6" strokeWidth={1.5} />
-    </div>
-    <p class="empty-state-title">No tracked paths</p>
-    <p class="empty-state-desc">
-      Paths appear after GoatCounter receives pageviews or events.
-    </p>
-  </div>
+  <Frame>
+    <FramePanel>
+      <EmptyState
+        desc="Paths appear after GoatCounter receives pageviews or events."
+        icon={FolderTree}
+        title="No tracked paths"
+      />
+    </FramePanel>
+  </Frame>
 {/if}

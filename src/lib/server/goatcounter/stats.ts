@@ -72,15 +72,33 @@ export async function getMe(): Promise<GoatCounterUser> {
   return gcFetch<GoatCounterUser>("/api/v0/me");
 }
 
+/**
+ * Join resolved filter path IDs for include_paths. An empty array means the
+ * filter matched nothing, which short-circuits to an empty response — the
+ * API omits empty parameters, so it cannot express "no paths" itself.
+ */
+function includePathsParam(includePaths?: number[]): string | undefined {
+  return includePaths && includePaths.length > 0
+    ? includePaths.join(",")
+    : undefined;
+}
+
+function emptyTotal(): CountTotalResponse {
+  return { total: 0, total_events: 0, total_utc: 0, stats: [] };
+}
+
 export async function getTotal(
   start?: string,
   end?: string,
+  includePaths?: number[],
   options?: GoatCounterRequestOptions
 ): Promise<CountTotalResponse> {
+  if (includePaths && includePaths.length === 0) return emptyTotal();
+
   return gcFetch<CountTotalResponse>(
     "/api/v0/stats/total",
     {},
-    { start, end },
+    { start, end, include_paths: includePathsParam(includePaths) },
     options
   );
 }
@@ -91,8 +109,13 @@ export async function getHits(
   limit?: number,
   excludePaths?: string,
   pathByName?: boolean,
+  includePaths?: number[],
   options?: GoatCounterRequestOptions
 ): Promise<HitsResponse> {
+  if (includePaths && includePaths.length === 0) {
+    return { hits: [], total: 0, more: false };
+  }
+
   const res = await gcFetch<HitsResponse>(
     "/api/v0/stats/hits",
     {},
@@ -102,6 +125,7 @@ export async function getHits(
       limit: limit?.toString(),
       exclude_paths: excludePaths,
       path_by_name: pathByName ? "true" : undefined,
+      include_paths: includePathsParam(includePaths),
     },
     options
   );
@@ -157,8 +181,13 @@ export async function getStats(
   end?: string,
   limit?: number,
   offset?: number,
+  includePaths?: number[],
   options?: GoatCounterRequestOptions
 ): Promise<StatsResponse> {
+  if (includePaths && includePaths.length === 0) {
+    return { stats: [], more: false };
+  }
+
   const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}`,
     {},
@@ -167,6 +196,7 @@ export async function getStats(
       end,
       limit: limit?.toString(),
       offset: offset?.toString(),
+      include_paths: includePathsParam(includePaths),
     },
     options
   );
@@ -187,8 +217,13 @@ export async function getStatsDetail(
   end?: string,
   limit?: number,
   offset?: number,
+  includePaths?: number[],
   options?: GoatCounterRequestOptions
 ): Promise<StatsResponse> {
+  if (includePaths && includePaths.length === 0) {
+    return { stats: [], more: false };
+  }
+
   const res = await gcFetch<StatsResponse>(
     `/api/v0/stats/${page}/${encodeURIComponent(id)}`,
     {},
@@ -197,6 +232,7 @@ export async function getStatsDetail(
       end,
       limit: limit?.toString(),
       offset: offset?.toString(),
+      include_paths: includePathsParam(includePaths),
     },
     options
   );
