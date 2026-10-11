@@ -82,13 +82,20 @@
   );
   const maxY = $derived(Math.max(...points.map((p) => p.y), 1));
 
+  // Whole-number steps, so small counts (e.g. a peak of 2) can't round to
+  // repeated labels such as 0, 1, 1, 2, 2.
   const yTicks = $derived.by(() => {
-    const count = 4;
-    const step = maxY / count;
-    return Array.from({ length: count + 1 }, (_, i) => ({
-      value: Math.round(step * i),
-      y: dims.chartHeight - ((step * i) / maxY) * dims.chartHeight,
-    }));
+    const step = Math.max(1, Math.ceil(maxY / 4));
+    const ticks: { value: number; y: number }[] = [];
+
+    for (let value = 0; value <= maxY; value += step) {
+      ticks.push({
+        value,
+        y: dims.chartHeight - (value / maxY) * dims.chartHeight,
+      });
+    }
+
+    return ticks;
   });
 
   const xLabels = $derived.by(() => {
@@ -219,7 +226,7 @@
 
       <g transform="translate({padding.left}, {padding.top})">
         <!-- Grid lines -->
-        {#each yTicks as tick, i (tick.value)}
+        {#each yTicks as tick, i (i)}
           <line
             x1="0"
             y1={tick.y}
@@ -333,7 +340,7 @@
           </tr>
         </thead>
         <tbody>
-          {#each series as point (point.title)}
+          {#each series as point, i (i)}
             <tr
               class={cn(
                 "border-b border-border last:border-0",
