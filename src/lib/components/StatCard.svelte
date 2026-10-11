@@ -2,6 +2,7 @@
   import { Badge } from "$lib/components/ui/badge";
   import { Frame, FramePanel } from "$lib/components/ui/frame";
   import { Skeleton } from "$lib/components/ui/skeleton";
+  import { t } from "$lib/display";
   import { cn } from "$lib/utils.js";
   import {
     ArrowDownRight,
@@ -38,7 +39,7 @@
   <FramePanel
     aria-busy={loading}
     aria-label={loading
-      ? `${label}: loading`
+      ? t("charts.loadingLabel", { label })
       : `${label}: ${value}${subtext ? `, ${subtext}` : ""}`}
     class="flex flex-col gap-2"
     role="group"
@@ -78,7 +79,11 @@
             {:else}
               <ArrowDownRight aria-hidden="true" />
             {/if}
-            <span class="sr-only">Trend {trend.direction}:</span>
+            <span class="sr-only"
+              >{trend.direction === "up"
+                ? t("charts.trendUp")
+                : t("charts.trendDown")}</span
+            >
             {trend.value}
           </Badge>
         {/if}

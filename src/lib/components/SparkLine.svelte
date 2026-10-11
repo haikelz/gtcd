@@ -10,6 +10,7 @@
     readonly data: HitListStat[];
     readonly group?: Group;
     readonly max?: number;
+    readonly style?: "line" | "bar";
   };
 
   let {
@@ -17,6 +18,7 @@
     data,
     group = "day",
     max,
+    style = "line",
   }: SparkLineProps = $props();
 
   const width = 100;
@@ -38,6 +40,18 @@
       )
       .join(" ");
   });
+  const bars = $derived.by(() => {
+    const slot = width / Math.max(series.length, 1);
+    return series.map((point, i) => {
+      const barHeight = (point.value / scale) * (height - 2);
+      return {
+        height: barHeight,
+        width: Math.max(slot * 0.7, 0.5),
+        x: i * slot + slot * 0.15,
+        y: height - barHeight,
+      };
+    });
+  });
   const areaPath = $derived(
     linePath ? `${linePath} L ${width} ${height} L 0 ${height} Z` : ""
   );
@@ -50,7 +64,17 @@
   preserveAspectRatio="none"
   viewBox="0 0 {width} {height}"
 >
-  {#if linePath}
+  {#if style === "bar"}
+    {#each bars as bar, i (i)}
+      <rect
+        class="fill-chart-1"
+        height={bar.height}
+        width={bar.width}
+        x={bar.x}
+        y={bar.y}
+      />
+    {/each}
+  {:else if linePath}
     <path class="fill-chart-1/10" d={areaPath} />
     <path
       class="fill-none stroke-chart-1"

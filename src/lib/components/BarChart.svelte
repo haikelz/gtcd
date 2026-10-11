@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { HitStat } from "$lib/types";
-  import { formatCount } from "$lib/display";
+  import { formatCount, numbersHidden, t } from "$lib/display";
 
   let {
     data,
     maxItems = 15,
-    label = "Source",
+    label = t("charts.defaultBreakdownLabel"),
     tone = "chart-1",
     onItemClick,
   }: {
@@ -27,11 +27,14 @@
   aria-hidden="true"
 >
   <span>{label}</span>
-  <span>Visits <span class="inline-block w-16 text-right">Share</span></span>
+  <span
+    >{#if !numbersHidden()}{t("charts.visits")}{/if}
+    <span class="inline-block w-16 text-right">{t("charts.share")}</span></span
+  >
 </div>
-<ul class="list-none p-0 m-0" aria-label="Breakdown chart">
+<ul class="list-none p-0 m-0" aria-label={t("charts.breakdownChart")}>
   {#each items as item, index (index)}
-    {@const label = item.name?.trim() || "Unknown"}
+    {@const label = item.name?.trim() || t("charts.unknown")}
     {@const pct = Math.max(0, Math.min((item.count / maxCount) * 100, 100))}
     {@const share = total > 0 ? ((item.count / total) * 100).toFixed(1) : "0"}
     {#snippet row()}
@@ -40,7 +43,9 @@
           >{label}</span
         >
         <span class="flex shrink-0 gap-4 font-mono text-xs tabular-nums">
-          <span class="text-foreground">{formatCount(item.count)}</span>
+          {#if !numbersHidden()}
+            <span class="text-foreground">{formatCount(item.count)}</span>
+          {/if}
           <span class="w-12 text-right text-muted-foreground">{share}%</span>
         </span>
       </div>
@@ -49,7 +54,13 @@
         aria-valuenow={item.count}
         aria-valuemin="0"
         aria-valuemax={maxCount}
-        aria-label="{label}: {formatCount(item.count)} visits ({share}%)"
+        aria-label={numbersHidden()
+          ? `${label}: ${share}%`
+          : t("charts.itemVisits", {
+              label,
+              count: formatCount(item.count),
+              share,
+            })}
         class="h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <div
@@ -65,9 +76,13 @@
           type="button"
           class="w-full min-w-0 cursor-pointer text-left px-1.5 py-3 rounded-lg hover:bg-muted transition-colors"
           onclick={() => onItemClick(item.id, label)}
-          aria-label="Explore {label}: {formatCount(
-            item.count
-          )} visits ({share}%)"
+          aria-label={numbersHidden()
+            ? t("charts.exploreItemHidden", { label, share })
+            : t("charts.exploreItem", {
+                label,
+                count: formatCount(item.count),
+                share,
+              })}
         >
           {@render row()}
         </button>
@@ -78,7 +93,7 @@
   {/each}
   {#if data.length > maxItems}
     <li class="pt-4 text-xs text-muted-foreground">
-      Showing {maxItems} of {data.length} sources
+      {t("charts.showingSources", { shown: maxItems, total: data.length })}
     </li>
   {/if}
 </ul>

@@ -4,20 +4,24 @@
      is an external live-site URL, which resolve() must not touch. */
   import { page } from "$app/state";
   import { highlightSegments } from "$lib/filter.js";
-  import { formatCount } from "$lib/display";
+  import { formatCount, numbersHidden, t } from "$lib/display";
   import type { HighlightSegment } from "$lib/filter.js";
   import type { Group } from "$lib/period.js";
   import { Badge } from "$lib/components/ui/badge";
+  import { cn } from "$lib/utils";
   import SparkLine from "$lib/components/SparkLine.svelte";
   import type { HitList } from "$lib/types";
 
   type PageRowProps = {
     readonly chart?: boolean;
+    /** GoatCounter's pages chart style; "text" shows numbers only. */
+    readonly chartStyle?: "line" | "bar" | "text";
     /** undefined: no diff column; null: no previous-period data → "(new)". */
     readonly diff?: number | null;
     readonly group?: Group;
     readonly hit: HitList;
-    readonly href: string;
+    /** Omit on public pages: the row then renders without a link. */
+    readonly href?: string;
     readonly linkDomain?: string;
     readonly rank?: number;
     readonly scaleMax?: number;
@@ -25,6 +29,7 @@
 
   let {
     chart = true,
+    chartStyle = "line",
     diff,
     group = "day",
     hit,
@@ -58,7 +63,10 @@
   const diffDisplay = $derived.by(() => {
     if (diff === undefined) return null;
     if (diff === null) {
-      return { text: "(new)", className: "text-muted-foreground italic" };
+      return {
+        text: t("charts.new"),
+        className: "text-muted-foreground italic",
+      };
     }
     if (diff === 0) {
       return { text: "0%", className: "text-muted-foreground" };
@@ -77,8 +85,13 @@
 </script>
 
 <li class="border-b border-border last:border-0">
-  <a
-    class="group flex min-h-11 items-center justify-between gap-3 rounded-md px-2 py-2.5 no-underline transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+  <svelte:element
+    this={href ? "a" : "div"}
+    class={cn(
+      "group flex min-h-11 items-center justify-between gap-3 rounded-md px-2 py-2.5 no-underline",
+      href &&
+        "transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    )}
     {href}
   >
     <span class="flex min-w-0 flex-1 items-center gap-2.5">
@@ -97,7 +110,7 @@
                 >{:else}{seg.text}{/if}{/each}
           </span>
           {#if hit.event}
-            <Badge size="sm" variant="outline">event</Badge>
+            <Badge size="sm" variant="outline">{t("charts.event")}</Badge>
           {/if}
         </span>
         {#if titleSegs}
@@ -109,26 +122,29 @@
         {/if}
       </span>
     </span>
-    {#if chart}
+    {#if chart && chartStyle !== "text"}
       <SparkLine
         class="hidden md:block"
         data={hit.stats}
         {group}
         max={scaleMax}
+        style={chartStyle}
       />
     {/if}
     <span class="shrink-0 text-right">
-      <span class="block text-sm font-medium text-foreground tabular-nums"
-        >{formatCount(hit.count)}</span
-      >
+      {#if !numbersHidden()}
+        <span class="block text-sm font-medium text-foreground tabular-nums"
+          >{formatCount(hit.count)}</span
+        >
+      {/if}
       {#if diffDisplay}
         <span
           class="block text-xs font-medium tabular-nums {diffDisplay.className}"
-          title="Change compared to previous period">{diffDisplay.text}</span
+          title={t("charts.changeVsPrevious")}>{diffDisplay.text}</span
         >
       {/if}
     </span>
-  </a>
+  </svelte:element>
   {#if goHref}
     <div class="px-2 pt-0.5 pb-2">
       <a
@@ -137,7 +153,7 @@
         rel="noopener noreferrer"
         target="_blank"
       >
-        Go to {goHref.replace(/^https?:\/\//i, "")}
+        {t("charts.goTo", { url: goHref.replace(/^https?:\/\//i, "") })}
       </a>
     </div>
   {/if}

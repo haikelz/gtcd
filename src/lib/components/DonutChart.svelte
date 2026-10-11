@@ -1,10 +1,12 @@
 <script lang="ts">
   import EmptyState from "$lib/components/EmptyState.svelte";
-  import { formatCount } from "$lib/display";
+  import { formatCount, numbersHidden, t } from "$lib/display";
   import type { HitStat } from "$lib/types";
 
-  let { data, label = "Browser" }: { data: HitStat[]; label?: string } =
-    $props();
+  let {
+    data,
+    label = t("charts.defaultDonutLabel"),
+  }: { data: HitStat[]; label?: string } = $props();
 
   const total = $derived(
     data.reduce((sum, category) => sum + category.count, 0)
@@ -18,7 +20,11 @@
       .slice(4)
       .reduce((sum, category) => sum + category.count, 0);
     if (remaining > 0)
-      visible.push({ id: "remainder", name: "Other", count: remaining });
+      visible.push({
+        id: "remainder",
+        name: t("charts.other"),
+        count: remaining,
+      });
 
     let offset = 0;
     return visible.map((category, index) => {
@@ -38,11 +44,19 @@
 {#if total > 0}
   <div class="flex flex-col">
     <div class="relative mx-auto mb-5 w-full max-w-50">
-      <svg viewBox="0 0 200 200" role="img" aria-label="{label} distribution">
-        <title>{label} distribution</title>
+      <svg
+        viewBox="0 0 200 200"
+        role="img"
+        aria-label={t("charts.distribution", { label })}
+      >
+        <title>{t("charts.distribution", { label })}</title>
         <desc
-          >{formatCount(total)} recorded visits, grouped by {label.toLowerCase()}.
-          Values are listed below.</desc
+          >{numbersHidden()
+            ? t("charts.donutDescriptionHidden", { label: label.toLowerCase() })
+            : t("charts.donutDescription", {
+                count: formatCount(total),
+                label: label.toLowerCase(),
+              })}</desc
         >
         <circle
           cx="100"
@@ -72,13 +86,24 @@
         class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
         aria-hidden="true"
       >
-        <span class="text-2xl font-semibold tabular-nums tracking-tight"
-          >{formatCount(total)}</span
-        >
-        <span class="text-xs text-muted-foreground mt-1">Recorded visits</span>
+        {#if numbersHidden()}
+          <span class="text-sm font-medium text-muted-foreground"
+            >{t("charts.shares")}</span
+          >
+        {:else}
+          <span class="text-2xl font-semibold tracking-tight tabular-nums"
+            >{formatCount(total)}</span
+          >
+          <span class="mt-1 text-xs text-muted-foreground"
+            >{t("charts.recordedVisits")}</span
+          >
+        {/if}
       </div>
     </div>
-    <ul class="list-none m-0 p-0 space-y-3" aria-label="{label} shares">
+    <ul
+      class="list-none m-0 p-0 space-y-3"
+      aria-label={t("charts.sharesList", { label })}
+    >
       {#each segments as segment, index (index)}
         <li class="flex items-center gap-2 text-xs">
           <span
@@ -89,9 +114,9 @@
           <span class="truncate flex-1 text-foreground" title={segment.name}
             >{segment.name}</span
           >
-          <span class="tabular-nums text-muted-foreground"
-            >{formatCount(segment.count)}</span
-          >
+          {#if !numbersHidden()}<span class="tabular-nums text-muted-foreground"
+              >{formatCount(segment.count)}</span
+            >{/if}
           <span class="w-12 text-right tabular-nums font-medium"
             >{segment.share.toFixed(1)}%</span
           >
@@ -101,9 +126,8 @@
     <table class="sr-only">
       <thead
         ><tr
-          ><th scope="col">{label}</th><th scope="col">Visits</th><th
-            scope="col">Share</th
-          ></tr
+          ><th scope="col">{label}</th><th scope="col">{t("charts.visits")}</th
+          ><th scope="col">{t("charts.share")}</th></tr
         ></thead
       >
       <tbody
@@ -117,8 +141,8 @@
   </div>
 {:else}
   <EmptyState
-    title="No {label.toLowerCase()} data"
-    desc="Try another date range to explore your audience."
+    title={t("charts.noLabelData", { label: label.toLowerCase() })}
+    desc={t("charts.noLabelDataHint")}
     class="px-0 py-8"
   />
 {/if}

@@ -1,10 +1,16 @@
 <script lang="ts">
-  import { GROUP_LABELS, seriesPoints } from "$lib/period.js";
+  import { seriesPoints } from "$lib/period.js";
   import {
     ToggleGroup,
     ToggleGroupItem,
   } from "$lib/components/ui/toggle-group";
-  import { displayPreferences, formatCount } from "$lib/display";
+  import {
+    displayPreferences,
+    formatCount,
+    numbersHidden,
+    t,
+  } from "$lib/display";
+  import type { MessageKey } from "$lib/i18n";
   import { cn } from "$lib/utils";
   import type { Group } from "$lib/period.js";
   import type { HitListStat } from "$lib/types";
@@ -13,9 +19,16 @@
     readonly data: HitListStat[];
     readonly group?: Group;
     readonly height?: number;
+    /** GoatCounter's totals chart style. */
+    readonly style?: "line" | "bar";
   };
 
-  let { data, group = "day", height = 240 }: AreaChartProps = $props();
+  let {
+    data,
+    group = "day",
+    height = 240,
+    style = "line",
+  }: AreaChartProps = $props();
 
   const chartId = $props.id();
 
@@ -71,7 +84,19 @@
   let view = $state<"chart" | "table">("chart");
 
   const series = $derived(seriesPoints(data, group, displayPreferences()));
-  const groupLabel = $derived(GROUP_LABELS[group]);
+  const GROUP_KEYS: Record<Group, MessageKey> = {
+    hour: "charts.groupHour",
+    day: "charts.groupDay",
+    week: "charts.groupWeek",
+    month: "charts.groupMonth",
+  };
+  const groupLabel = $derived(t(GROUP_KEYS[group]));
+  // Sentences take both casings: English opens with the label, Indonesian
+  // places it mid-sentence.
+  const groupParams = $derived({
+    group: groupLabel.toLowerCase(),
+    groupTitle: groupLabel,
+  });
   const points = $derived(series.map((d, i) => ({ x: i, y: d.value })));
   const dims = $derived(getChartDimensions(width));
   const linePath = $derived(
@@ -97,6 +122,20 @@
 
     return ticks;
   });
+
+  const bars = $derived.by(() => {
+    const slot = dims.chartWidth / Math.max(points.length, 1);
+    return points.map((point) => {
+      const barHeight = (point.y / maxY) * dims.chartHeight;
+      return {
+        height: barHeight,
+        width: Math.max(slot * 0.7, 1),
+        x: point.x * slot + slot * 0.15,
+        y: dims.chartHeight - barHeight,
+      };
+    });
+  });
+  const hideNumbers = $derived(numbersHidden());
 
   const xLabels = $derived.by(() => {
     const ticks = series
@@ -147,68 +186,83 @@
       class="flex items-center justify-center text-sm text-muted-foreground"
       style="height: {height}px;"
     >
-      No data available
+      {t("charts.noData")}
     </div>
   {:else}
     <!-- Summary stats -->
     <div class="mb-4 flex min-h-12 flex-wrap items-center gap-6">
-      <div>
-        <p class="mb-0.5 text-xs font-medium text-muted-foreground">Total</p>
-        <p class="text-lg font-semibold tabular-nums text-foreground">
-          {formatCount(totalSum)}
+      {#if hideNumbers}
+        <p class="text-xs text-muted-foreground">
+          {t("charts.numbersHidden")}
         </p>
-      </div>
-      <div aria-hidden="true" class="h-8 w-px bg-border"></div>
-      <div>
-        <p class="mb-0.5 text-xs font-medium text-muted-foreground">
-          Daily avg
-        </p>
-        <p class="text-lg font-semibold tabular-nums text-foreground">
-          {formatCount(avgDaily)}
-        </p>
-      </div>
-      {#if view === "chart"}
+      {:else}
+        <div>
+          <p class="mb-0.5 text-xs font-medium text-muted-foreground">
+            {t("charts.total")}
+          </p>
+          <p class="text-lg font-semibold tabular-nums text-foreground">
+            {formatCount(totalSum)}
+          </p>
+        </div>
+        <div aria-hidden="true" class="h-8 w-px bg-border"></div>
+        <div>
+          <p class="mb-0.5 text-xs font-medium text-muted-foreground">
+            {t("charts.dailyAverage")}
+          </p>
+          <p class="text-lg font-semibold tabular-nums text-foreground">
+            {formatCount(avgDaily)}
+          </p>
+        </div>
+      {/if}
+      {#if view === "chart" && !hideNumbers}
         <div aria-hidden="true" class="h-8 w-px bg-border"></div>
         <div class="min-w-24">
           <p class="mb-0.5 text-xs font-medium text-muted-foreground">
-            {hoveredLabel ?? "Explore chart"}
+            {hoveredLabel ?? t("charts.exploreChart")}
           </p>
           <p class="text-lg font-semibold tabular-nums text-foreground">
             {hoveredValue == null ? "—" : formatCount(hoveredValue)}
           </p>
         </div>
       {/if}
-      <ToggleGroup
-        aria-label="Traffic view"
-        class="ml-auto"
-        onValueChange={(next) => {
-          if (next === "chart" || next === "table") view = next;
-        }}
-        size="sm"
-        spacing={0}
-        type="single"
-        value={view}
-        variant="outline"
-      >
-        <ToggleGroupItem value="chart">Chart</ToggleGroupItem>
-        <ToggleGroupItem value="table">Table</ToggleGroupItem>
-      </ToggleGroup>
+      {#if !hideNumbers}
+        <ToggleGroup
+          aria-label={t("charts.trafficView")}
+          class="ml-auto"
+          onValueChange={(next) => {
+            if (next === "chart" || next === "table") view = next;
+          }}
+          size="sm"
+          spacing={0}
+          type="single"
+          value={view}
+          variant="outline"
+        >
+          <ToggleGroupItem value="chart">{t("charts.chart")}</ToggleGroupItem>
+          <ToggleGroupItem value="table">{t("charts.table")}</ToggleGroupItem>
+        </ToggleGroup>
+      {/if}
     </div>
 
     <!-- SVG Area Chart with Full A11Y -->
     <svg
       role="img"
-      aria-label="{groupLabel} traffic line chart. Total visits: {formatCount(
-        totalSum
-      )}, Daily average: {formatCount(avgDaily)}."
+      aria-label={t("charts.chartLabel", {
+        ...groupParams,
+        average: formatCount(avgDaily),
+        total: formatCount(totalSum),
+      })}
       viewBox="0 0 {width} {height}"
       class={view === "table" ? "hidden" : "w-full"}
       style="height: {height}px;"
     >
-      <title>{groupLabel} Traffic Chart</title>
+      <title>{t("charts.chartTitle", groupParams)}</title>
       <desc
-        >Line chart showing {groupLabel.toLowerCase()} visits between {series[0]
-          ?.title} and {series[series.length - 1]?.title}.</desc
+        >{t("charts.chartDescription", {
+          ...groupParams,
+          end: series[series.length - 1]?.title ?? "",
+          start: series[0]?.title ?? "",
+        })}</desc
       >
 
       <defs>
@@ -237,31 +291,47 @@
             stroke-dasharray={i === 0 ? "0" : "4 4"}
             opacity={i === 0 ? 0.6 : 0.4}
           />
-          <text
-            x="-12"
-            y={tick.y}
-            text-anchor="end"
-            dominant-baseline="middle"
-            class="fill-muted-foreground text-xs tabular-nums"
-            >{formatCount(tick.value)}</text
-          >
+          {#if !hideNumbers}
+            <text
+              x="-12"
+              y={tick.y}
+              text-anchor="end"
+              dominant-baseline="middle"
+              class="fill-muted-foreground text-xs tabular-nums"
+              >{formatCount(tick.value)}</text
+            >
+          {/if}
         {/each}
 
-        <!-- Area -->
-        <path d={areaPath} fill="url(#{chartId}-area)" />
+        {#if style === "bar"}
+          {#each bars as bar, i (i)}
+            <rect
+              fill="var(--chart-1)"
+              fill-opacity={hoveredIndex === i ? 1 : 0.85}
+              height={bar.height}
+              rx="1"
+              width={bar.width}
+              x={bar.x}
+              y={bar.y}
+            />
+          {/each}
+        {:else}
+          <!-- Area -->
+          <path d={areaPath} fill="url(#{chartId}-area)" />
 
-        <!-- Line -->
-        <path
-          d={linePath}
-          fill="none"
-          stroke="url(#{chartId}-line)"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
+          <!-- Line -->
+          <path
+            d={linePath}
+            fill="none"
+            stroke="url(#{chartId}-line)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        {/if}
 
         <!-- Hover crosshair -->
-        {#if hoveredIndex !== null && hoveredIndex < points.length}
+        {#if style === "line" && hoveredIndex !== null && hoveredIndex < points.length}
           {@const hx =
             (hoveredIndex / Math.max(points.length - 1, 1)) * dims.chartWidth}
           {@const hy =
@@ -310,9 +380,11 @@
         onmousemove={(e: MouseEvent) => {
           const rect = (e.target as SVGRectElement).getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
-          const idx = Math.round(
-            (mouseX / dims.chartWidth) * (points.length - 1)
-          );
+          // Bars sit centred in equal slots; line points span edge to edge.
+          const idx =
+            style === "bar"
+              ? Math.floor((mouseX / dims.chartWidth) * points.length)
+              : Math.round((mouseX / dims.chartWidth) * (points.length - 1));
           hoveredIndex = Math.max(0, Math.min(points.length - 1, idx));
         }}
         onmouseleave={() => {
@@ -322,39 +394,43 @@
     </svg>
 
     <!-- Accessible summary table for assistive tech (WCAG 1.1.1 Non-text Content) -->
-    <div
-      class={view === "table"
-        ? "max-h-80 overflow-auto rounded-lg border border-border"
-        : "sr-only"}
-    >
-      <table class="w-full text-sm">
-        <caption class={view === "table" ? "sr-only" : undefined}>
-          {groupLabel} traffic statistics
-        </caption>
-        <thead class="sticky top-0 bg-card">
-          <tr class="border-b border-border">
-            <th class="h-9 px-3 text-left font-medium" scope="col">Period</th>
-            <th class="h-9 px-3 text-right font-medium" scope="col">
-              Visits
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each series as point, i (i)}
-            <tr
-              class={cn(
-                "border-b border-border last:border-0",
-                point.value === 0 && "text-muted-foreground"
-              )}
-            >
-              <td class="px-3 py-1.5">{point.title}</td>
-              <td class="px-3 py-1.5 text-right tabular-nums">
-                {formatCount(point.value)}
-              </td>
+    {#if !hideNumbers}
+      <div
+        class={view === "table"
+          ? "max-h-80 overflow-auto rounded-lg border border-border"
+          : "sr-only"}
+      >
+        <table class="w-full text-sm">
+          <caption class={view === "table" ? "sr-only" : undefined}>
+            {t("charts.tableCaption", groupParams)}
+          </caption>
+          <thead class="sticky top-0 bg-card">
+            <tr class="border-b border-border">
+              <th class="h-9 px-3 text-left font-medium" scope="col">
+                {t("charts.period")}
+              </th>
+              <th class="h-9 px-3 text-right font-medium" scope="col">
+                {t("charts.visits")}
+              </th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {#each series as point, i (i)}
+              <tr
+                class={cn(
+                  "border-b border-border last:border-0",
+                  point.value === 0 && "text-muted-foreground"
+                )}
+              >
+                <td class="px-3 py-1.5">{point.title}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums">
+                  {formatCount(point.value)}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
   {/if}
 </div>

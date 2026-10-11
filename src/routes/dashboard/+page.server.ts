@@ -1,4 +1,10 @@
-import { isWidgetVisible, type WidgetId } from "$lib/dashboard-layout.js";
+import {
+  isWidgetVisible,
+  type Locale,
+  type WidgetId,
+  widgetLimit,
+} from "$lib/dashboard-layout.js";
+import { translate } from "$lib/i18n";
 import { previousRange } from "$lib/period.js";
 import {
   getFilterFromUrl,
@@ -7,17 +13,13 @@ import {
 import * as stats from "$lib/server/goatcounter/stats.js";
 import type { HitsResponse } from "$lib/server/goatcounter/types.js";
 import { getDateRangeFromUrl, toDateRange } from "$lib/server/helpers.js";
+import { orNull } from "$lib/server/report-summary.js";
 import type { PageServerLoad } from "./$types";
 
-/** Resolve to null instead of rejecting, so one failed widget never breaks the stream. */
-function orNull<T>(request: Promise<T> | null): Promise<T | null> {
-  return request ? request.catch(() => null) : Promise.resolve(null);
-}
-
-function errorMessage(reason: unknown): string {
+function errorMessage(reason: unknown, locale: Locale): string {
   return reason instanceof Error
     ? reason.message
-    : "Failed to load dashboard data.";
+    : translate(locale, "overview.loadFailed");
 }
 
 /**
@@ -41,14 +43,18 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
     return {
       browsers: none,
+      campaigns: none,
       diffs: none,
       error: Promise.resolve(
-        e instanceof Error ? e.message : "Failed to apply the filter."
+        e instanceof Error
+          ? e.message
+          : translate(preferences.locale, "overview.filterFailed")
       ),
       hits: none,
       languages: none,
       locations: none,
       range,
+      referrers: none,
       sizes: none,
       systems: none,
       total: none,
@@ -61,35 +67,50 @@ export const load: PageServerLoad = async ({ url, parent }) => {
     return ids.some((id) => isWidgetVisible(dashboardLayout, id));
   }
 
-  function topStats(page: Parameters<typeof stats.getStats>[0]) {
+  function topStats(page: Parameters<typeof stats.getStats>[0], limit = 15) {
     return stats.getStats(
       page,
       start,
       end,
-      15,
+      limit,
       undefined,
       includePaths,
       requestOptions
     );
   }
 
+  function limitFor(id: WidgetId): number {
+    return widgetLimit(dashboardLayout, id);
+  }
+
   const requests = {
     browsers: needs("kpis", "browsers") ? topStats("browsers") : null,
+    campaigns: needs("campaigns")
+      ? topStats("campaigns", limitFor("campaigns"))
+      : null,
+    // The KPI tile counts tracked pages, so fetch at least 20.
     hits: needs("kpis", "pages")
       ? stats.getHits(
           start,
           end,
-          20,
+          Math.max(limitFor("pages"), 20),
           undefined,
           undefined,
           includePaths,
           requestOptions
         )
       : null,
-    languages: needs("languages") ? topStats("languages") : null,
-    locations: needs("kpis", "locations") ? topStats("locations") : null,
+    languages: needs("languages")
+      ? topStats("languages", limitFor("languages"))
+      : null,
+    locations: needs("kpis", "locations")
+      ? topStats("locations", limitFor("locations"))
+      : null,
+    referrers: needs("referrers")
+      ? topStats("toprefs", limitFor("referrers"))
+      : null,
     sizes: needs("sizes") ? topStats("sizes") : null,
-    systems: needs("systems") ? topStats("systems") : null,
+    systems: needs("systems") ? topStats("systems", limitFor("systems")) : null,
     total: needs("kpis", "traffic")
       ? stats.getTotal(start, end, includePaths, requestOptions)
       : null,
@@ -138,6 +159,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
   return {
     browsers: orNull(requests.browsers),
+    campaigns: orNull(requests.campaigns),
     diffs: hits.then(previousPeriodDiffs).catch(() => null),
     // Only a load-wide failure gets the page-level alert; a single failed
     // widget falls back to its empty state.
@@ -147,13 +169,14 @@ export const load: PageServerLoad = async ({ url, parent }) => {
           result.status === "rejected"
       );
       return started.length > 0 && failures.length === started.length
-        ? errorMessage(failures[0].reason)
+        ? errorMessage(failures[0].reason, preferences.locale)
         : null;
     }),
     hits,
     languages: orNull(requests.languages),
     locations: orNull(requests.locations),
     range,
+    referrers: orNull(requests.referrers),
     sizes: orNull(requests.sizes),
     systems: orNull(requests.systems),
     total: orNull(requests.total),

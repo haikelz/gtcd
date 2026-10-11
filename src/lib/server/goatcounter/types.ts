@@ -27,6 +27,11 @@ export interface UserSettings {
   number_format: number;
   /** "<country>.<IANA zone>", e.g. "ID.Asia/Jakarta". */
   timezone: string;
+  fewer_numbers?: boolean;
+  fewer_numbers_lock_until?: string;
+  /** Raw GoatCounter views/widgets; validated by $lib/dashboard-layout. */
+  views?: unknown;
+  widgets?: unknown;
 }
 
 export interface HitListStat {

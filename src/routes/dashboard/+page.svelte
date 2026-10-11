@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import AreaChart from "$lib/components/AreaChart.svelte";
@@ -10,6 +11,7 @@
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
+  import { showToast } from "$lib/components/toast.js";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import {
@@ -27,7 +29,13 @@
     FramePanel,
     FrameTitle,
   } from "$lib/components/ui/frame";
-  import { displayPreferences, formatCount } from "$lib/display";
+  import { widgetLimit, widgetStyle } from "$lib/dashboard-layout";
+  import {
+    displayPreferences,
+    formatCount,
+    numbersHidden,
+    t,
+  } from "$lib/display";
   import type { HitList } from "$lib/types";
   import {
     formatRangeLabel,
@@ -43,6 +51,8 @@
     FileText,
     Globe,
     Languages,
+    Link2,
+    Megaphone,
     Info,
     MapPin,
     Monitor,
@@ -73,14 +83,19 @@
   );
   const trafficDescription = $derived(
     {
-      hour: "Hourly activity across your website",
-      day: "Daily activity across your website",
-      week: "Weekly activity across your website",
-      month: "Monthly activity across your website",
+      hour: t("overview.trafficHour"),
+      day: t("overview.trafficDay"),
+      week: t("overview.trafficWeek"),
+      month: t("overview.trafficMonth"),
     }[groups.group]
   );
   const prevPeriodLabel = $derived(
-    formatRangeLabel(prev.start, prev.end, preferences.dateFormat)
+    formatRangeLabel(
+      prev.start,
+      prev.end,
+      preferences.dateFormat,
+      preferences.locale
+    )
   );
 
   const visibleWidgets = $derived(
@@ -97,11 +112,36 @@
       : undefined;
   }
 
+  const layout = $derived(data.dashboardLayout);
+  const pagesLimit = $derived(layout ? widgetLimit(layout, "pages") : 6);
+  const trafficStyle = $derived(
+    layout && widgetStyle(layout, "traffic") === "bar" ? "bar" : "line"
+  );
+  const pagesStyle = $derived(layout ? widgetStyle(layout, "pages") : "line");
+
   const technicalReports = $derived([
     {
+      id: "referrers" as const,
+      title: t("overview.reportReferrers"),
+      label: t("overview.labelReferrer"),
+      href: "/dashboard/referrers" as const,
+      stats: data.referrers,
+      icon: Link2,
+      tone: "chart-3" as const,
+    },
+    {
+      id: "campaigns" as const,
+      title: t("overview.reportCampaigns"),
+      label: t("overview.labelCampaign"),
+      href: "/dashboard/campaigns" as const,
+      stats: data.campaigns,
+      icon: Megaphone,
+      tone: "chart-1" as const,
+    },
+    {
       id: "systems" as const,
-      title: "Operating systems",
-      label: "System",
+      title: t("overview.reportSystems"),
+      label: t("overview.labelSystem"),
       href: "/dashboard/systems" as const,
       stats: data.systems,
       icon: Monitor,
@@ -109,8 +149,8 @@
     },
     {
       id: "languages" as const,
-      title: "Languages",
-      label: "Language",
+      title: t("overview.reportLanguages"),
+      label: t("overview.labelLanguage"),
       href: "/dashboard/languages" as const,
       stats: data.languages,
       icon: Languages,
@@ -118,8 +158,8 @@
     },
     {
       id: "sizes" as const,
-      title: "Screen sizes",
-      label: "Screen size",
+      title: t("overview.reportSizes"),
+      label: t("overview.labelScreenSize"),
       href: "/dashboard/devices" as const,
       stats: data.sizes,
       icon: Smartphone,
@@ -129,19 +169,19 @@
 </script>
 
 <SEO
-  description="Explore your website traffic, most-viewed pages, and audience breakdowns."
+  description={t("overview.seoDescription")}
   noindex
-  title="Dashboard overview"
+  title={t("overview.seoTitle")}
 />
 
 <PageHeader
-  description="Who visits your site, and what they read."
-  title="Traffic overview"
+  description={t("overview.pageDescription")}
+  title={t("overview.pageTitle")}
 >
   {#snippet actions()}
     <Button href={customizeHref} variant="outline">
       <SlidersHorizontal />
-      Customize
+      {t("overview.customize")}
     </Button>
   {/snippet}
 </PageHeader>
@@ -151,11 +191,10 @@
 {#if !receivedData}
   <Alert class="mb-4" role="status" variant="info">
     <Info />
-    <AlertTitle>No data received yet</AlertTitle>
+    <AlertTitle>{t("overview.noDataTitle")}</AlertTitle>
     <AlertDescription>
       <p>
-        gtcd is connected, but GoatCounter hasn't received any hits yet. Add the
-        tracking snippet anywhere on your page:
+        {t("overview.noDataIntro")}
       </p>
       <pre
         class="w-full max-w-full overflow-x-auto rounded-md border border-border bg-muted p-2.5 font-mono text-xs text-foreground"><code
@@ -163,13 +202,33 @@
         async src="//gc.zgo.at/count.js"&gt;&lt;/script&gt;</code
         ></pre>
       <p>
-        If visits don't show up, check whether an ad blocker is blocking
-        GoatCounter. This message disappears once data arrives.
+        {t("overview.noDataBlocker")}
       </p>
     </AlertDescription>
     <AlertAction>
+      {#if data.isAdmin}
+        <form
+          action="/dashboard/settings?/sendTestVisit"
+          method="POST"
+          use:enhance={() =>
+            async ({ result }) => {
+              if (result.type === "success") {
+                showToast(t("overview.testVisitSent"), "success");
+              } else if (result.type === "failure") {
+                showToast(
+                  String(result.data?.message ?? t("overview.testVisitFailed")),
+                  "error"
+                );
+              }
+            }}
+        >
+          <Button size="sm" type="submit" variant="outline">
+            {t("overview.sendTestVisit")}
+          </Button>
+        </form>
+      {/if}
       <Button href={resolve("/dashboard/settings")} size="sm" variant="outline">
-        Site settings
+        {t("overview.siteSettings")}
       </Button>
     </AlertAction>
   </Alert>
@@ -177,11 +236,7 @@
 
 {#await data.error then error}
   {#if error}
-    <ErrorAlert
-      class="mb-4"
-      message={error}
-      title="We couldn't load your analytics"
-    />
+    <ErrorAlert class="mb-4" message={error} title={t("overview.errorTitle")} />
   {/if}
 {/await}
 
@@ -208,54 +263,70 @@
 
 {#snippet kpiWidget()}
   <section
-    aria-label="Key performance indicators"
+    aria-label={t("overview.kpiLabel")}
     class="grid grid-cols-2 gap-4 xl:col-span-12 xl:grid-cols-4"
   >
     {#await data.total}
-      <StatCard icon={ChartNoAxesCombined} label="Visits" loading />
+      <StatCard
+        icon={ChartNoAxesCombined}
+        label={t("overview.visits")}
+        loading
+      />
     {:then total}
       <StatCard
         icon={ChartNoAxesCombined}
-        label="Visits"
-        subtext={total?.total_events
-          ? `Includes ${formatCount(total.total_events)} events`
-          : "In the selected period"}
-        value={total ? formatCount(total.total) : "—"}
+        label={t("overview.visits")}
+        subtext={numbersHidden()
+          ? t("overview.kpiHidden")
+          : total?.total_events
+            ? t("overview.kpiIncludesEvents", {
+                count: formatCount(total.total_events),
+              })
+            : t("overview.kpiInPeriod")}
+        value={total && !numbersHidden() ? formatCount(total.total) : "—"}
       />
     {/await}
     {#await data.hits}
-      <StatCard icon={FileText} label="Tracked pages" loading />
+      <StatCard icon={FileText} label={t("overview.kpiTrackedPages")} loading />
     {:then hits}
       <StatCard
         icon={FileText}
-        label="Tracked pages"
-        subtext="Paths in this report"
+        label={t("overview.kpiTrackedPages")}
+        subtext={t("overview.kpiPathsInReport")}
         value={hits ? formatCount(hits.hits.length) : "—"}
       />
     {/await}
     {#await data.browsers}
-      <StatCard icon={Globe} label="Top browser" loading />
+      <StatCard icon={Globe} label={t("overview.kpiTopBrowser")} loading />
     {:then browsers}
       <StatCard
         compact
         icon={Globe}
-        label="Top browser"
-        subtext={browsers?.stats?.[0]
-          ? `${formatCount(browsers.stats[0].count)} visits`
-          : "No browser data"}
+        label={t("overview.kpiTopBrowser")}
+        subtext={!browsers?.stats?.[0]
+          ? t("overview.noBrowserData")
+          : numbersHidden()
+            ? t("overview.kpiMostVisits")
+            : t("overview.kpiVisitCount", {
+                count: formatCount(browsers.stats[0].count),
+              })}
         value={browsers?.stats?.[0]?.name?.trim() || "—"}
       />
     {/await}
     {#await data.locations}
-      <StatCard icon={MapPin} label="Top country" loading />
+      <StatCard icon={MapPin} label={t("overview.kpiTopCountry")} loading />
     {:then locations}
       <StatCard
         compact
         icon={MapPin}
-        label="Top country"
-        subtext={locations?.stats?.[0]
-          ? `${formatCount(locations.stats[0].count)} visits`
-          : "No location data"}
+        label={t("overview.kpiTopCountry")}
+        subtext={!locations?.stats?.[0]
+          ? t("overview.noLocationData")
+          : numbersHidden()
+            ? t("overview.kpiMostVisits")
+            : t("overview.kpiVisitCount", {
+                count: formatCount(locations.stats[0].count),
+              })}
         value={locations?.stats?.[0]?.name?.trim() || "—"}
       />
     {/await}
@@ -266,7 +337,9 @@
   <Frame aria-labelledby="heading-traffic" class="xl:col-span-8" role="region">
     <FrameHeader class="flex-row items-center justify-between gap-3">
       <div class="min-w-0">
-        <FrameTitle id="heading-traffic">Traffic over time</FrameTitle>
+        <FrameTitle id="heading-traffic"
+          >{t("overview.trafficTitle")}</FrameTitle
+        >
         <FrameDescription class="text-xs">{trafficDescription}</FrameDescription
         >
       </div>
@@ -274,13 +347,13 @@
         class="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"
       >
         <span aria-hidden="true" class="size-2 rounded-full bg-chart-1"></span>
-        Visits
+        {t("overview.visits")}
       </span>
     </FrameHeader>
     <FramePanel>
       {#await data.total}
         <div class="flex flex-col gap-4" role="status">
-          <span class="sr-only">Loading traffic chart</span>
+          <span class="sr-only">{t("overview.loadingTraffic")}</span>
           <div class="flex gap-6">
             <Skeleton class="h-10 w-20" />
             <Skeleton class="h-10 w-20" />
@@ -292,6 +365,7 @@
           data={total?.stats ?? []}
           group={groups.group}
           height={280}
+          style={trafficStyle}
         />
       {/await}
     </FramePanel>
@@ -302,16 +376,18 @@
   <Frame aria-labelledby="heading-audience" class="xl:col-span-4" role="region">
     <FrameHeader class="flex-row items-center justify-between gap-3">
       <div class="min-w-0">
-        <FrameTitle id="heading-audience">Browser mix</FrameTitle>
+        <FrameTitle id="heading-audience"
+          >{t("overview.browserMixTitle")}</FrameTitle
+        >
         <FrameDescription class="text-xs">
-          How your audience gets here
+          {t("overview.browserMixDescription")}
         </FrameDescription>
       </div>
       <Button
-        aria-label="View browser report"
+        aria-label={t("overview.viewBrowserReport")}
         href={resolve("/dashboard/browsers")}
         size="icon-sm"
-        title="View browser report"
+        title={t("overview.viewBrowserReport")}
         variant="ghost"
       >
         <ArrowUpRight />
@@ -320,7 +396,7 @@
     <FramePanel>
       {#await data.browsers}
         <div class="flex flex-col items-center gap-5" role="status">
-          <span class="sr-only">Loading browser mix</span>
+          <span class="sr-only">{t("overview.loadingBrowserMix")}</span>
           <Skeleton class="size-44 rounded-full" />
           {@render listSkeleton(4)}
         </div>
@@ -335,15 +411,15 @@
   <Frame aria-labelledby="heading-pages" class="xl:col-span-8" role="region">
     <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
       <div class="min-w-0">
-        <FrameTitle id="heading-pages">Your most-read pages</FrameTitle>
+        <FrameTitle id="heading-pages">{t("overview.pagesTitle")}</FrameTitle>
         <FrameDescription class="text-xs">
-          The content bringing people in
+          {t("overview.pagesDescription")}
         </FrameDescription>
       </div>
       <div class="flex items-center gap-1">
         <ScaleToggle />
         <Button href={resolve("/dashboard/pages")} size="sm" variant="ghost">
-          All pages
+          {t("overview.allPages")}
           <ArrowUpRight />
         </Button>
       </div>
@@ -351,17 +427,19 @@
     <FramePanel>
       {#await data.hits}
         <div role="status">
-          <span class="sr-only">Loading most-read pages</span>
-          {@render listSkeleton(6)}
+          <span class="sr-only">{t("overview.loadingPages")}</span>
+          {@render listSkeleton(Math.min(pagesLimit, 10))}
         </div>
       {:then hits}
         {#if hits?.hits?.length}
-          {@const topHits = hits.hits.slice(0, 6)}
+          {@const topHits = hits.hits.slice(0, pagesLimit)}
           <div
             aria-hidden="true"
             class="flex justify-between border-b border-border px-2 pb-2 text-xs text-muted-foreground"
           >
-            <span>Page</span><span>Visits</span>
+            <span>{t("overview.pageColumn")}</span><span
+              >{t("overview.visits")}</span
+            >
           </div>
           {#await data.diffs}
             {@render pageRows(topHits, null)}
@@ -369,13 +447,13 @@
             {@render pageRows(topHits, diffs)}
           {/await}
           <p class="mt-3 px-2 text-xs text-muted-foreground">
-            Change vs. previous period: {prevPeriodLabel}.
+            {t("overview.changeVsPrevious", { period: prevPeriodLabel })}
           </p>
         {:else}
           <EmptyState
-            desc="Try another date range or filter to explore your traffic."
+            desc={t("overview.emptyPagesDescription")}
             icon={FileText}
-            title="No page data"
+            title={t("overview.noPageData")}
           />
         {/if}
       {/await}
@@ -391,16 +469,18 @@
   >
     <FrameHeader class="flex-row items-center justify-between gap-3">
       <div class="min-w-0">
-        <FrameTitle id="heading-locations">Where visitors are</FrameTitle>
+        <FrameTitle id="heading-locations"
+          >{t("overview.locationsTitle")}</FrameTitle
+        >
         <FrameDescription class="text-xs">
-          Your audience, by country
+          {t("overview.locationsDescription")}
         </FrameDescription>
       </div>
       <Button
-        aria-label="View locations report"
+        aria-label={t("overview.viewLocationsReport")}
         href={resolve("/dashboard/locations")}
         size="icon-sm"
-        title="View locations report"
+        title={t("overview.viewLocationsReport")}
         variant="ghost"
       >
         <ArrowUpRight />
@@ -409,22 +489,22 @@
     <FramePanel>
       {#await data.locations}
         <div role="status">
-          <span class="sr-only">Loading locations</span>
+          <span class="sr-only">{t("overview.loadingLocations")}</span>
           {@render listSkeleton(5)}
         </div>
       {:then locations}
         {#if locations?.stats?.length}
           <BarChart
             data={locations.stats}
-            label="Country"
-            maxItems={5}
+            label={t("overview.labelCountry")}
+            maxItems={layout ? widgetLimit(layout, "locations") : 5}
             tone="chart-2"
           />
         {:else}
           <EmptyState
-            desc="Try another date range to explore your audience."
+            desc={t("overview.emptyAudienceDescription")}
             icon={MapPin}
-            title="No location data"
+            title={t("overview.noLocationData")}
           />
         {/if}
       {/await}
@@ -447,10 +527,12 @@
         <FrameTitle id="heading-{report.id}">{report.title}</FrameTitle>
       </div>
       <Button
-        aria-label="View {report.title.toLowerCase()} report"
+        aria-label={t("overview.viewReport", {
+          name: report.title.toLowerCase(),
+        })}
         href={resolve(report.href)}
         size="icon-sm"
-        title="View {report.title.toLowerCase()} report"
+        title={t("overview.viewReport", { name: report.title.toLowerCase() })}
         variant="ghost"
       >
         <ArrowUpRight />
@@ -459,7 +541,11 @@
     <FramePanel>
       {#await report.stats}
         <div role="status">
-          <span class="sr-only">Loading {report.title.toLowerCase()}</span>
+          <span class="sr-only"
+            >{t("overview.loadingReport", {
+              name: report.title.toLowerCase(),
+            })}</span
+          >
           {@render listSkeleton(4)}
         </div>
       {:then result}
@@ -467,14 +553,16 @@
           <BarChart
             data={result.stats}
             label={report.label}
-            maxItems={4}
+            maxItems={layout ? widgetLimit(layout, report.id) : 4}
             tone={report.tone}
           />
         {:else}
           <EmptyState
-            desc="Try another date range to explore your audience."
+            desc={t("overview.emptyAudienceDescription")}
             icon={report.icon}
-            title="No {report.title.toLowerCase()} data"
+            title={t("overview.emptyReportTitle", {
+              name: report.title.toLowerCase(),
+            })}
           />
         {/if}
       {/await}
@@ -486,7 +574,7 @@
   hits: readonly HitList[],
   diffs: Record<number, number | null> | null
 )}
-  <ul aria-label="Top pages" class="m-0 list-none p-0">
+  <ul aria-label={t("overview.topPages")} class="m-0 list-none p-0">
     {#each hits as hit, i (hit.path_id)}
       <PageRow
         diff={diffs?.[hit.path_id]}
@@ -496,6 +584,7 @@
           id: String(hit.path_id),
         })}
         {linkDomain}
+        chartStyle={pagesStyle}
         rank={i + 1}
         scaleMax={sharedScaleMax(hits)}
       />
