@@ -1,31 +1,118 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
+  import CopyField from "$lib/components/CopyField.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { showToast } from "$lib/components/toast.js";
   import {
-    BadgeCheck,
-    Database,
-    ExternalLink,
-    Save,
-    Settings,
-    ShieldCheck,
-    TriangleAlert,
-  } from "@lucide/svelte";
+    Alert,
+    AlertDescription,
+    AlertTitle,
+  } from "$lib/components/ui/alert";
+  import { Badge } from "$lib/components/ui/badge";
+  import { Button } from "$lib/components/ui/button";
+  import { Checkbox } from "$lib/components/ui/checkbox";
+  import {
+    Frame,
+    FrameDescription,
+    FrameFooter,
+    FrameHeader,
+    FramePanel,
+    FrameTitle,
+  } from "$lib/components/ui/frame";
+  import { Input } from "$lib/components/ui/input";
+  import { Label } from "$lib/components/ui/label";
+  import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
+  import { Switch } from "$lib/components/ui/switch";
+  import { Textarea } from "$lib/components/ui/textarea";
+  import { ExternalLink, RefreshCw, Save, TriangleAlert } from "@lucide/svelte";
+
+  const collectionOptions = [
+    {
+      description: "Store pageviews for CSV exports.",
+      flag: 256,
+      label: "Individual pageviews",
+      name: "collectHits",
+    },
+    {
+      description: "Estimate unique visitors for up to eight hours.",
+      flag: 128,
+      label: "Sessions",
+      name: "collectSessions",
+    },
+    {
+      description: "Record referrer headers and campaign parameters.",
+      flag: 2,
+      label: "Referrers and campaigns",
+      name: "collectReferrer",
+    },
+    {
+      description:
+        "Derive names from the User-Agent without storing the header.",
+      flag: 4,
+      label: "Browser and system",
+      name: "collectUserAgent",
+    },
+    {
+      description: "Record viewport dimensions.",
+      flag: 8,
+      label: "Screen size",
+      name: "collectScreenSize",
+    },
+    {
+      description: "Record visitor country.",
+      flag: 16,
+      label: "Country",
+      name: "collectLocation",
+    },
+    {
+      description: "Record regional detail for selected countries.",
+      flag: 32,
+      label: "Region",
+      name: "collectRegion",
+    },
+    {
+      description: "Record supported browser languages.",
+      flag: 64,
+      label: "Language",
+      name: "collectLanguage",
+    },
+  ] as const;
+
+  const PUBLIC_OPTIONS = [
+    {
+      description: "Only signed-in GoatCounter users can see the dashboard.",
+      label: "Private",
+      value: "private",
+    },
+    {
+      description: "Anyone with the share link can view the dashboard.",
+      label: "Secret link",
+      value: "secret",
+    },
+    {
+      description: "Anyone can view the GoatCounter dashboard.",
+      label: "Public",
+      value: "public",
+    },
+  ] as const;
+
+  const COUNTER_FORMATS = ["html", "svg", "png", "json"] as const;
 
   let { data, form } = $props();
+
+  let lastUpdateId = $state<string | null>(null);
+
   const adminUrl = $derived(data.goatCounterAdminUrl);
   const settingsValues = $derived(
     form?.values && "dataRetention" in form.values ? form.values : undefined
   );
   const createSiteValues = $derived(
-    form?.values && "cname" in form.values ? form.values : undefined
+    form?.values && "cname" in form.values && !("dataRetention" in form.values)
+      ? form.values
+      : undefined
   );
-  let lastUpdateId = $state<string | null>(null);
-
-  function hasCollection(flag: number): boolean {
-    return (data.site.settings.collect & flag) === flag;
-  }
 
   $effect(() => {
     if (data.created && data.created !== lastUpdateId) {
@@ -36,558 +123,602 @@
       lastUpdateId = data.updated;
     }
   });
+
+  let publicMode = $derived(
+    settingsValues?.public ?? data.site.settings.public ?? "private"
+  );
+  let secret = $derived(settingsValues?.secret ?? data.sharing.secret ?? "");
+  let allowCounter = $derived(
+    settingsValues?.allowCounter ?? data.site.settings.allow_counter
+  );
+  let counterPath = $state("TOTAL");
+
+  const counterPathSegment = $derived(
+    counterPath.trim() === "TOTAL" || !counterPath.trim()
+      ? "TOTAL"
+      : encodeURIComponent(
+          counterPath.trim().startsWith("/")
+            ? counterPath.trim()
+            : `/${counterPath.trim()}`
+        )
+  );
+
+  function counterUrl(format: (typeof COUNTER_FORMATS)[number]): string {
+    return `${data.sharing.counterOrigin}/counter/${counterPathSegment}.${format}`;
+  }
+
+  /** 32 alphanumeric characters, within GoatCounter's 8–40 limit. */
+  function generateSecret() {
+    const alphabet =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+
+    // ponytail: modulo bias over 62 symbols is ~3%, negligible for a view token.
+    secret = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join(
+      ""
+    );
+  }
+
+  function hasCollection(flag: number): boolean {
+    return (data.site.settings.collect & flag) === flag;
+  }
 </script>
 
 <SEO
-  title="Site settings — gtcd"
   description="Manage GoatCounter site settings."
   noindex
+  title="Site settings — gtcd"
 />
 
-<header
-  class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-end sm:justify-between"
+<PageHeader
+  description="Control the data GoatCounter keeps and where your analytics can appear."
+  title="Site settings"
 >
-  <div class="max-w-2xl">
-    <p class="eyebrow mb-2">Site administration</p>
-    <h1
-      class="text-2xl sm:text-3xl font-semibold tracking-tight text-foreground"
-    >
-      Site settings
-    </h1>
-    <p class="text-sm leading-6 text-muted-foreground mt-2">
-      Control the data GoatCounter keeps and where your analytics can appear.
-    </p>
-  </div>
-  <button class="btn btn-primary shrink-0" type="submit" form="site-settings">
-    <Save class="h-4 w-4" /> Save changes
-  </button>
-</header>
+  {#snippet actions()}
+    <Button form="site-settings" type="submit">
+      <Save />
+      Save changes
+    </Button>
+  {/snippet}
+</PageHeader>
 
 {#if form?.message && !createSiteValues}
-  <div class="alert alert-error mb-5" role="alert">
-    <TriangleAlert class="h-5 w-5 shrink-0" />
-    <span
-      >{form.field
+  <Alert class="mb-4" variant="destructive">
+    <TriangleAlert />
+    <AlertTitle>Settings not saved</AlertTitle>
+    <AlertDescription>
+      {form.field
         ? "GoatCounter could not save your settings. Review the highlighted field."
-        : form.message}</span
-    >
-  </div>
+        : form.message}
+    </AlertDescription>
+  </Alert>
 {/if}
 
-<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+<div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
   <form
+    action="?/update"
+    class="min-w-0 space-y-4"
     id="site-settings"
     method="POST"
-    action="?/update"
     use:enhance
-    class="panel !p-0 overflow-hidden"
   >
-    <input type="hidden" name="siteId" value={data.site.id} />
-
-    <section class="p-5 sm:p-6" aria-labelledby="site-identity-heading">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
-        <span class="metric-icon shrink-0" aria-hidden="true"
-          ><Settings class="h-5 w-5" /></span
-        >
-        <div>
-          <h2 id="site-identity-heading" class="section-title">
-            {data.site.cname || data.site.code}
-          </h2>
-          <p class="text-sm leading-6 text-muted-foreground mt-1">
-            Connect this analytics site to the website people visit.
-          </p>
-        </div>
-      </div>
-      <label class="grid gap-2 mt-6">
-        <span class="label-text font-medium">Analytics hostname</span>
-        <input
-          class="input input-bordered h-11 w-full px-3"
-          name="cname"
-          type="text"
-          value={settingsValues?.cname ?? data.site.cname ?? ""}
-          aria-invalid={form?.field === "cname" ? "true" : undefined}
-          required
-        />
-      </label>
-      <label class="grid gap-2 mt-6">
-        <span class="label-text font-medium">Linked website URL</span>
-        <input
-          class="input input-bordered h-11 w-full px-3"
-          name="linkDomain"
-          type="url"
-          value={settingsValues?.linkDomain ?? data.site.link_domain ?? ""}
-          placeholder="https://www.example.com"
-          aria-describedby="link-domain-help"
-        />
-        <span
-          id="link-domain-help"
-          class="block text-xs leading-5 text-muted-foreground"
-          >Use the canonical URL for the website this site measures.</span
-        >
-      </label>
-    </section>
-
-    <section
-      class="border-t border-border p-5 sm:p-6"
-      aria-labelledby="data-controls-heading"
-    >
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
-        <span class="metric-icon shrink-0" aria-hidden="true"
-          ><Database class="h-5 w-5" /></span
-        >
-        <div>
-          <h2 id="data-controls-heading" class="section-title">
-            Data controls
-          </h2>
-          <p class="text-sm leading-6 text-muted-foreground mt-1">
-            Choose how long analytics data is kept and which traffic to ignore.
-          </p>
-        </div>
-      </div>
-      <div
-        class="grid gap-6 mt-6 md:grid-cols-[minmax(15rem,0.75fr)_minmax(0,1.25fr)]"
+    <input name="siteId" type="hidden" value={data.site.id} />
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="site-identity-heading">
+          {data.site.cname || data.site.code}
+        </FrameTitle>
+        <FrameDescription>
+          Connect this analytics site to the website people visit.
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel
+        aria-labelledby="site-identity-heading"
+        class="grid gap-5"
+        role="region"
       >
-        <label class="grid content-start gap-2">
-          <span class="label-text font-medium">Data retention</span>
-          <div class="join w-full">
-            <input
-              class="input input-bordered join-item h-11 w-full px-3"
-              name="dataRetention"
-              type="number"
-              min="0"
-              value={settingsValues?.dataRetention ??
-                data.site.settings.data_retention}
-              aria-label="Data retention in days"
-              aria-describedby="data-retention-help"
-            />
-            <span class="btn btn-disabled join-item h-11 pointer-events-none"
-              >days</span
-            >
+        <div class="grid gap-2">
+          <Label for="settings-cname">Analytics hostname</Label>
+          <Input
+            aria-invalid={form?.field === "cname" ? "true" : undefined}
+            id="settings-cname"
+            name="cname"
+            required
+            type="text"
+            value={settingsValues?.cname ?? data.site.cname ?? ""}
+          />
+        </div>
+        <div class="grid gap-2">
+          <Label for="settings-link-domain">Linked website URL</Label>
+          <Input
+            aria-describedby="link-domain-help"
+            id="settings-link-domain"
+            name="linkDomain"
+            placeholder="https://www.example.com"
+            type="url"
+            value={settingsValues?.linkDomain ?? data.site.link_domain ?? ""}
+          />
+          <p class="text-xs text-muted-foreground" id="link-domain-help">
+            Use the canonical URL for the website this site measures.
+          </p>
+        </div>
+      </FramePanel>
+    </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="data-controls-heading">Data controls</FrameTitle>
+        <FrameDescription>
+          Choose how long analytics data is kept and which traffic to ignore.
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel
+        aria-labelledby="data-controls-heading"
+        class="grid gap-5"
+        role="region"
+      >
+        <div class="grid gap-5 md:grid-cols-2">
+          <div class="grid content-start gap-2">
+            <Label for="settings-data-retention">Data retention</Label>
+            <div class="flex">
+              <Input
+                aria-describedby="data-retention-help"
+                class="rounded-r-none"
+                id="settings-data-retention"
+                min="0"
+                name="dataRetention"
+                type="number"
+                value={settingsValues?.dataRetention ??
+                  data.site.settings.data_retention}
+              />
+              <span
+                class="inline-flex h-8 items-center rounded-r-lg border border-l-0 border-input bg-muted px-2.5 text-sm text-muted-foreground"
+              >
+                days
+              </span>
+            </div>
+            <p class="text-xs text-muted-foreground" id="data-retention-help">
+              Use 0 to retain data indefinitely.
+            </p>
           </div>
-          <span
-            id="data-retention-help"
-            class="block text-xs leading-5 text-muted-foreground"
-            >Use 0 to retain data indefinitely.</span
-          >
-        </label>
-        <label class="grid gap-2">
-          <span class="label-text font-medium">Ignored IP addresses</span>
-          <textarea
-            class="textarea textarea-bordered min-h-32 w-full p-3 leading-6"
-            name="ignoreIps"
-            placeholder="One IP or CIDR per line"
+          <div class="grid content-start gap-2">
+            <Label for="settings-collect-regions">
+              Countries with regional reporting
+            </Label>
+            <Input
+              aria-describedby={form?.field === "collectRegions"
+                ? "collect-regions-help collect-regions-error"
+                : "collect-regions-help"}
+              aria-invalid={form?.field === "collectRegions"
+                ? "true"
+                : undefined}
+              id="settings-collect-regions"
+              name="collectRegions"
+              placeholder="US, ID"
+              type="text"
+              value={settingsValues?.collectRegions ??
+                data.site.settings.collect_regions.join(", ")}
+            />
+            <p class="text-xs text-muted-foreground" id="collect-regions-help">
+              Comma-separated country codes, only where regional detail is
+              needed.
+            </p>
+            {#if form?.field === "collectRegions"}
+              <p class="text-xs text-destructive" id="collect-regions-error">
+                {form.message}
+              </p>
+            {/if}
+          </div>
+        </div>
+        <div class="grid gap-2">
+          <Label for="settings-ignore-ips">Ignored IP addresses</Label>
+          <Textarea
             aria-describedby={form?.field === "ignoreIps"
               ? "ignore-ips-help ignore-ips-error"
               : "ignore-ips-help"}
             aria-invalid={form?.field === "ignoreIps" ? "true" : undefined}
-            >{settingsValues?.ignoreIps ??
-              data.site.settings.ignore_ips.join("\n")}</textarea
-          >
-          <span
-            id="ignore-ips-help"
-            class="block text-xs leading-5 text-muted-foreground"
-            >Exclude internal traffic using one IP address or CIDR range per
-            line.</span
-          >
-          {#if form?.field === "ignoreIps"}
-            <span
-              id="ignore-ips-error"
-              class="block text-xs leading-5 text-error">{form.message}</span
-            >
-          {/if}
-        </label>
-      </div>
-      <label class="grid gap-2 mt-6">
-        <span class="label-text font-medium"
-          >Countries with regional reporting</span
-        >
-        <input
-          class="input input-bordered h-11 w-full px-3"
-          name="collectRegions"
-          type="text"
-          placeholder="US, ID"
-          aria-describedby={form?.field === "collectRegions"
-            ? "collect-regions-help collect-regions-error"
-            : "collect-regions-help"}
-          aria-invalid={form?.field === "collectRegions" ? "true" : undefined}
-          value={settingsValues?.collectRegions ??
-            data.site.settings.collect_regions.join(", ")}
-        />
-        <span
-          id="collect-regions-help"
-          class="block text-xs leading-5 text-muted-foreground"
-          >Enter comma-separated country codes only where regional detail is
-          needed.</span
-        >
-        {#if form?.field === "collectRegions"}
-          <span
-            id="collect-regions-error"
-            class="block text-xs leading-5 text-error">{form.message}</span
-          >
-        {/if}
-      </label>
-      <fieldset class="mt-7" aria-describedby="collection-help">
-        <legend class="label-text font-medium">Data to collect</legend>
-        <p
-          id="collection-help"
-          class="text-xs leading-5 text-muted-foreground mt-2"
-        >
-          Changes apply to future visits. Existing analytics data is not
-          removed.
-        </p>
-        <div class="grid gap-3 mt-4 sm:grid-cols-2">
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectHits"
-              type="checkbox"
-              checked={settingsValues?.collectHits ?? hasCollection(256)}
-            />
-            <span
-              ><span class="block text-sm font-medium"
-                >Individual pageviews</span
-              ><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Store pageviews for CSV exports.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectSessions"
-              type="checkbox"
-              checked={settingsValues?.collectSessions ?? hasCollection(128)}
-            />
-            <span
-              ><span class="block text-sm font-medium">Sessions</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Estimate unique visitors for up to eight hours.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectReferrer"
-              type="checkbox"
-              checked={settingsValues?.collectReferrer ?? hasCollection(2)}
-            />
-            <span
-              ><span class="block text-sm font-medium"
-                >Referrers and campaigns</span
-              ><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Record referrer headers and campaign parameters.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectUserAgent"
-              type="checkbox"
-              checked={settingsValues?.collectUserAgent ?? hasCollection(4)}
-            />
-            <span
-              ><span class="block text-sm font-medium">Browser and system</span
-              ><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Derive names from the User-Agent without storing the header.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectScreenSize"
-              type="checkbox"
-              checked={settingsValues?.collectScreenSize ?? hasCollection(8)}
-            />
-            <span
-              ><span class="block text-sm font-medium">Screen size</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Record viewport dimensions.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectLocation"
-              type="checkbox"
-              checked={settingsValues?.collectLocation ?? hasCollection(16)}
-            />
-            <span
-              ><span class="block text-sm font-medium">Country</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Record visitor country.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectRegion"
-              type="checkbox"
-              checked={settingsValues?.collectRegion ?? hasCollection(32)}
-            />
-            <span
-              ><span class="block text-sm font-medium">Region</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Record regional detail for selected countries.</span
-              ></span
-            >
-          </label>
-          <label
-            class="flex min-h-20 cursor-pointer items-start gap-3 rounded-box border border-border p-4"
-          >
-            <input
-              class="checkbox checkbox-primary mt-0.5 shrink-0"
-              name="collectLanguage"
-              type="checkbox"
-              checked={settingsValues?.collectLanguage ?? hasCollection(64)}
-            />
-            <span
-              ><span class="block text-sm font-medium">Language</span><span
-                class="block text-xs leading-5 text-muted-foreground mt-0.5"
-                >Record supported browser languages.</span
-              ></span
-            >
-          </label>
-        </div>
-      </fieldset>
-    </section>
-
-    <section
-      class="border-t border-border p-5 sm:p-6"
-      aria-labelledby="sharing-heading"
-    >
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
-        <span class="metric-icon shrink-0" aria-hidden="true"
-          ><ShieldCheck class="h-5 w-5" /></span
-        >
-        <div>
-          <h2 id="sharing-heading" class="section-title">
-            Sharing and counters
-          </h2>
-          <p class="text-sm leading-6 text-muted-foreground mt-1">
-            Set where analytics can be embedded and which public counters are
-            available.
+            class="min-h-28"
+            id="settings-ignore-ips"
+            name="ignoreIps"
+            placeholder="One IP or CIDR per line"
+            value={settingsValues?.ignoreIps ??
+              data.site.settings.ignore_ips.join("\n")}
+          />
+          <p class="text-xs text-muted-foreground" id="ignore-ips-help">
+            Exclude internal traffic using one IP address or CIDR range per
+            line.
           </p>
+          {#if form?.field === "ignoreIps"}
+            <p class="text-xs text-destructive" id="ignore-ips-error">
+              {form.message}
+            </p>
+          {/if}
         </div>
-      </div>
-      <label class="grid gap-2 mt-6">
-        <span class="label-text font-medium">Public setting</span>
-        <input
-          class="input input-bordered h-11 w-full px-3"
-          name="public"
-          type="text"
-          value={settingsValues?.public ?? data.site.settings.public}
-          aria-invalid={form?.field === "public" ? "true" : undefined}
-        />
-        <span class="block text-xs leading-5 text-muted-foreground"
-          >Use the GoatCounter public setting value configured for this site.</span
-        >
-      </label>
-      <label class="grid gap-2 mt-6">
-        <span class="label-text font-medium">Allowed embed origins</span>
-        <textarea
-          class="textarea textarea-bordered min-h-32 w-full p-3 leading-6"
-          name="allowEmbed"
-          placeholder="https://dashboard.example.com"
-          aria-describedby={form?.field === "allowEmbed"
-            ? "allow-embed-help allow-embed-error"
-            : "allow-embed-help"}
-          aria-invalid={form?.field === "allowEmbed" ? "true" : undefined}
-          >{settingsValues?.allowEmbed ??
-            data.site.settings.allow_embed.join("\n")}</textarea
-        >
-        <span
-          id="allow-embed-help"
-          class="block text-xs leading-5 text-muted-foreground"
-          >Allow one trusted origin per line.</span
-        >
-        {#if form?.field === "allowEmbed"}
-          <span
-            id="allow-embed-error"
-            class="block text-xs leading-5 text-error">{form.message}</span
-          >
-        {/if}
-      </label>
-      <div class="grid gap-3 mt-6 sm:grid-cols-2">
-        <label
-          class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
-        >
-          <input
-            class="toggle toggle-primary shrink-0"
-            name="allowCounter"
-            type="checkbox"
-            checked={settingsValues?.allowCounter ??
-              data.site.settings.allow_counter}
-          />
-          <span
-            ><span class="block text-sm font-medium">Visitor counter</span><span
-              class="block text-xs leading-5 text-muted-foreground mt-0.5"
-              >Allow the public visitor counter.</span
-            ></span
-          >
-        </label>
-        <label
-          class="flex min-h-22 cursor-pointer items-center gap-3 rounded-box border border-border p-4"
-        >
-          <input
-            class="toggle toggle-primary shrink-0"
-            name="allowBosmang"
-            type="checkbox"
-            checked={settingsValues?.allowBosmang ??
-              data.site.settings.allow_bosmang}
-          />
-          <span
-            ><span class="block text-sm font-medium">Bosmang</span><span
-              class="block text-xs leading-5 text-muted-foreground mt-0.5"
-              >Allow GoatCounter's Bosmang interface.</span
-            ></span
-          >
-        </label>
-      </div>
-    </section>
-  </form>
-
-  <aside class="h-fit space-y-4 lg:sticky lg:top-24">
-    <section class="panel" aria-labelledby="settings-site-heading">
-      <p class="eyebrow mb-3">Current site</p>
-      <h2 id="settings-site-heading" class="section-title">
-        {data.site.cname || data.site.code}
-      </h2>
-      <dl class="mt-5 space-y-3 text-sm">
-        <div class="flex items-center justify-between gap-4">
-          <dt class="text-muted-foreground">Status</dt>
-          <dd class="font-medium flex items-center gap-1.5">
-            <BadgeCheck class="h-4 w-4 text-success" />
-            {data.site.received_data ? "Receiving data" : "Awaiting data"}
-          </dd>
-        </div>
-        <div class="flex items-center justify-between gap-4">
-          <dt class="text-muted-foreground">Retention</dt>
-          <dd class="font-medium">
-            {data.site.settings.data_retention || "Unlimited"}
-          </dd>
-        </div>
-      </dl>
-    </section>
-    <section class="panel" aria-labelledby="native-admin-heading">
-      <h2 id="native-admin-heading" class="section-title">
-        Native administration
-      </h2>
-      <p class="text-sm leading-6 text-muted-foreground mt-2">
-        Manage users, API tokens, TOTP, imports, pages, preferences, and email
-        reports in GoatCounter.
-      </p>
-      {#if adminUrl}
-        <svelte:element
-          this={"a"}
-          class="btn btn-outline w-full mt-5"
-          href={adminUrl}
-          target="_blank"
-          rel="noreferrer"
-          ><ExternalLink class="h-4 w-4" /> Open GoatCounter</svelte:element
-        >
-      {:else}
-        <div class="alert alert-warning items-start text-sm mt-5 min-w-0">
-          <TriangleAlert class="h-4 w-4 shrink-0" />
-          <span class="min-w-0">
-            Set <code class="break-words">GOATCOUNTER_ADMIN_URL</code> to enable this
-            handoff.
-          </span>
-        </div>
-      {/if}
-    </section>
-    {#if data.sites.length > 1}
-      <section class="panel" aria-labelledby="available-sites-heading">
-        <h2 id="available-sites-heading" class="section-title">
-          Available sites
-        </h2>
-        <ul class="list-none m-0 mt-3 p-0 space-y-1 text-sm">
-          {#each data.sites as site (site.id)}
-            <li>
-              <a
-                class="flex items-center gap-2 rounded-field px-2 py-2 {site.id ===
-                data.site.id
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground'}"
-                href={resolve("/dashboard/settings") + `?site=${site.id}`}
+        <fieldset aria-describedby="collection-help" class="grid gap-2">
+          <legend class="text-sm font-medium">Data to collect</legend>
+          <p class="text-xs text-muted-foreground" id="collection-help">
+            Changes apply to future visits. Existing analytics data is not
+            removed.
+          </p>
+          <div class="mt-1 grid gap-2 sm:grid-cols-2">
+            {#each collectionOptions as option (option.name)}
+              <Label
+                class="cursor-pointer items-start gap-3 rounded-lg border border-border p-3 leading-normal font-normal has-data-checked:bg-muted/50"
+                for="settings-{option.name}"
               >
-                <span
-                  class="h-1.5 w-1.5 rounded-full bg-current"
-                  aria-hidden="true"
-                ></span>
-                <span class="truncate">{site.cname || site.code}</span>
-              </a>
-            </li>
-          {/each}
-        </ul>
-      </section>
+                <Checkbox
+                  checked={settingsValues?.[option.name] ??
+                    hasCollection(option.flag)}
+                  class="mt-0.5"
+                  id="settings-{option.name}"
+                  name={option.name}
+                  value="on"
+                />
+                <span class="grid gap-0.5">
+                  <span class="text-sm font-medium">{option.label}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {option.description}
+                  </span>
+                </span>
+              </Label>
+            {/each}
+          </div>
+        </fieldset>
+      </FramePanel>
+    </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="sharing-heading">Sharing and counters</FrameTitle>
+        <FrameDescription>
+          Set where analytics can be embedded and which public counters are
+          available.
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel
+        aria-labelledby="sharing-heading"
+        class="grid gap-5"
+        role="region"
+      >
+        <fieldset class="grid gap-2">
+          <legend class="mb-2 text-sm font-medium">Dashboard visibility</legend>
+          <RadioGroup
+            aria-describedby={form?.field === "public"
+              ? "public-error"
+              : undefined}
+            bind:value={publicMode}
+            class="gap-2 sm:grid-cols-3"
+            name="public"
+          >
+            {#each PUBLIC_OPTIONS as option (option.value)}
+              <Label
+                class="cursor-pointer items-start gap-3 rounded-lg border border-border p-3 leading-normal font-normal has-data-checked:bg-muted/50"
+                for="settings-public-{option.value}"
+              >
+                <RadioGroupItem
+                  class="mt-0.5"
+                  id="settings-public-{option.value}"
+                  value={option.value}
+                />
+                <span class="grid gap-0.5">
+                  <span class="text-sm font-medium">{option.label}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {option.description}
+                  </span>
+                </span>
+              </Label>
+            {/each}
+          </RadioGroup>
+          {#if form?.field === "public"}
+            <p class="text-xs text-destructive" id="public-error">
+              {form.message}
+            </p>
+          {/if}
+        </fieldset>
+        {#if publicMode === "secret"}
+          <div class="grid gap-2">
+            <Label for="settings-secret">Access token</Label>
+            <div class="flex items-center gap-1.5">
+              <Input
+                aria-describedby={form?.field === "secret"
+                  ? "secret-help secret-error"
+                  : "secret-help"}
+                aria-invalid={form?.field === "secret" ? "true" : undefined}
+                autocomplete="off"
+                bind:value={secret}
+                class="font-mono text-xs"
+                id="settings-secret"
+                maxlength={40}
+                name="secret"
+                placeholder="Generated on save"
+              />
+              <Button onclick={generateSecret} type="button" variant="outline">
+                <RefreshCw />
+                Generate
+              </Button>
+            </div>
+            <p class="text-xs text-muted-foreground" id="secret-help">
+              8 to 40 letters and digits. A new token stops old share links from
+              working.
+            </p>
+            {#if form?.field === "secret"}
+              <p class="text-xs text-destructive" id="secret-error">
+                {form.message}
+              </p>
+            {/if}
+            {#if data.sharing.shareUrl && secret === data.sharing.secret}
+              <Label class="mt-2" for="settings-share-url">Share link</Label>
+              <CopyField
+                id="settings-share-url"
+                label="Share link"
+                value={data.sharing.shareUrl}
+              />
+            {:else if !adminUrl}
+              <p class="text-xs text-muted-foreground">
+                Set <code class="font-mono">GOATCOUNTER_ADMIN_URL</code> to get a
+                ready-made share link.
+              </p>
+            {:else}
+              <p class="text-xs text-muted-foreground">
+                Save to get the share link for this token.
+              </p>
+            {/if}
+          </div>
+        {/if}
+        <div class="grid gap-2">
+          <Label for="settings-allow-embed">Allowed embed origins</Label>
+          <Textarea
+            aria-describedby={form?.field === "allowEmbed"
+              ? "allow-embed-help allow-embed-error"
+              : "allow-embed-help"}
+            aria-invalid={form?.field === "allowEmbed" ? "true" : undefined}
+            class="min-h-28"
+            id="settings-allow-embed"
+            name="allowEmbed"
+            placeholder="https://dashboard.example.com"
+            value={settingsValues?.allowEmbed ??
+              data.site.settings.allow_embed.join("\n")}
+          />
+          <p class="text-xs text-muted-foreground" id="allow-embed-help">
+            Allow one trusted origin per line.
+          </p>
+          {#if form?.field === "allowEmbed"}
+            <p class="text-xs text-destructive" id="allow-embed-error">
+              {form.message}
+            </p>
+          {/if}
+        </div>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <Label
+            class="cursor-pointer items-start gap-3 rounded-lg border border-border p-3 leading-normal font-normal"
+            for="settings-allow-counter"
+          >
+            <Switch
+              bind:checked={allowCounter}
+              class="mt-0.5"
+              id="settings-allow-counter"
+              name="allowCounter"
+              value="on"
+            />
+            <span class="grid gap-0.5">
+              <span class="text-sm font-medium">Visitor counter</span>
+              <span class="text-xs text-muted-foreground">
+                Allow the public visitor counter.
+              </span>
+            </span>
+          </Label>
+          <Label
+            class="cursor-pointer items-start gap-3 rounded-lg border border-border p-3 leading-normal font-normal"
+            for="settings-allow-bosmang"
+          >
+            <Switch
+              checked={settingsValues?.allowBosmang ??
+                data.site.settings.allow_bosmang}
+              class="mt-0.5"
+              id="settings-allow-bosmang"
+              name="allowBosmang"
+              value="on"
+            />
+            <span class="grid gap-0.5">
+              <span class="text-sm font-medium">Bosmang</span>
+              <span class="text-xs text-muted-foreground">
+                Allow GoatCounter's Bosmang interface.
+              </span>
+            </span>
+          </Label>
+        </div>
+        {#if allowCounter && data.sharing.counterOrigin}
+          <div class="grid gap-3 rounded-lg border border-border p-3">
+            <div class="grid gap-2">
+              <Label for="counter-path">Counter path</Label>
+              <Input
+                aria-describedby="counter-path-help"
+                class="font-mono text-xs"
+                id="counter-path"
+                bind:value={counterPath}
+              />
+              <p class="text-xs text-muted-foreground" id="counter-path-help">
+                A page path such as <code class="font-mono">/blog</code>, or
+                <code class="font-mono">TOTAL</code> for the whole site.
+                {#if !data.site.settings.allow_counter}
+                  Save to turn the counter on.
+                {/if}
+              </p>
+            </div>
+            <div class="grid gap-2">
+              <Label for="counter-snippet">Embed snippet</Label>
+              <CopyField
+                id="counter-snippet"
+                label="Embed snippet"
+                mono
+                value={`<img src="${counterUrl("svg")}" alt="Visitor count">`}
+              />
+            </div>
+            <div class="grid gap-2 sm:grid-cols-2">
+              {#each COUNTER_FORMATS as format (format)}
+                <div class="grid min-w-0 gap-1.5">
+                  <Label class="text-xs" for="counter-url-{format}">
+                    {format.toUpperCase()} URL
+                  </Label>
+                  <CopyField
+                    id="counter-url-{format}"
+                    label="{format.toUpperCase()} counter URL"
+                    mono
+                    value={counterUrl(format)}
+                  />
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </FramePanel>
+      <FrameFooter class="flex-row justify-end gap-2">
+        <Button type="submit">
+          <Save />
+          Save changes
+        </Button>
+      </FrameFooter>
+    </Frame>
+  </form>
+  <aside class="space-y-4 lg:sticky lg:top-24">
+    <Frame>
+      <FrameHeader class="flex-row items-center justify-between gap-3">
+        <FrameTitle class="truncate" id="settings-site-heading">
+          {data.site.cname || data.site.code}
+        </FrameTitle>
+        {#if data.site.received_data}
+          <Badge variant="success-light">Receiving data</Badge>
+        {:else}
+          <Badge variant="outline">Awaiting data</Badge>
+        {/if}
+      </FrameHeader>
+      <FramePanel aria-labelledby="settings-site-heading" role="region">
+        <dl class="flex items-center justify-between gap-4 text-sm">
+          <dt class="text-muted-foreground">Retention</dt>
+          <dd class="font-medium tabular-nums">
+            {data.site.settings.data_retention
+              ? `${data.site.settings.data_retention} days`
+              : "Unlimited"}
+          </dd>
+        </dl>
+      </FramePanel>
+    </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="native-admin-heading">Native administration</FrameTitle>
+        <FrameDescription>
+          Manage users, API tokens, TOTP, imports, pages, preferences, and email
+          reports in GoatCounter.
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel aria-labelledby="native-admin-heading" role="region">
+        {#if adminUrl}
+          <Button
+            class="w-full"
+            href={adminUrl}
+            rel="noreferrer"
+            target="_blank"
+            variant="outline"
+          >
+            <ExternalLink />
+            Open GoatCounter
+          </Button>
+        {:else}
+          <Alert role="status" variant="warning">
+            <TriangleAlert />
+            <AlertTitle>Handoff unavailable</AlertTitle>
+            <AlertDescription class="min-w-0">
+              <p>
+                Set <code class="font-mono text-xs break-all"
+                  >GOATCOUNTER_ADMIN_URL</code
+                > to enable it.
+              </p>
+            </AlertDescription>
+          </Alert>
+        {/if}
+      </FramePanel>
+    </Frame>
+    {#if data.sites.length > 1}
+      <Frame>
+        <FrameHeader>
+          <FrameTitle id="available-sites-heading">Available sites</FrameTitle>
+        </FrameHeader>
+        <FramePanel
+          aria-labelledby="available-sites-heading"
+          class="p-1.5"
+          role="region"
+        >
+          <ul class="grid gap-0.5">
+            {#each data.sites as site (site.id)}
+              <li>
+                <form action={resolve("/dashboard/settings")} method="GET">
+                  <input name="site" type="hidden" value={site.id} />
+                  <Button
+                    aria-current={site.id === data.site.id ? "page" : undefined}
+                    class="w-full justify-start"
+                    type="submit"
+                    variant={site.id === data.site.id ? "secondary" : "ghost"}
+                  >
+                    <span class="truncate">{site.cname || site.code}</span>
+                  </Button>
+                </form>
+              </li>
+            {/each}
+          </ul>
+        </FramePanel>
+      </Frame>
     {/if}
     {#if data.canCreateSite}
-      <section class="panel" aria-labelledby="add-site-heading">
-        <h2 id="add-site-heading" class="section-title">Add a site</h2>
-        <p class="text-sm leading-6 text-muted-foreground mt-2">
-          Create a child site for another analytics hostname. Its host must be
-          configured in your GoatCounter reverse proxy before it can receive
-          data.
-        </p>
-        <form method="POST" action="?/createSite" class="grid gap-4 mt-5">
-          {#if createSiteValues && form?.message}
-            <div class="alert alert-error" role="alert">
-              <TriangleAlert class="h-5 w-5 shrink-0" />
-              <span>{form.message}</span>
-            </div>
-          {/if}
-          <label class="grid gap-2">
-            <span class="label-text font-medium">Analytics hostname</span>
-            <input
-              class="input input-bordered h-11 w-full px-3"
-              name="cname"
-              type="text"
-              placeholder="stats.example.com"
-              value={createSiteValues?.cname ?? ""}
-              required
-            />
-          </label>
-          <label class="grid gap-2">
-            <span class="label-text font-medium"
-              >Linked website URL <span
-                class="font-normal text-muted-foreground">(optional)</span
-              ></span
-            >
-            <input
-              class="input input-bordered h-11 w-full px-3"
-              name="linkDomain"
-              type="url"
-              placeholder="https://www.example.com"
-              value={createSiteValues?.linkDomain ?? ""}
-            />
-          </label>
-          <button class="btn btn-outline w-full" type="submit"
-            >Create site</button
+      <form action="?/createSite" method="POST">
+        <Frame>
+          <FrameHeader>
+            <FrameTitle id="add-site-heading">Add a site</FrameTitle>
+            <FrameDescription>
+              Create a child site for another analytics hostname. Configure its
+              host in your GoatCounter reverse proxy before it can receive data.
+            </FrameDescription>
+          </FrameHeader>
+          <FramePanel
+            aria-labelledby="add-site-heading"
+            class="grid gap-4"
+            role="region"
           >
-        </form>
-      </section>
+            {#if createSiteValues && form?.message}
+              <Alert variant="destructive">
+                <TriangleAlert />
+                <AlertTitle>Site not created</AlertTitle>
+                <AlertDescription>{form.message}</AlertDescription>
+              </Alert>
+            {/if}
+            <div class="grid gap-2">
+              <Label for="create-site-cname">Analytics hostname</Label>
+              <Input
+                id="create-site-cname"
+                name="cname"
+                placeholder="stats.example.com"
+                required
+                type="text"
+                value={createSiteValues?.cname ?? ""}
+              />
+            </div>
+            <div class="grid gap-2">
+              <Label for="create-site-link-domain">
+                Linked website URL
+                <span class="font-normal text-muted-foreground">(optional)</span
+                >
+              </Label>
+              <Input
+                id="create-site-link-domain"
+                name="linkDomain"
+                placeholder="https://www.example.com"
+                type="url"
+                value={createSiteValues?.linkDomain ?? ""}
+              />
+            </div>
+          </FramePanel>
+          <FrameFooter class="flex-row justify-end gap-2">
+            <Button type="submit" variant="outline">Create site</Button>
+          </FrameFooter>
+        </Frame>
+      </form>
     {/if}
   </aside>
 </div>

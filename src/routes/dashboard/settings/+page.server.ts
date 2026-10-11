@@ -1,5 +1,9 @@
+import { randomInt } from "node:crypto";
 import { error, fail, redirect } from "@sveltejs/kit";
-import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
+import {
+  getGoatCounterAdminUrl,
+  requireDashboardAdmin,
+} from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
@@ -18,8 +22,14 @@ const COLLECT_LANGUAGE = 64;
 const COLLECT_SESSION = 128;
 const COLLECT_HITS = 256;
 
+const PUBLIC_MODES = ["private", "secret", "public"] as const;
+const SECRET_ALPHABET =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+type PublicMode = (typeof PUBLIC_MODES)[number];
+
 type SettingsField =
-  "cname" | "public" | "ignoreIps" | "collectRegions" | "allowEmbed";
+  "cname" | "public" | "secret" | "ignoreIps" | "collectRegions" | "allowEmbed";
 
 type SettingsUpdateError = {
   readonly field: SettingsField | null;
@@ -114,6 +124,35 @@ function parseCollection(formData: FormData): number {
   return collect || COLLECT_NOTHING;
 }
 
+function isPublicMode(value: unknown): value is PublicMode {
+  return PUBLIC_MODES.some((mode) => mode === value);
+}
+
+/** GoatCounter accepts 8–40 alphanumeric characters for the access token. */
+function isValidSecret(value: string): boolean {
+  return /^[A-Za-z0-9]{8,40}$/.test(value);
+}
+
+function generateSecret(): string {
+  return Array.from(
+    { length: 32 },
+    () => SECRET_ALPHABET[randomInt(SECRET_ALPHABET.length)]
+  ).join("");
+}
+
+/**
+ * Link to GoatCounter's own dashboard that unlocks a "secret" site for
+ * viewers. Needs the public GoatCounter URL; gtcd serves "/" itself.
+ */
+function shareUrl(secret: string): string | null {
+  const adminUrl = getGoatCounterAdminUrl();
+  if (!adminUrl) return null;
+
+  const url = new URL(adminUrl);
+  url.searchParams.set("access-token", secret);
+  return url.toString();
+}
+
 function toDashboardSite(site: Site): Omit<Site, "settings"> & {
   readonly settings: Omit<SiteSettings, "secret">;
 } {
@@ -159,6 +198,13 @@ function getSettingsUpdateError(error: unknown): SettingsUpdateError {
     return { field: "cname", message: message.replace("cname:", "Hostname:") };
   }
 
+  if (message.startsWith("settings.secret:")) {
+    return {
+      field: "secret",
+      message: message.replace("settings.secret:", "Access token:"),
+    };
+  }
+
   if (message.startsWith("settings.public:")) {
     return {
       field: "public",
@@ -177,7 +223,19 @@ export async function load({ locals, url }) {
   const siteContext = await getDashboardSiteContext(url);
   const site = await admin.getSite(siteContext.site.id);
 
+  // The access token only grants read access and is shown to admins, the
+  // same audience GoatCounter's own settings page shows it to.
+  const secret =
+    site.settings.public === "secret" && site.settings.secret
+      ? site.settings.secret
+      : null;
+
   return {
+    sharing: {
+      counterOrigin: site.cname ? `https://${site.cname}` : null,
+      secret,
+      shareUrl: secret ? shareUrl(secret) : null,
+    },
     site: toDashboardSite(site),
     sites: siteContext.sites,
     canCreateSite: hasPermission(
@@ -242,6 +300,7 @@ export const actions = {
     const ignoreIps = formData.get("ignoreIps");
     const collectRegions = formData.get("collectRegions");
     const allowEmbed = formData.get("allowEmbed");
+    const secretValue = formData.get("secret");
     const values = {
       linkDomain: typeof linkDomain === "string" ? linkDomain : "",
       cname:
@@ -252,6 +311,7 @@ export const actions = {
         typeof formData.get("public") === "string"
           ? String(formData.get("public"))
           : "",
+      secret: typeof secretValue === "string" ? secretValue.trim() : "",
       dataRetention:
         typeof dataRetentionValue === "string" ? dataRetentionValue : "",
       ignoreIps: typeof ignoreIps === "string" ? ignoreIps : "",
@@ -282,6 +342,25 @@ export const actions = {
       });
     }
 
+    if (!isPublicMode(values.public)) {
+      return fail(400, {
+        field: "public",
+        message: "Choose private, secret link or public.",
+        values,
+      });
+    }
+    if (
+      values.public === "secret" &&
+      values.secret &&
+      !isValidSecret(values.secret)
+    ) {
+      return fail(400, {
+        field: "secret",
+        message: "Access token: use 8 to 40 letters and digits.",
+        values,
+      });
+    }
+
     const currentUser = await stats.getMe();
     requireSiteReadPermission(currentUser.token.permissions);
     requireSiteUpdatePermission(currentUser.token.permissions);
@@ -303,6 +382,10 @@ export const actions = {
         settings: {
           ...site.settings,
           public: values.public,
+          secret:
+            values.public === "secret"
+              ? values.secret || site.settings.secret || generateSecret()
+              : site.settings.secret,
           data_retention: dataRetention,
           ignore_ips: parseList(ignoreIps),
           collect_regions: parseList(collectRegions),
