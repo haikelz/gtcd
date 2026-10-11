@@ -84,7 +84,12 @@ flowchart TD
   origins, and public-counter settings without exposing the API token.
 - **Data Exports**: Administrators can create and download gzip-compressed CSV
   exports through the GoatCounter API.
-- **Saved Views & Overview Layout**: Save a period, filter, grouping, and chart scale under a name, pick a default view, and choose which overview widgets show and in what order. Stored per user in Redis (in-memory fallback); hidden widgets skip their GoatCounter requests.
+- **Saved Views & Overview Layout**: Save a period, filter, grouping, and chart scale under a name, pick a default view, and choose which overview widgets show, in what order, with how many rows and which chart style (GoatCounter's own widgets and default view are imported on first use). Stored per user in Redis (in-memory fallback); hidden widgets skip their GoatCounter requests.
+- **Email Reports**: Daily, weekly, two-weekly, or monthly summaries (visits with change, top pages, referrers, countries) over your SMTP server, sent after 07:00 in your GoatCounter timezone, with a test-email button. A Redis lock keeps replicas from sending twice.
+- **Public Dashboard**: A read-only gtcd overview behind a revocable share link, for people without a login.
+- **English and Bahasa Indonesia**: The interface and email reports follow your GoatCounter language, with a per-user override.
+- **Fewer Numbers Mode**: Hide visit counts and keep chart shapes and shares, following GoatCounter's setting (including its lock) with a per-user override.
+- **Connection Check**: Send a labelled test visit through the API to confirm gtcd can write to GoatCounter.
 - **Sharing & Visitor Counter**: Set dashboard visibility (private, secret link, public), generate the access token and share link, and copy ready-made visitor-counter embeds (`/counter/<path>.svg|png|html|json`).
 - **Readable Charts**: Toggle the traffic chart to a data table, and switch page sparklines between per-page and shared scale. Event counts appear next to pageview totals.
 - **Data Normalization**: Empty or null metric names are automatically normalized to `"Unknown"` for clean chart display.
@@ -150,6 +155,15 @@ are illustrative.
   <tr>
     <td><img src="static/screenshots/settings.png" alt="Site settings with retention, data collection, visibility, and visitor counter options"></td>
     <td><img src="static/screenshots/exports.png" alt="Data exports page with CSV and JSON format choice and export status"></td>
+  </tr>
+</table>
+
+### Public dashboard and Bahasa Indonesia
+
+<table>
+  <tr>
+    <td><img src="static/screenshots/share.png" alt="Read-only public dashboard opened from a share link, with period buttons and key metrics"></td>
+    <td><img src="static/screenshots/traffic-id.png" alt="Traffic overview in Bahasa Indonesia"></td>
   </tr>
 </table>
 
@@ -352,6 +366,13 @@ Configure these in your `.env` file or container environment:
 | `COOKIE_SECURE`         |    No    | auto                      | Force the session cookie's `Secure` flag (`true`/`false`). By default it is set automatically from the request protocol, including `X-Forwarded-Proto` behind reverse proxies.                                 |
 | `GTCD_ADMIN_EMAILS`     |    No    | —                         | Comma-separated emails permitted to manage sites and exports in gtcd.                                                                                                                                          |
 | `GOATCOUNTER_ADMIN_URL` |    No    | —                         | Public HTTPS GoatCounter administration URL for users, API tokens, TOTP, imports, page management, dashboard preferences, and email reports. HTTP is allowed only on localhost.                                |
+| `SMTP_HOST`             |    No    | —                         | SMTP server for email reports. Reports stay off until `SMTP_HOST` and `SMTP_FROM` are set.                                                                                                                     |
+| `SMTP_PORT`             |    No    | `587` (`465` if secure)   | SMTP port.                                                                                                                                                                                                     |
+| `SMTP_SECURE`           |    No    | `false`                   | `true` for implicit TLS (port 465); otherwise STARTTLS is used when offered.                                                                                                                                   |
+| `SMTP_USER`             |    No    | —                         | SMTP username, if your server needs authentication.                                                                                                                                                            |
+| `SMTP_PASSWORD`         |    No    | —                         | SMTP password.                                                                                                                                                                                                 |
+| `SMTP_FROM`             |    No    | —                         | Sender address, e.g. `gtcd reports <reports@example.com>`.                                                                                                                                                     |
+| `GTCD_PUBLIC_URL`       |    No    | —                         | Public HTTPS URL of the dashboard, used for links in email reports.                                                                                                                                            |
 
 The login session cookie is `HttpOnly`, `SameSite=Lax`, and its `Secure` flag
 follows the protocol the client actually used, so both `http://localhost`

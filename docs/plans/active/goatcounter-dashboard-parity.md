@@ -99,3 +99,42 @@ src/lib/preferences.check.ts`.
 Evidence: `pnpm check`, `pnpm lint` (src), `pnpm build`, the preferences check,
 and browser QA against a synthetic upstream with a Jakarta-timezone user while
 the server ran with `TZ=UTC` (upstream received `+07:00` boundaries).
+
+## Phase 3: remaining buildable gaps (started 2026-10-11)
+
+Scope, in build order:
+
+1. Widget parity and options: add GoatCounter's `toprefs` and `campaigns`
+   overview widgets; per-widget `limit` (list widgets, 1–20; pages 1–100) and
+   `style` (traffic: line/bar; pages: line/bar/text).
+2. First-use import of the API token owner's GoatCounter widgets and
+   `default` view (period/filter/group) into the gtcd layout. GoatCounter's
+   copy is read-only through the API, so later edits stay in gtcd.
+3. "Fewer numbers" mode from `/me` (`fewer_numbers`, honoring
+   `fewer_numbers_lock_until`), with a per-user gtcd override.
+4. "Send test visit" via `POST /api/v0/count`, recorded as a labelled event.
+5. Public read-only gtcd dashboard behind revocable per-site share tokens.
+6. Email reports over SMTP (`SMTP_*` env), per-user frequency and site,
+   scheduled in-process with a Redis lock so replicas send once.
+7. Indonesian translation: locale from the GoatCounter `language` setting,
+   overridable per user; English fallback.
+
+Out of scope (no API): users/access, API tokens, TOTP, imports, path
+merge/purge, site removal/code change, account merge/delete, server admin.
+
+Phase 3 status (2026-10-11): all seven items complete.
+
+- Widget parity/options and first-use GoatCounter import: done
+  (`src/lib/dashboard-layout.ts`, check: `src/lib/dashboard-layout.check.ts`).
+- Fewer numbers with lock and override: done (`src/lib/preferences.ts`).
+- Test visit: done (`sendTestVisit` in `src/lib/server/goatcounter/admin.ts`).
+- Public dashboard: done (`src/routes/share/[token]`, `src/lib/server/share-store.ts`).
+- Email reports: done (`src/lib/server/email-reports.ts`, `src/lib/report-period.ts`,
+  check: `src/lib/report-period.check.ts`); verified against Mailpit, including a
+  scheduled send from the production build.
+- Indonesian translation: done (`src/lib/i18n`, 651 keys per locale; a missing
+  Indonesian key fails `pnpm check`).
+- Fixes found during QA: Redis `pingRedis` now connects before its first ping
+  (lazyConnect without an offline queue made the first command of every
+  process fall back to memory, dropping early logins and the first report
+  tick); session lookups also fall back to the in-memory store on a Redis miss.
