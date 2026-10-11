@@ -207,6 +207,15 @@
   href="#main-content">Skip to main content</a
 >
 
+{#if navigating.to}
+  <div
+    aria-hidden="true"
+    class="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-primary/10"
+  >
+    <div class="nav-progress h-full w-1/3 bg-primary"></div>
+  </div>
+{/if}
+
 {#if isDashboard && data.authenticated}
   <div class="flex min-h-dvh bg-background">
     {#if sidebarOpen && !wideViewport}

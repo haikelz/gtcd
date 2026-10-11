@@ -19,6 +19,7 @@
     AlertTitle,
   } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     Frame,
     FrameDescription,
@@ -27,6 +28,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { displayPreferences, formatCount } from "$lib/display";
+  import type { HitList } from "$lib/types";
   import {
     formatRangeLabel,
     groupForRange,
@@ -56,11 +58,6 @@
   );
   const groups = $derived(
     groupForRange(range.start, range.end, page.url.searchParams.get("group"))
-  );
-  const sharedScaleMax = $derived(
-    page.url.searchParams.get("scale") === "shared" && data.hits?.hits
-      ? statsScaleMax(data.hits.hits.slice(0, 6), groups.group)
-      : undefined
   );
   const prev = $derived(previousRange(range.start, range.end));
 
@@ -94,13 +91,19 @@
 
   type TechnicalReport = (typeof technicalReports)[number];
 
+  function sharedScaleMax(hits: readonly HitList[]): number | undefined {
+    return page.url.searchParams.get("scale") === "shared"
+      ? statsScaleMax(hits, groups.group)
+      : undefined;
+  }
+
   const technicalReports = $derived([
     {
       id: "systems" as const,
       title: "Operating systems",
       label: "System",
       href: "/dashboard/systems" as const,
-      stats: data.systems?.stats,
+      stats: data.systems,
       icon: Monitor,
       tone: "chart-5" as const,
     },
@@ -109,7 +112,7 @@
       title: "Languages",
       label: "Language",
       href: "/dashboard/languages" as const,
-      stats: data.languages?.stats,
+      stats: data.languages,
       icon: Languages,
       tone: "chart-4" as const,
     },
@@ -118,7 +121,7 @@
       title: "Screen sizes",
       label: "Screen size",
       href: "/dashboard/devices" as const,
-      stats: data.sizes?.stats,
+      stats: data.sizes,
       icon: Smartphone,
       tone: "chart-2" as const,
     },
@@ -132,7 +135,7 @@
 />
 
 <PageHeader
-  description="A closer look at the people behind your pageviews."
+  description="Who visits your site, and what they read."
   title="Traffic overview"
 >
   {#snippet actions()}
@@ -160,8 +163,8 @@
         async src="//gc.zgo.at/count.js"&gt;&lt;/script&gt;</code
         ></pre>
       <p>
-        Check if your adblocker is blocking GoatCounter if you don't see any
-        pageviews. This message disappears once data arrives.
+        If visits don't show up, check whether an ad blocker is blocking
+        GoatCounter. This message disappears once data arrives.
       </p>
     </AlertDescription>
     <AlertAction>
@@ -172,13 +175,15 @@
   </Alert>
 {/if}
 
-{#if data.error}
-  <ErrorAlert
-    class="mb-4"
-    message={data.error}
-    title="We couldn't load your analytics"
-  />
-{/if}
+{#await data.error then error}
+  {#if error}
+    <ErrorAlert
+      class="mb-4"
+      message={error}
+      title="We couldn't load your analytics"
+    />
+  {/if}
+{/await}
 
 <div class="grid gap-4 xl:grid-flow-dense xl:grid-cols-12">
   {#each visibleWidgets as widgetId (widgetId)}
@@ -206,38 +211,54 @@
     aria-label="Key performance indicators"
     class="grid grid-cols-2 gap-4 xl:col-span-12 xl:grid-cols-4"
   >
-    <StatCard
-      icon={ChartNoAxesCombined}
-      label="Pageviews"
-      subtext={data.total?.total_events
-        ? `Includes ${formatCount(data.total.total_events)} events`
-        : "In the selected period"}
-      value={data.total ? formatCount(data.total.total) : "—"}
-    />
-    <StatCard
-      icon={FileText}
-      label="Tracked pages"
-      subtext="Paths in this report"
-      value={data.hits ? formatCount(data.hits.hits.length) : "—"}
-    />
-    <StatCard
-      compact
-      icon={Globe}
-      label="Top browser"
-      subtext={data.browsers?.stats?.[0]
-        ? `${formatCount(data.browsers.stats[0].count)} visitors`
-        : "No browser data"}
-      value={data.browsers?.stats?.[0]?.name?.trim() || "—"}
-    />
-    <StatCard
-      compact
-      icon={MapPin}
-      label="Top country"
-      subtext={data.locations?.stats?.[0]
-        ? `${formatCount(data.locations.stats[0].count)} visitors`
-        : "No location data"}
-      value={data.locations?.stats?.[0]?.name?.trim() || "—"}
-    />
+    {#await data.total}
+      <StatCard icon={ChartNoAxesCombined} label="Visits" loading />
+    {:then total}
+      <StatCard
+        icon={ChartNoAxesCombined}
+        label="Visits"
+        subtext={total?.total_events
+          ? `Includes ${formatCount(total.total_events)} events`
+          : "In the selected period"}
+        value={total ? formatCount(total.total) : "—"}
+      />
+    {/await}
+    {#await data.hits}
+      <StatCard icon={FileText} label="Tracked pages" loading />
+    {:then hits}
+      <StatCard
+        icon={FileText}
+        label="Tracked pages"
+        subtext="Paths in this report"
+        value={hits ? formatCount(hits.hits.length) : "—"}
+      />
+    {/await}
+    {#await data.browsers}
+      <StatCard icon={Globe} label="Top browser" loading />
+    {:then browsers}
+      <StatCard
+        compact
+        icon={Globe}
+        label="Top browser"
+        subtext={browsers?.stats?.[0]
+          ? `${formatCount(browsers.stats[0].count)} visits`
+          : "No browser data"}
+        value={browsers?.stats?.[0]?.name?.trim() || "—"}
+      />
+    {/await}
+    {#await data.locations}
+      <StatCard icon={MapPin} label="Top country" loading />
+    {:then locations}
+      <StatCard
+        compact
+        icon={MapPin}
+        label="Top country"
+        subtext={locations?.stats?.[0]
+          ? `${formatCount(locations.stats[0].count)} visits`
+          : "No location data"}
+        value={locations?.stats?.[0]?.name?.trim() || "—"}
+      />
+    {/await}
   </section>
 {/snippet}
 
@@ -253,15 +274,26 @@
         class="flex shrink-0 items-center gap-2 text-xs text-muted-foreground"
       >
         <span aria-hidden="true" class="size-2 rounded-full bg-chart-1"></span>
-        Pageviews
+        Visits
       </span>
     </FrameHeader>
     <FramePanel>
-      <AreaChart
-        data={data.total?.stats ?? []}
-        group={groups.group}
-        height={280}
-      />
+      {#await data.total}
+        <div class="flex flex-col gap-4" role="status">
+          <span class="sr-only">Loading traffic chart</span>
+          <div class="flex gap-6">
+            <Skeleton class="h-10 w-20" />
+            <Skeleton class="h-10 w-20" />
+          </div>
+          <Skeleton class="h-[240px] w-full" />
+        </div>
+      {:then total}
+        <AreaChart
+          data={total?.stats ?? []}
+          group={groups.group}
+          height={280}
+        />
+      {/await}
     </FramePanel>
   </Frame>
 {/snippet}
@@ -286,7 +318,15 @@
       </Button>
     </FrameHeader>
     <FramePanel>
-      <DonutChart data={data.browsers?.stats ?? []} />
+      {#await data.browsers}
+        <div class="flex flex-col items-center gap-5" role="status">
+          <span class="sr-only">Loading browser mix</span>
+          <Skeleton class="size-44 rounded-full" />
+          {@render listSkeleton(4)}
+        </div>
+      {:then browsers}
+        <DonutChart data={browsers?.stats ?? []} />
+      {/await}
     </FramePanel>
   </Frame>
 {/snippet}
@@ -309,38 +349,36 @@
       </div>
     </FrameHeader>
     <FramePanel>
-      {#if data.hits?.hits?.length}
-        <div
-          aria-hidden="true"
-          class="flex justify-between border-b border-border px-2 pb-2 text-xs text-muted-foreground"
-        >
-          <span>Page</span><span>Pageviews</span>
+      {#await data.hits}
+        <div role="status">
+          <span class="sr-only">Loading most-read pages</span>
+          {@render listSkeleton(6)}
         </div>
-        <ul aria-label="Top pages" class="m-0 list-none p-0">
-          {#each data.hits.hits.slice(0, 6) as hit, i (hit.path_id)}
-            <PageRow
-              diff={data.diffs?.[hit.path_id]}
-              group={groups.group}
-              {hit}
-              href={resolve("/dashboard/pages/[id]", {
-                id: String(hit.path_id),
-              })}
-              {linkDomain}
-              rank={i + 1}
-              scaleMax={sharedScaleMax}
-            />
-          {/each}
-        </ul>
-        <p class="mt-3 px-2 text-xs text-muted-foreground">
-          Change vs. previous period: {prevPeriodLabel}.
-        </p>
-      {:else}
-        <EmptyState
-          desc="Try another date range or filter to explore your traffic."
-          icon={FileText}
-          title="No page data"
-        />
-      {/if}
+      {:then hits}
+        {#if hits?.hits?.length}
+          {@const topHits = hits.hits.slice(0, 6)}
+          <div
+            aria-hidden="true"
+            class="flex justify-between border-b border-border px-2 pb-2 text-xs text-muted-foreground"
+          >
+            <span>Page</span><span>Visits</span>
+          </div>
+          {#await data.diffs}
+            {@render pageRows(topHits, null)}
+          {:then diffs}
+            {@render pageRows(topHits, diffs)}
+          {/await}
+          <p class="mt-3 px-2 text-xs text-muted-foreground">
+            Change vs. previous period: {prevPeriodLabel}.
+          </p>
+        {:else}
+          <EmptyState
+            desc="Try another date range or filter to explore your traffic."
+            icon={FileText}
+            title="No page data"
+          />
+        {/if}
+      {/await}
     </FramePanel>
   </Frame>
 {/snippet}
@@ -369,20 +407,27 @@
       </Button>
     </FrameHeader>
     <FramePanel>
-      {#if data.locations?.stats?.length}
-        <BarChart
-          data={data.locations.stats}
-          label="Country"
-          maxItems={5}
-          tone="chart-2"
-        />
-      {:else}
-        <EmptyState
-          desc="Try another date range to explore your audience."
-          icon={MapPin}
-          title="No location data"
-        />
-      {/if}
+      {#await data.locations}
+        <div role="status">
+          <span class="sr-only">Loading locations</span>
+          {@render listSkeleton(5)}
+        </div>
+      {:then locations}
+        {#if locations?.stats?.length}
+          <BarChart
+            data={locations.stats}
+            label="Country"
+            maxItems={5}
+            tone="chart-2"
+          />
+        {:else}
+          <EmptyState
+            desc="Try another date range to explore your audience."
+            icon={MapPin}
+            title="No location data"
+          />
+        {/if}
+      {/await}
     </FramePanel>
   </Frame>
 {/snippet}
@@ -412,20 +457,62 @@
       </Button>
     </FrameHeader>
     <FramePanel>
-      {#if report.stats?.length}
-        <BarChart
-          data={report.stats}
-          label={report.label}
-          maxItems={4}
-          tone={report.tone}
-        />
-      {:else}
-        <EmptyState
-          desc="Try another date range to explore your audience."
-          icon={report.icon}
-          title="No {report.title.toLowerCase()} data"
-        />
-      {/if}
+      {#await report.stats}
+        <div role="status">
+          <span class="sr-only">Loading {report.title.toLowerCase()}</span>
+          {@render listSkeleton(4)}
+        </div>
+      {:then result}
+        {#if result?.stats?.length}
+          <BarChart
+            data={result.stats}
+            label={report.label}
+            maxItems={4}
+            tone={report.tone}
+          />
+        {:else}
+          <EmptyState
+            desc="Try another date range to explore your audience."
+            icon={report.icon}
+            title="No {report.title.toLowerCase()} data"
+          />
+        {/if}
+      {/await}
     </FramePanel>
   </Frame>
+{/snippet}
+
+{#snippet pageRows(
+  hits: readonly HitList[],
+  diffs: Record<number, number | null> | null
+)}
+  <ul aria-label="Top pages" class="m-0 list-none p-0">
+    {#each hits as hit, i (hit.path_id)}
+      <PageRow
+        diff={diffs?.[hit.path_id]}
+        group={groups.group}
+        {hit}
+        href={resolve("/dashboard/pages/[id]", {
+          id: String(hit.path_id),
+        })}
+        {linkDomain}
+        rank={i + 1}
+        scaleMax={sharedScaleMax(hits)}
+      />
+    {/each}
+  </ul>
+{/snippet}
+
+{#snippet listSkeleton(rows: number)}
+  <div class="flex w-full flex-col gap-4 py-1">
+    {#each { length: rows }, i (i)}
+      <div class="flex flex-col gap-2">
+        <div class="flex items-center justify-between gap-4">
+          <Skeleton class="h-4 w-1/3" />
+          <Skeleton class="h-4 w-16" />
+        </div>
+        <Skeleton class="h-1.5 w-full rounded-full" />
+      </div>
+    {/each}
+  </div>
 {/snippet}

@@ -97,6 +97,9 @@ through `--frame-radius`, `--frame-px` and `--frame-panel-radius`.
   within the palette.
 - `ErrorAlert`: the standard report load failure (destructive Alert with
   Retry). `EmptyState`: Empty primitive with icon, title and description.
+- Streaming: the overview loader returns each GoatCounter request as an
+  unawaited promise; widgets `{#await}` it and show a shape-matched
+  `Skeleton` until data arrives. A top progress bar marks client navigation.
 - `ScaleToggle`: ToggleGroup switching page sparklines between per-page and
   shared scale via `?scale=shared`.
 - `CopyField`: read-only Input with a copy Button, for share links and
