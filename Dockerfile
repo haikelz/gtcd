@@ -1,8 +1,16 @@
 # syntax=docker/dockerfile:1.7
-# node:20-alpine, multi-arch manifest digest (2026-09-05).
-# NOTE: Node.js 20 reached end-of-life in April 2026; bump to a supported LTS
-# line deliberately, together with AGENTS.md and CI.
-FROM node:26-alpine AS builder
+# Pinned by version and multi-arch index digest (verified 2026-10-11) so every
+# build uses the same Node and npm; a bare "26-alpine" tag re-resolves on each
+# build. Bump the version and digest together, deliberately, with AGENTS.md:
+#   docker buildx imagetools inspect node:<version>-alpine
+ARG NODE_IMAGE=node:26.11.1-alpine@sha256:143494b1da2945f061539253adc65e4f1569ddf07da2d384c022c791a9d90a4a
+
+# The builder runs on the build host's own architecture. Its output (SvelteKit
+# build + pure-JS production deps, no native addons) is platform-independent,
+# and Node 26 miscomputes floating-point math under Docker Desktop's amd64
+# emulation on Apple Silicon (npm then fails with "cannot set sizeCalculation
+# without setting maxSize"). Only the runtime stage targets $TARGETPLATFORM.
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS builder
 
 WORKDIR /app
 
@@ -20,7 +28,7 @@ COPY . .
 
 RUN pnpm run build && pnpm prune --prod
 
-FROM node:26-alpine AS runtime
+FROM ${NODE_IMAGE} AS runtime
 
 WORKDIR /app
 
