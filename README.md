@@ -250,7 +250,39 @@ pnpm build
 
 ---
 
-### 3. Self-Hosting with Kubernetes
+### 3. CI/CD: Docker Hub image
+
+[`.github/workflows/docker.yml`](.github/workflows/docker.yml) runs on every push
+and pull request to `master` and on `v*.*.*` tags:
+
+1. **Verify**: `pnpm lint`, `pnpm check`, the preferences self-check, and
+   `pnpm build`.
+2. **Smoke test**: builds the amd64 image and runs
+   [`scripts/smoke-image.sh`](scripts/smoke-image.sh), which starts it with a
+   read-only root filesystem and no capabilities, waits for `/login`, checks
+   `/api/health`, and confirms a clean exit on `SIGTERM`.
+3. **Publish** (not on pull requests): pushes a `linux/amd64` + `linux/arm64`
+   image with SBOM and provenance, then smoke-tests the published arm64 image.
+
+Add these repository secrets under **Settings → Secrets and variables →
+Actions**:
+
+| Secret            | Value                                               |
+| :---------------- | :-------------------------------------------------- |
+| `DOCKER_USERNAME` | Docker Hub user or organization                     |
+| `DOCKER_PASSWORD` | Docker Hub access token with **Read & Write** scope |
+
+Images are published as `<DOCKER_USERNAME>/gtcd` (override with a
+`DOCKER_IMAGE` repository variable), tagged `sha-<commit>` on every publish,
+`latest` on `master`, and `<major>.<minor>.<patch>` plus `<major>.<minor>` on
+version tags. Deploy the immutable `sha-` tag or the digest from the run
+summary.
+
+The Dockerfile's build stage runs on the builder's native platform and only the
+runtime stage targets amd64/arm64, so cross-building on Apple Silicon also
+avoids emulating Node during the build.
+
+### 4. Self-Hosting with Kubernetes
 
 Production manifests live in [`k8s/`](k8s/) as envsubst-templated YAML applied by a single script (no Kustomize):
 
