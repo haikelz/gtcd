@@ -65,6 +65,9 @@ export async function pingRedis(maxWaitMs = 1_000): Promise<boolean> {
   const attempt = (async () => {
     try {
       const client = getRedis();
+      // lazyConnect + no offline queue: a command before the first connect
+      // fails instantly, which would mark Redis down for the cooldown.
+      if (client.status === "wait") await client.connect();
       const result = await client.ping();
       redisAvailable = result === "PONG";
       return redisAvailable;
@@ -117,7 +120,8 @@ export async function getSession(
       if (data) {
         return JSON.parse(data) as { email: string };
       }
-      return null;
+      // Not in Redis: the session may have been created in memory while Redis
+      // was still connecting or down, so check the fallback before failing.
     } catch {
       redisAvailable = false;
       lastRedisFailureAt = Date.now();
