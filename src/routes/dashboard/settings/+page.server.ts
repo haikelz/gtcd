@@ -7,7 +7,14 @@ import {
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
+import {
+  createShareLink,
+  getShareLink,
+  revokeShareLink,
+} from "$lib/server/share-store.js";
 import type { Site, SiteSettings } from "$lib/server/goatcounter/types.js";
+import type { Locale } from "$lib/dashboard-layout";
+import { translate, type MessageKey } from "$lib/i18n";
 
 const SITE_READ_PERMISSION = 8;
 const SITE_CREATE_PERMISSION = 16;
@@ -43,30 +50,27 @@ function hasPermission(permissions: number, permission: number): boolean {
   );
 }
 
-function requireSiteReadPermission(permissions: number): void {
+function requireSiteReadPermission(permissions: number, locale: Locale): void {
   if (!hasPermission(permissions, SITE_READ_PERMISSION)) {
-    throw error(
-      403,
-      "Settings needs the GoatCounter API token to have site-read permission. Grant site-read and site-update to the configured GOATCOUNTER_API_KEY, then reload."
-    );
+    throw error(403, translate(locale, "settings.siteReadPermission"));
   }
 }
 
-function requireSiteUpdatePermission(permissions: number): void {
+function requireSiteUpdatePermission(
+  permissions: number,
+  locale: Locale
+): void {
   if (!hasPermission(permissions, SITE_UPDATE_PERMISSION)) {
-    throw error(
-      403,
-      "Saving settings needs the GoatCounter API token to have site-update permission. Grant it to the configured GOATCOUNTER_API_KEY, then reload."
-    );
+    throw error(403, translate(locale, "settings.siteUpdatePermission"));
   }
 }
 
-function requireSiteCreatePermission(permissions: number): void {
+function requireSiteCreatePermission(
+  permissions: number,
+  locale: Locale
+): void {
   if (!hasPermission(permissions, SITE_CREATE_PERMISSION)) {
-    throw error(
-      403,
-      "Creating a site needs the GoatCounter API token to have site-create permission. Grant site-create to the configured GOATCOUNTER_API_KEY, then reload."
-    );
+    throw error(403, translate(locale, "settings.siteCreatePermission"));
   }
 }
 
@@ -161,16 +165,24 @@ function toDashboardSite(site: Site): Omit<Site, "settings"> & {
   return { ...site, settings };
 }
 
-function getSettingsUpdateError(error: unknown): SettingsUpdateError {
+function getSettingsUpdateError(
+  error: unknown,
+  locale: Locale
+): SettingsUpdateError {
   const message =
     error instanceof Error
       ? error.message
-      : "GoatCounter could not save these settings.";
+      : translate(locale, "settings.saveFailed");
+  // GoatCounter's text after the field prefix stays as the API returned it.
+  const prefix = (key: MessageKey): string => `${translate(locale, key)}:`;
 
   if (message.startsWith("settings.ignore_ips:")) {
     return {
       field: "ignoreIps",
-      message: message.replace("settings.ignore_ips:", "Ignored IP addresses:"),
+      message: message.replace(
+        "settings.ignore_ips:",
+        prefix("settings.ignoreIps")
+      ),
     };
   }
 
@@ -179,7 +191,7 @@ function getSettingsUpdateError(error: unknown): SettingsUpdateError {
       field: "collectRegions",
       message: message.replace(
         "settings.collect_regions:",
-        "Countries with regional reporting:"
+        prefix("settings.collectRegions")
       ),
     };
   }
@@ -189,26 +201,35 @@ function getSettingsUpdateError(error: unknown): SettingsUpdateError {
       field: "allowEmbed",
       message: message.replace(
         "settings.allow_embed:",
-        "Allowed embed origins:"
+        prefix("settings.allowEmbed")
       ),
     };
   }
 
   if (message.startsWith("cname:")) {
-    return { field: "cname", message: message.replace("cname:", "Hostname:") };
+    return {
+      field: "cname",
+      message: message.replace("cname:", prefix("settings.hostname")),
+    };
   }
 
   if (message.startsWith("settings.secret:")) {
     return {
       field: "secret",
-      message: message.replace("settings.secret:", "Access token:"),
+      message: message.replace(
+        "settings.secret:",
+        prefix("settings.accessToken")
+      ),
     };
   }
 
   if (message.startsWith("settings.public:")) {
     return {
       field: "public",
-      message: message.replace("settings.public:", "Public setting:"),
+      message: message.replace(
+        "settings.public:",
+        prefix("settings.publicSetting")
+      ),
     };
   }
 
@@ -219,9 +240,12 @@ export async function load({ locals, url }) {
   requireDashboardAdmin(locals.user);
 
   const currentUser = await stats.getMe();
-  requireSiteReadPermission(currentUser.token.permissions);
+  requireSiteReadPermission(currentUser.token.permissions, locals.locale);
   const siteContext = await getDashboardSiteContext(url);
-  const site = await admin.getSite(siteContext.site.id);
+  const [site, shareLink] = await Promise.all([
+    admin.getSite(siteContext.site.id),
+    getShareLink(siteContext.site.id),
+  ]);
 
   // The access token only grants read access and is shown to admins, the
   // same audience GoatCounter's own settings page shows it to.
@@ -231,6 +255,7 @@ export async function load({ locals, url }) {
       : null;
 
   return {
+    publicLink: shareLink ? `${url.origin}/share/${shareLink.token}` : null,
     sharing: {
       counterOrigin: site.cname ? `https://${site.cname}` : null,
       secret,
@@ -248,6 +273,42 @@ export async function load({ locals, url }) {
 }
 
 export const actions = {
+  createShareLink: async ({ locals, request }) => {
+    requireDashboardAdmin(locals.user);
+
+    const siteContext = await getDashboardSiteContext(new URL(request.url));
+    await createShareLink(siteContext.site.id);
+    return { shareLink: "created" };
+  },
+  revokeShareLink: async ({ locals, request }) => {
+    requireDashboardAdmin(locals.user);
+
+    const siteContext = await getDashboardSiteContext(new URL(request.url));
+    await revokeShareLink(siteContext.site.id);
+    return { shareLink: "revoked" };
+  },
+  sendTestVisit: async ({ locals, request }) => {
+    requireDashboardAdmin(locals.user);
+
+    const siteContext = await getDashboardSiteContext(new URL(request.url));
+    try {
+      await admin.sendTestVisit({
+        locale: locals.locale,
+        vhost: siteContext.vhost,
+      });
+    } catch (cause: unknown) {
+      return fail(400, {
+        field: null,
+        message:
+          cause instanceof Error
+            ? cause.message
+            : translate(locals.locale, "settings.testVisitNotRecorded"),
+        testVisit: false,
+      });
+    }
+
+    return { testVisit: true };
+  },
   createSite: async ({ request, locals }) => {
     requireDashboardAdmin(locals.user);
 
@@ -265,13 +326,13 @@ export const actions = {
     if (!cname || typeof linkDomain !== "string") {
       return fail(400, {
         field: null,
-        message: "Provide a valid analytics hostname.",
+        message: translate(locals.locale, "settings.invalidHostname"),
         values,
       });
     }
 
     const currentUser = await stats.getMe();
-    requireSiteCreatePermission(currentUser.token.permissions);
+    requireSiteCreatePermission(currentUser.token.permissions, locals.locale);
 
     try {
       await admin.createSite({ cname, linkDomain: linkDomain.trim() });
@@ -281,7 +342,7 @@ export const actions = {
         message:
           cause instanceof Error
             ? cause.message
-            : "GoatCounter could not create this site.",
+            : translate(locals.locale, "settings.createSiteFailed"),
         values,
       });
     }
@@ -337,7 +398,7 @@ export const actions = {
     ) {
       return fail(400, {
         field: null,
-        message: "Please provide valid site settings.",
+        message: translate(locals.locale, "settings.invalidSettings"),
         values,
       });
     }
@@ -345,7 +406,7 @@ export const actions = {
     if (!isPublicMode(values.public)) {
       return fail(400, {
         field: "public",
-        message: "Choose private, secret link or public.",
+        message: translate(locals.locale, "settings.invalidVisibility"),
         values,
       });
     }
@@ -356,20 +417,20 @@ export const actions = {
     ) {
       return fail(400, {
         field: "secret",
-        message: "Access token: use 8 to 40 letters and digits.",
+        message: translate(locals.locale, "settings.invalidSecret"),
         values,
       });
     }
 
     const currentUser = await stats.getMe();
-    requireSiteReadPermission(currentUser.token.permissions);
-    requireSiteUpdatePermission(currentUser.token.permissions);
+    requireSiteReadPermission(currentUser.token.permissions, locals.locale);
+    requireSiteUpdatePermission(currentUser.token.permissions, locals.locale);
 
     const siteContext = await getDashboardSiteContext(new URL(request.url));
     if (siteId !== siteContext.site.id) {
       return fail(403, {
         field: null,
-        message: "This site cannot be managed here.",
+        message: translate(locals.locale, "settings.siteNotManageable"),
         values,
       });
     }
@@ -396,7 +457,7 @@ export const actions = {
         },
       });
     } catch (error) {
-      const updateError = getSettingsUpdateError(error);
+      const updateError = getSettingsUpdateError(error, locals.locale);
 
       return fail(400, { ...updateError, values });
     }

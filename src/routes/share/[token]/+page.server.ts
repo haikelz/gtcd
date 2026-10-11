@@ -1,0 +1,53 @@
+import { error } from "@sveltejs/kit";
+import { translate } from "$lib/i18n/index.js";
+import { groupForRange } from "$lib/period.js";
+import { toDisplayPreferences } from "$lib/preferences.js";
+import { getSites } from "$lib/server/goatcounter/admin.js";
+import { getVhost } from "$lib/server/goatcounter/client.js";
+import { getMe } from "$lib/server/goatcounter/stats.js";
+import { getDateRangeFromUrl } from "$lib/server/helpers.js";
+import { loadReportSummary } from "$lib/server/report-summary.js";
+import { resolveShareToken } from "$lib/server/share-store.js";
+
+const PUBLIC_RANGES = ["week", "month", "quarter", "year"] as const;
+
+type PublicRange = (typeof PUBLIC_RANGES)[number];
+
+function isPublicRange(value: string | null): value is PublicRange {
+  return PUBLIC_RANGES.some((range) => range === value);
+}
+
+/**
+ * Read-only overview behind a revocable share token. Data is fetched with
+ * gtcd's server-side API token; viewers get no session and no report links.
+ */
+export async function load({ locals, params, setHeaders, url }) {
+  const siteId = await resolveShareToken(params.token);
+  if (siteId === null) {
+    throw error(404, translate(locals.locale, "share.notFound"));
+  }
+
+  const [me, sites] = await Promise.all([getMe(), getSites()]);
+  const site = sites.find((candidate) => candidate.id === siteId);
+  if (!site) throw error(404, translate(locals.locale, "share.notFound"));
+
+  setHeaders({ "X-Robots-Tag": "noindex, nofollow" });
+
+  const preferences = toDisplayPreferences(me.user.settings);
+  const requested = url.searchParams.get("range");
+  const range: PublicRange = isPublicRange(requested) ? requested : "week";
+  const dates = getDateRangeFromUrl(
+    new URL(`?range=${range}`, url),
+    preferences.timezone
+  );
+
+  return {
+    ...loadReportSummary(dates, { vhost: site.cname ?? getVhost() }),
+    group: groupForRange(dates.startWall, dates.endWall).group,
+    linkDomain: site.link_domain?.trim() || undefined,
+    preferences,
+    range,
+    ranges: PUBLIC_RANGES,
+    siteName: site.cname || site.code,
+  };
+}

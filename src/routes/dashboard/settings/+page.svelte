@@ -5,6 +5,8 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { showToast } from "$lib/components/toast.js";
+  import { t } from "$lib/display";
+  import type { MessageKey } from "$lib/i18n";
   import {
     Alert,
     AlertDescription,
@@ -26,74 +28,80 @@
   import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
   import { Switch } from "$lib/components/ui/switch";
   import { Textarea } from "$lib/components/ui/textarea";
-  import { ExternalLink, RefreshCw, Save, TriangleAlert } from "@lucide/svelte";
+  import {
+    ExternalLink,
+    Link2,
+    RefreshCw,
+    Save,
+    Send,
+    TriangleAlert,
+  } from "@lucide/svelte";
 
   const collectionOptions = [
     {
-      description: "Store pageviews for CSV exports.",
+      description: "settings.collectHitsDescription",
       flag: 256,
-      label: "Individual pageviews",
+      label: "settings.collectHitsLabel",
       name: "collectHits",
     },
     {
-      description: "Estimate unique visitors for up to eight hours.",
+      description: "settings.collectSessionsDescription",
       flag: 128,
-      label: "Sessions",
+      label: "settings.collectSessionsLabel",
       name: "collectSessions",
     },
     {
-      description: "Record referrer headers and campaign parameters.",
+      description: "settings.collectReferrerDescription",
       flag: 2,
-      label: "Referrers and campaigns",
+      label: "settings.collectReferrerLabel",
       name: "collectReferrer",
     },
     {
-      description:
-        "Derive names from the User-Agent without storing the header.",
+      description: "settings.collectUserAgentDescription",
       flag: 4,
-      label: "Browser and system",
+      label: "settings.collectUserAgentLabel",
       name: "collectUserAgent",
     },
     {
-      description: "Record viewport dimensions.",
+      description: "settings.collectScreenSizeDescription",
       flag: 8,
-      label: "Screen size",
+      label: "settings.collectScreenSizeLabel",
       name: "collectScreenSize",
     },
     {
-      description: "Record visitor country.",
+      description: "settings.collectLocationDescription",
       flag: 16,
-      label: "Country",
+      label: "settings.collectLocationLabel",
       name: "collectLocation",
     },
     {
-      description: "Record regional detail for selected countries.",
+      description: "settings.collectRegionDescription",
       flag: 32,
-      label: "Region",
+      label: "settings.collectRegionLabel",
       name: "collectRegion",
     },
     {
-      description: "Record supported browser languages.",
+      description: "settings.collectLanguageDescription",
       flag: 64,
-      label: "Language",
+      label: "settings.collectLanguageLabel",
       name: "collectLanguage",
     },
   ] as const;
 
   const PUBLIC_OPTIONS = [
     {
-      description: "Only signed-in GoatCounter users can see the dashboard.",
-      label: "Private",
+      description: "settings.visibilityPrivateDescription",
+      label: "settings.visibilityPrivate",
       value: "private",
     },
     {
-      description: "Anyone with the share link can view the dashboard.",
-      label: "Secret link",
+      description: "settings.visibilitySecretDescription",
+      label: "settings.visibilitySecret",
       value: "secret",
     },
     {
-      description: "Anyone can view the GoatCounter dashboard.",
-      label: "Public",
+      description: "settings.visibilityPublicDescription",
+      label: "settings.visibilityPublic",
       value: "public",
     },
   ] as const;
@@ -116,10 +124,10 @@
 
   $effect(() => {
     if (data.created && data.created !== lastUpdateId) {
-      showToast("Site created.", "success");
+      showToast(t("settings.siteCreated"), "success");
       lastUpdateId = data.created;
     } else if (data.updated && data.updated !== lastUpdateId) {
-      showToast("Site settings saved.", "success");
+      showToast(t("settings.saved"), "success");
       lastUpdateId = data.updated;
     }
   });
@@ -159,25 +167,33 @@
     );
   }
 
+  /**
+   * A message split around its {placeholders}, so markup such as <code> can
+   * sit between the parts.
+   * ponytail: assumes both locales keep placeholders in the same order.
+   */
+  function messageParts(key: MessageKey): string[] {
+    return t(key).split(/\{\w+\}/);
+  }
+
+  const counterPathHelp = $derived(messageParts("settings.counterPathHelp"));
+
   function hasCollection(flag: number): boolean {
     return (data.site.settings.collect & flag) === flag;
   }
 </script>
 
 <SEO
-  description="Manage GoatCounter site settings."
+  description={t("settings.seoDescription")}
   noindex
-  title="Site settings — gtcd"
+  title={t("settings.seoTitle")}
 />
 
-<PageHeader
-  description="Control the data GoatCounter keeps and where your analytics can appear."
-  title="Site settings"
->
+<PageHeader description={t("settings.description")} title={t("settings.title")}>
   {#snippet actions()}
     <Button form="site-settings" type="submit">
       <Save />
-      Save changes
+      {t("settings.saveChanges")}
     </Button>
   {/snippet}
 </PageHeader>
@@ -185,11 +201,9 @@
 {#if form?.message && !createSiteValues}
   <Alert class="mb-4" variant="destructive">
     <TriangleAlert />
-    <AlertTitle>Settings not saved</AlertTitle>
+    <AlertTitle>{t("settings.notSaved")}</AlertTitle>
     <AlertDescription>
-      {form.field
-        ? "GoatCounter could not save your settings. Review the highlighted field."
-        : form.message}
+      {form.field ? t("settings.reviewField") : form.message}
     </AlertDescription>
   </Alert>
 {/if}
@@ -209,7 +223,7 @@
           {data.site.cname || data.site.code}
         </FrameTitle>
         <FrameDescription>
-          Connect this analytics site to the website people visit.
+          {t("settings.identityDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel
@@ -218,7 +232,7 @@
         role="region"
       >
         <div class="grid gap-2">
-          <Label for="settings-cname">Analytics hostname</Label>
+          <Label for="settings-cname">{t("settings.analyticsHostname")}</Label>
           <Input
             aria-invalid={form?.field === "cname" ? "true" : undefined}
             id="settings-cname"
@@ -229,7 +243,9 @@
           />
         </div>
         <div class="grid gap-2">
-          <Label for="settings-link-domain">Linked website URL</Label>
+          <Label for="settings-link-domain"
+            >{t("settings.linkedWebsiteUrl")}</Label
+          >
           <Input
             aria-describedby="link-domain-help"
             id="settings-link-domain"
@@ -239,16 +255,18 @@
             value={settingsValues?.linkDomain ?? data.site.link_domain ?? ""}
           />
           <p class="text-xs text-muted-foreground" id="link-domain-help">
-            Use the canonical URL for the website this site measures.
+            {t("settings.linkDomainHelp")}
           </p>
         </div>
       </FramePanel>
     </Frame>
     <Frame>
       <FrameHeader>
-        <FrameTitle id="data-controls-heading">Data controls</FrameTitle>
+        <FrameTitle id="data-controls-heading"
+          >{t("settings.dataControls")}</FrameTitle
+        >
         <FrameDescription>
-          Choose how long analytics data is kept and which traffic to ignore.
+          {t("settings.dataControlsDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel
@@ -258,7 +276,9 @@
       >
         <div class="grid gap-5 md:grid-cols-2">
           <div class="grid content-start gap-2">
-            <Label for="settings-data-retention">Data retention</Label>
+            <Label for="settings-data-retention"
+              >{t("settings.dataRetention")}</Label
+            >
             <div class="flex">
               <Input
                 aria-describedby="data-retention-help"
@@ -273,16 +293,16 @@
               <span
                 class="inline-flex h-8 items-center rounded-r-lg border border-l-0 border-input bg-muted px-2.5 text-sm text-muted-foreground"
               >
-                days
+                {t("settings.days")}
               </span>
             </div>
             <p class="text-xs text-muted-foreground" id="data-retention-help">
-              Use 0 to retain data indefinitely.
+              {t("settings.dataRetentionHelp")}
             </p>
           </div>
           <div class="grid content-start gap-2">
             <Label for="settings-collect-regions">
-              Countries with regional reporting
+              {t("settings.collectRegions")}
             </Label>
             <Input
               aria-describedby={form?.field === "collectRegions"
@@ -299,8 +319,7 @@
                 data.site.settings.collect_regions.join(", ")}
             />
             <p class="text-xs text-muted-foreground" id="collect-regions-help">
-              Comma-separated country codes, only where regional detail is
-              needed.
+              {t("settings.collectRegionsHelp")}
             </p>
             {#if form?.field === "collectRegions"}
               <p class="text-xs text-destructive" id="collect-regions-error">
@@ -310,7 +329,7 @@
           </div>
         </div>
         <div class="grid gap-2">
-          <Label for="settings-ignore-ips">Ignored IP addresses</Label>
+          <Label for="settings-ignore-ips">{t("settings.ignoreIps")}</Label>
           <Textarea
             aria-describedby={form?.field === "ignoreIps"
               ? "ignore-ips-help ignore-ips-error"
@@ -319,13 +338,12 @@
             class="min-h-28"
             id="settings-ignore-ips"
             name="ignoreIps"
-            placeholder="One IP or CIDR per line"
+            placeholder={t("settings.ignoreIpsPlaceholder")}
             value={settingsValues?.ignoreIps ??
               data.site.settings.ignore_ips.join("\n")}
           />
           <p class="text-xs text-muted-foreground" id="ignore-ips-help">
-            Exclude internal traffic using one IP address or CIDR range per
-            line.
+            {t("settings.ignoreIpsHelp")}
           </p>
           {#if form?.field === "ignoreIps"}
             <p class="text-xs text-destructive" id="ignore-ips-error">
@@ -334,10 +352,11 @@
           {/if}
         </div>
         <fieldset aria-describedby="collection-help" class="grid gap-2">
-          <legend class="text-sm font-medium">Data to collect</legend>
+          <legend class="text-sm font-medium"
+            >{t("settings.collectLegend")}</legend
+          >
           <p class="text-xs text-muted-foreground" id="collection-help">
-            Changes apply to future visits. Existing analytics data is not
-            removed.
+            {t("settings.collectHelp")}
           </p>
           <div class="mt-1 grid gap-2 sm:grid-cols-2">
             {#each collectionOptions as option (option.name)}
@@ -354,9 +373,9 @@
                   value="on"
                 />
                 <span class="grid gap-0.5">
-                  <span class="text-sm font-medium">{option.label}</span>
+                  <span class="text-sm font-medium">{t(option.label)}</span>
                   <span class="text-xs text-muted-foreground">
-                    {option.description}
+                    {t(option.description)}
                   </span>
                 </span>
               </Label>
@@ -367,10 +386,9 @@
     </Frame>
     <Frame>
       <FrameHeader>
-        <FrameTitle id="sharing-heading">Sharing and counters</FrameTitle>
+        <FrameTitle id="sharing-heading">{t("settings.sharing")}</FrameTitle>
         <FrameDescription>
-          Set where analytics can be embedded and which public counters are
-          available.
+          {t("settings.sharingDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel
@@ -379,7 +397,9 @@
         role="region"
       >
         <fieldset class="grid gap-2">
-          <legend class="mb-2 text-sm font-medium">Dashboard visibility</legend>
+          <legend class="mb-2 text-sm font-medium"
+            >{t("settings.visibility")}</legend
+          >
           <RadioGroup
             aria-describedby={form?.field === "public"
               ? "public-error"
@@ -399,9 +419,9 @@
                   value={option.value}
                 />
                 <span class="grid gap-0.5">
-                  <span class="text-sm font-medium">{option.label}</span>
+                  <span class="text-sm font-medium">{t(option.label)}</span>
                   <span class="text-xs text-muted-foreground">
-                    {option.description}
+                    {t(option.description)}
                   </span>
                 </span>
               </Label>
@@ -415,7 +435,7 @@
         </fieldset>
         {#if publicMode === "secret"}
           <div class="grid gap-2">
-            <Label for="settings-secret">Access token</Label>
+            <Label for="settings-secret">{t("settings.accessToken")}</Label>
             <div class="flex items-center gap-1.5">
               <Input
                 aria-describedby={form?.field === "secret"
@@ -428,16 +448,15 @@
                 id="settings-secret"
                 maxlength={40}
                 name="secret"
-                placeholder="Generated on save"
+                placeholder={t("settings.secretPlaceholder")}
               />
               <Button onclick={generateSecret} type="button" variant="outline">
                 <RefreshCw />
-                Generate
+                {t("settings.generate")}
               </Button>
             </div>
             <p class="text-xs text-muted-foreground" id="secret-help">
-              8 to 40 letters and digits. A new token stops old share links from
-              working.
+              {t("settings.secretHelp")}
             </p>
             {#if form?.field === "secret"}
               <p class="text-xs text-destructive" id="secret-error">
@@ -445,26 +464,29 @@
               </p>
             {/if}
             {#if data.sharing.shareUrl && secret === data.sharing.secret}
-              <Label class="mt-2" for="settings-share-url">Share link</Label>
+              <Label class="mt-2" for="settings-share-url"
+                >{t("settings.shareLink")}</Label
+              >
               <CopyField
                 id="settings-share-url"
-                label="Share link"
+                label={t("settings.shareLink")}
                 value={data.sharing.shareUrl}
               />
             {:else if !adminUrl}
+              {@const parts = messageParts("settings.shareLinkNeedsAdminUrl")}
               <p class="text-xs text-muted-foreground">
-                Set <code class="font-mono">GOATCOUNTER_ADMIN_URL</code> to get a
-                ready-made share link.
+                {parts[0]}<code class="font-mono">GOATCOUNTER_ADMIN_URL</code
+                >{parts[1]}
               </p>
             {:else}
               <p class="text-xs text-muted-foreground">
-                Save to get the share link for this token.
+                {t("settings.saveForShareLink")}
               </p>
             {/if}
           </div>
         {/if}
         <div class="grid gap-2">
-          <Label for="settings-allow-embed">Allowed embed origins</Label>
+          <Label for="settings-allow-embed">{t("settings.allowEmbed")}</Label>
           <Textarea
             aria-describedby={form?.field === "allowEmbed"
               ? "allow-embed-help allow-embed-error"
@@ -478,7 +500,7 @@
               data.site.settings.allow_embed.join("\n")}
           />
           <p class="text-xs text-muted-foreground" id="allow-embed-help">
-            Allow one trusted origin per line.
+            {t("settings.allowEmbedHelp")}
           </p>
           {#if form?.field === "allowEmbed"}
             <p class="text-xs text-destructive" id="allow-embed-error">
@@ -499,9 +521,11 @@
               value="on"
             />
             <span class="grid gap-0.5">
-              <span class="text-sm font-medium">Visitor counter</span>
+              <span class="text-sm font-medium"
+                >{t("settings.visitorCounter")}</span
+              >
               <span class="text-xs text-muted-foreground">
-                Allow the public visitor counter.
+                {t("settings.visitorCounterDescription")}
               </span>
             </span>
           </Label>
@@ -520,7 +544,7 @@
             <span class="grid gap-0.5">
               <span class="text-sm font-medium">Bosmang</span>
               <span class="text-xs text-muted-foreground">
-                Allow GoatCounter's Bosmang interface.
+                {t("settings.bosmangDescription")}
               </span>
             </span>
           </Label>
@@ -528,7 +552,7 @@
         {#if allowCounter && data.sharing.counterOrigin}
           <div class="grid gap-3 rounded-lg border border-border p-3">
             <div class="grid gap-2">
-              <Label for="counter-path">Counter path</Label>
+              <Label for="counter-path">{t("settings.counterPath")}</Label>
               <Input
                 aria-describedby="counter-path-help"
                 class="font-mono text-xs"
@@ -536,31 +560,34 @@
                 bind:value={counterPath}
               />
               <p class="text-xs text-muted-foreground" id="counter-path-help">
-                A page path such as <code class="font-mono">/blog</code>, or
-                <code class="font-mono">TOTAL</code> for the whole site.
+                {counterPathHelp[0]}<code class="font-mono">/blog</code
+                >{counterPathHelp[1]}<code class="font-mono">TOTAL</code
+                >{counterPathHelp[2]}
                 {#if !data.site.settings.allow_counter}
-                  Save to turn the counter on.
+                  {t("settings.saveToEnableCounter")}
                 {/if}
               </p>
             </div>
             <div class="grid gap-2">
-              <Label for="counter-snippet">Embed snippet</Label>
+              <Label for="counter-snippet">{t("settings.embedSnippet")}</Label>
               <CopyField
                 id="counter-snippet"
-                label="Embed snippet"
+                label={t("settings.embedSnippet")}
                 mono
-                value={`<img src="${counterUrl("svg")}" alt="Visitor count">`}
+                value={`<img src="${counterUrl("svg")}" alt="${t("settings.counterImageAlt")}">`}
               />
             </div>
             <div class="grid gap-2 sm:grid-cols-2">
               {#each COUNTER_FORMATS as format (format)}
                 <div class="grid min-w-0 gap-1.5">
                   <Label class="text-xs" for="counter-url-{format}">
-                    {format.toUpperCase()} URL
+                    {t("settings.counterUrl", { format: format.toUpperCase() })}
                   </Label>
                   <CopyField
                     id="counter-url-{format}"
-                    label="{format.toUpperCase()} counter URL"
+                    label={t("settings.counterUrlLabel", {
+                      format: format.toUpperCase(),
+                    })}
                     mono
                     value={counterUrl(format)}
                   />
@@ -573,7 +600,7 @@
       <FrameFooter class="flex-row justify-end gap-2">
         <Button type="submit">
           <Save />
-          Save changes
+          {t("settings.saveChanges")}
         </Button>
       </FrameFooter>
     </Frame>
@@ -585,28 +612,98 @@
           {data.site.cname || data.site.code}
         </FrameTitle>
         {#if data.site.received_data}
-          <Badge variant="success-light">Receiving data</Badge>
+          <Badge variant="success-light">{t("settings.receivingData")}</Badge>
         {:else}
-          <Badge variant="outline">Awaiting data</Badge>
+          <Badge variant="outline">{t("settings.awaitingData")}</Badge>
         {/if}
       </FrameHeader>
       <FramePanel aria-labelledby="settings-site-heading" role="region">
         <dl class="flex items-center justify-between gap-4 text-sm">
-          <dt class="text-muted-foreground">Retention</dt>
+          <dt class="text-muted-foreground">{t("settings.retention")}</dt>
           <dd class="font-medium tabular-nums">
             {data.site.settings.data_retention
-              ? `${data.site.settings.data_retention} days`
-              : "Unlimited"}
+              ? t("settings.retentionDays", {
+                  count: data.site.settings.data_retention,
+                })
+              : t("settings.unlimited")}
           </dd>
         </dl>
+      </FramePanel>
+      <FrameFooter class="gap-2">
+        <form
+          action="?/sendTestVisit"
+          method="POST"
+          use:enhance={() =>
+            async ({ result }) => {
+              if (result.type === "success") {
+                showToast(t("settings.testVisitSent"), "success");
+              } else if (result.type === "failure") {
+                showToast(
+                  String(result.data?.message ?? t("settings.testVisitFailed")),
+                  "error"
+                );
+              }
+            }}
+        >
+          <Button class="w-full" type="submit" variant="outline">
+            <Send />
+            {t("settings.sendTestVisit")}
+          </Button>
+        </form>
+        <p class="text-xs text-muted-foreground">
+          {t("settings.testVisitHelp")}
+        </p>
+      </FrameFooter>
+    </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="public-link-heading"
+          >{t("settings.publicDashboard")}</FrameTitle
+        >
+        <FrameDescription>
+          {t("settings.publicDashboardDescription")}
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel aria-labelledby="public-link-heading" class="grid gap-3">
+        {#if data.publicLink}
+          <CopyField
+            id="public-link"
+            label={t("settings.publicDashboardLink")}
+            value={data.publicLink}
+          />
+          <div class="flex flex-wrap gap-2">
+            <form action="?/createShareLink" method="POST" use:enhance>
+              <Button size="sm" type="submit" variant="outline">
+                <RefreshCw />
+                {t("settings.newLink")}
+              </Button>
+            </form>
+            <form action="?/revokeShareLink" method="POST" use:enhance>
+              <Button size="sm" type="submit" variant="destructive">
+                {t("settings.revoke")}
+              </Button>
+            </form>
+          </div>
+          <p class="text-xs text-muted-foreground">
+            {t("settings.publicLinkHelp")}
+          </p>
+        {:else}
+          <form action="?/createShareLink" method="POST" use:enhance>
+            <Button class="w-full" type="submit" variant="outline">
+              <Link2 />
+              {t("settings.createPublicLink")}
+            </Button>
+          </form>
+        {/if}
       </FramePanel>
     </Frame>
     <Frame>
       <FrameHeader>
-        <FrameTitle id="native-admin-heading">Native administration</FrameTitle>
+        <FrameTitle id="native-admin-heading"
+          >{t("settings.nativeAdmin")}</FrameTitle
+        >
         <FrameDescription>
-          Manage users, API tokens, TOTP, imports, pages, preferences, and email
-          reports in GoatCounter.
+          {t("settings.nativeAdminDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="native-admin-heading" role="region">
@@ -619,17 +716,18 @@
             variant="outline"
           >
             <ExternalLink />
-            Open GoatCounter
+            {t("settings.openGoatCounter")}
           </Button>
         {:else}
           <Alert role="status" variant="warning">
             <TriangleAlert />
-            <AlertTitle>Handoff unavailable</AlertTitle>
+            <AlertTitle>{t("settings.handoffUnavailable")}</AlertTitle>
             <AlertDescription class="min-w-0">
+              {@const parts = messageParts("settings.handoffNeedsAdminUrl")}
               <p>
-                Set <code class="font-mono text-xs break-all"
+                {parts[0]}<code class="font-mono text-xs break-all"
                   >GOATCOUNTER_ADMIN_URL</code
-                > to enable it.
+                >{parts[1]}
               </p>
             </AlertDescription>
           </Alert>
@@ -639,7 +737,9 @@
     {#if data.sites.length > 1}
       <Frame>
         <FrameHeader>
-          <FrameTitle id="available-sites-heading">Available sites</FrameTitle>
+          <FrameTitle id="available-sites-heading"
+            >{t("settings.availableSites")}</FrameTitle
+          >
         </FrameHeader>
         <FramePanel
           aria-labelledby="available-sites-heading"
@@ -670,10 +770,11 @@
       <form action="?/createSite" method="POST">
         <Frame>
           <FrameHeader>
-            <FrameTitle id="add-site-heading">Add a site</FrameTitle>
+            <FrameTitle id="add-site-heading"
+              >{t("settings.addSite")}</FrameTitle
+            >
             <FrameDescription>
-              Create a child site for another analytics hostname. Configure its
-              host in your GoatCounter reverse proxy before it can receive data.
+              {t("settings.addSiteDescription")}
             </FrameDescription>
           </FrameHeader>
           <FramePanel
@@ -684,12 +785,14 @@
             {#if createSiteValues && form?.message}
               <Alert variant="destructive">
                 <TriangleAlert />
-                <AlertTitle>Site not created</AlertTitle>
+                <AlertTitle>{t("settings.siteCreateFailed")}</AlertTitle>
                 <AlertDescription>{form.message}</AlertDescription>
               </Alert>
             {/if}
             <div class="grid gap-2">
-              <Label for="create-site-cname">Analytics hostname</Label>
+              <Label for="create-site-cname"
+                >{t("settings.analyticsHostname")}</Label
+              >
               <Input
                 id="create-site-cname"
                 name="cname"
@@ -701,8 +804,9 @@
             </div>
             <div class="grid gap-2">
               <Label for="create-site-link-domain">
-                Linked website URL
-                <span class="font-normal text-muted-foreground">(optional)</span
+                {t("settings.linkedWebsiteUrl")}
+                <span class="font-normal text-muted-foreground"
+                  >{t("settings.optional")}</span
                 >
               </Label>
               <Input
@@ -715,7 +819,9 @@
             </div>
           </FramePanel>
           <FrameFooter class="flex-row justify-end gap-2">
-            <Button type="submit" variant="outline">Create site</Button>
+            <Button type="submit" variant="outline"
+              >{t("settings.createSite")}</Button
+            >
           </FrameFooter>
         </Frame>
       </form>

@@ -1,6 +1,8 @@
 import { clearClientCache, gcFetch, gcFetchRaw } from "./client.js";
 import type { GoatCounterRequestOptions } from "./client.js";
 import type { ExportJob, ExportRequest, Site, SiteSettings } from "./types.js";
+import type { Locale } from "$lib/dashboard-layout";
+import { translate } from "$lib/i18n";
 
 type GoatCounterSettings = Omit<
   SiteSettings,
@@ -164,4 +166,52 @@ export async function downloadExport(
   options?: GoatCounterRequestOptions
 ): Promise<Response> {
   return gcFetchRaw(`/api/v0/export/${exportId}/download`, {}, options);
+}
+
+/** Event name of the test visit, so it is easy to recognize (and purge). */
+export const TEST_VISIT_EVENT = "gtcd-connection-test";
+
+/**
+ * Record one labelled event through POST /api/v0/count to prove that gtcd's
+ * API token can reach GoatCounter and write data. GoatCounter answers 202
+ * and persists the hit in the background within a few seconds.
+ */
+export async function sendTestVisit(
+  options: Pick<GoatCounterRequestOptions, "vhost"> & {
+    readonly locale: Locale;
+  }
+): Promise<void> {
+  const response = await gcFetchRaw(
+    "/api/v0/count",
+    {
+      body: JSON.stringify({
+        filter: [],
+        hits: [
+          {
+            event: true,
+            path: TEST_VISIT_EVENT,
+            title: "gtcd connection test",
+          },
+        ],
+        no_sessions: true,
+      }),
+      method: "POST",
+    },
+    { vhost: options.vhost }
+  );
+  if (response.status === 202) return;
+
+  if (response.status === 401 || response.status === 403) {
+    throw new Error(translate(options.locale, "settings.testVisitNeedsCount"));
+  }
+
+  const body = (await response.json().catch(() => null)) as {
+    readonly error?: string;
+  } | null;
+  throw new Error(
+    body?.error ??
+      translate(options.locale, "settings.testVisitRejected", {
+        status: response.status,
+      })
+  );
 }
