@@ -1,6 +1,11 @@
 import { getDashboardSession } from "$lib/server/auth/session.js";
-import { getStatsDetail, isStatsPage } from "$lib/server/goatcounter/stats.js";
-import { getDateRange } from "$lib/server/helpers.js";
+import { toDisplayPreferences } from "$lib/preferences.js";
+import {
+  getMe,
+  getStatsDetail,
+  isStatsPage,
+} from "$lib/server/goatcounter/stats.js";
+import { getDateRangeFromUrl } from "$lib/server/helpers.js";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
@@ -16,8 +21,9 @@ export const GET: RequestHandler = async ({ params, cookies, url }) => {
       return json({ error: "Unknown stats page" }, { status: 400 });
     }
 
-    const preset = url.searchParams.get("range") || "7d";
-    const { start, end } = getDateRange(preset);
+    const me = await getMe();
+    const { timezone } = toDisplayPreferences(me.user.settings);
+    const { start, end } = getDateRangeFromUrl(url, timezone);
 
     const detail = await getStatsDetail(params.page, params.id, start, end, 20);
     return json(detail);

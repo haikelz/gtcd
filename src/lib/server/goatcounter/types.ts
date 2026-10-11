@@ -23,7 +23,9 @@ export interface UserSettings {
   sunday_starts_week: boolean;
   language: string;
   date_format: string;
-  number_format: string;
+  /** Unicode code point of the thousands separator; 1 means none. */
+  number_format: number;
+  /** "<country>.<IANA zone>", e.g. "ID.Asia/Jakarta". */
   timezone: string;
 }
 
