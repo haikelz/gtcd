@@ -13,6 +13,8 @@ interface CacheEntry<T> {
 }
 
 const memoryCache = new Map<string, CacheEntry<unknown>>();
+// Identical GETs that overlap (layout and page loads) share one upstream call.
+const inflightRequests = new Map<string, Promise<unknown>>();
 
 let lastRequestTime = 0;
 let pacerQueue: Promise<void> = Promise.resolve();
@@ -216,6 +218,29 @@ export async function gcFetch<T>(
     }
   }
 
+  if (isGet && !options.bypassCache) {
+    const pending = inflightRequests.get(cacheKey) as Promise<T> | undefined;
+    if (pending) return pending;
+  }
+
+  const request = requestWithRetry<T>(url, init, isGet, cacheKey, options);
+  if (!isGet) return request;
+
+  inflightRequests.set(cacheKey, request);
+  try {
+    return await request;
+  } finally {
+    inflightRequests.delete(cacheKey);
+  }
+}
+
+async function requestWithRetry<T>(
+  url: URL,
+  init: RequestInit,
+  isGet: boolean,
+  cacheKey: string,
+  options: GoatCounterRequestOptions
+): Promise<T> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
