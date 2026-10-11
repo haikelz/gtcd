@@ -4,11 +4,12 @@
 [![Svelte](https://img.shields.io/badge/Svelte-5_Runes-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://svelte.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![DaisyUI](https://img.shields.io/badge/DaisyUI-v5-1AD1A5?style=flat-square)](https://daisyui.com/)
+[![shadcn-svelte](https://img.shields.io/badge/shadcn--svelte-components-111111?style=flat-square)](https://shadcn-svelte.com/)
+[![ReUI](https://img.shields.io/badge/ReUI-base--nova-111111?style=flat-square)](https://reui.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
-A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter](https://www.goatcounter.com/) analytics. Built with **Svelte 5 Runes**, **Tailwind CSS v4**, and **DaisyUI v5**.
+A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter](https://www.goatcounter.com/) analytics. Built with **Svelte 5 Runes**, **Tailwind CSS v4**, and a **shadcn-svelte** component layer ported from the **[ReUI](https://reui.io/)** design system (`base-nova` style).
 
 ---
 
@@ -19,15 +20,16 @@ A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter]
 **`gtcd` is a custom frontend dashboard for your GoatCounter instance.** It connects to your GoatCounter server via its REST API and provides an alternative, modern web UI with:
 
 - **Svelte 5 Runes**: Fast, reactive client-side navigation with zero bundle bloat.
-- **Curated Dark & Light Modes**: Clean UI built on DaisyUI v5 and Tailwind CSS v4 design tokens.
-- **Power-User Ergonomics**: Collapsible desktop sidebar with `Cmd+B` / `Ctrl+B` toggle, mobile drawer, and date-range presets (Today, 7d, 30d, 90d, This Month).
+- **Curated Dark & Light Modes**: Clean UI built on ReUI/shadcn CSS design tokens (`.dark` class on the document root, applied before first paint to avoid flashing).
+- **Power-User Ergonomics**: Collapsible desktop sidebar with `Cmd+B` / `Ctrl+B` toggle, mobile drawer, GoatCounter's period presets (day, week, month, quarter, half year, year) with back/forward stepping, saved report views, and a customizable overview.
+- **Your GoatCounter Preferences**: Dates, hours, and numbers follow the timezone, date format, 24-hour clock, and thousands separator set in GoatCounter, so report ranges match GoatCounter's own dashboard even when the server runs in UTC.
 - **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses HTTP-only session cookies validated against your GoatCounter login. Docker Compose passes `PROTOCOL_HEADER`/`HOST_HEADER`, so CSRF origin checks and cookie flags derive from the reverse proxy's request headers.
 - **Zero Third-Party Requests**: Fonts are self-hosted; the dashboard makes no calls to external CDNs, so visitor IPs never leak to third parties and it works fully offline.
 - **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
 - **Resilient Session Store**: Distributed Redis session layer with automatic fallback to an in-memory store if Redis is unavailable.
 - **Accessible Visualizations (WCAG 2.1 AA)**: Interactive charts with SVG `<title>`, `<desc>`, semantic `role="meter"`, high-contrast focus rings, and screen-reader accessible data tables.
 - **Installable PWA**: Web app manifest, service worker with auto-update, and offline-cached app assets — installable from the browser address bar.
-- **Client-Side Caching (TanStack Query)**: Date-range switches on the dashboard are cached and refreshed in the background without full page reloads.
+- **Server-Side Query Cache**: Report data loads through SvelteKit server loads; identical upstream requests share one in-flight call and a 30-second cache, so quick range switches don't re-hit GoatCounter.
 
 ---
 
@@ -82,36 +84,83 @@ flowchart TD
   origins, and public-counter settings without exposing the API token.
 - **Data Exports**: Administrators can create and download gzip-compressed CSV
   exports through the GoatCounter API.
+- **Saved Views & Overview Layout**: Save a period, filter, grouping, and chart scale under a name, pick a default view, and choose which overview widgets show and in what order. Stored per user in Redis (in-memory fallback); hidden widgets skip their GoatCounter requests.
+- **Sharing & Visitor Counter**: Set dashboard visibility (private, secret link, public), generate the access token and share link, and copy ready-made visitor-counter embeds (`/counter/<path>.svg|png|html|json`).
+- **Readable Charts**: Toggle the traffic chart to a data table, and switch page sparklines between per-page and shared scale. Event counts appear next to pageview totals.
 - **Data Normalization**: Empty or null metric names are automatically normalized to `"Unknown"` for clean chart display.
 
 ---
 
 ## 🖼️ Screenshots
 
+Captured from a local build against a synthetic GoatCounter upstream whose user
+prefers the Asia/Jakarta timezone, ISO dates, and comma separators; the numbers
+are illustrative.
+
 ### Traffic overview
-
-![Traffic overview dashboard with pageview metrics, traffic chart, and browser mix](static/screenshots/traffic.png)
-
-### Analytics reports
 
 <table>
   <tr>
-    <td><img src="static/screenshots/pages.png" alt="Pages report with tracked paths and view counts"></td>
-    <td><img src="static/screenshots/browsers.png" alt="Browsers report with visitor counts and audience-share chart"></td>
-  </tr>
-  <tr>
-    <td><img src="static/screenshots/operating-systems.png" alt="Operating systems report with visitor share bars"></td>
-    <td><img src="static/screenshots/locations.png" alt="Locations report showing visitor distribution by country"></td>
-  </tr>
-  <tr>
-    <td><img src="static/screenshots/languages.png" alt="Languages report showing visitor language distribution"></td>
-    <td><img src="static/screenshots/screen-size.png" alt="Screen sizes report showing visitor device dimensions"></td>
+    <td><img src="static/screenshots/traffic.png" alt="Traffic overview in light mode with KPI tiles, hourly traffic chart, and browser mix"></td>
+    <td><img src="static/screenshots/traffic-dark.png" alt="Traffic overview in dark mode with KPI tiles, hourly traffic chart, and browser mix"></td>
   </tr>
 </table>
 
-### Sign in
+<p align="center">
+  <img src="static/screenshots/traffic-mobile.png" alt="Traffic overview on a phone with the stacked toolbar and KPI tiles" width="320">
+</p>
 
-![gtcd login page with GoatCounter account sign-in form](static/screenshots/login.png)
+### Pages and paths
+
+<table>
+  <tr>
+    <td><img src="static/screenshots/pages.png" alt="Pages report with sparklines, view counts, and the per-page or shared scale toggle"></td>
+    <td><img src="static/screenshots/page-detail.png" alt="Page detail for /blog showing the referrers sending traffic to it"></td>
+  </tr>
+  <tr>
+    <td><img src="static/screenshots/paths.png" alt="Path directory listing every tracked path with event markers"></td>
+    <td><img src="static/screenshots/report-detail.png" alt="Report detail showing browser versions for one browser"></td>
+  </tr>
+</table>
+
+### Audience and acquisition
+
+<table>
+  <tr>
+    <td><img src="static/screenshots/browsers.png" alt="Browsers report with visitor counts and audience-share chart"></td>
+    <td><img src="static/screenshots/operating-systems.png" alt="Operating systems report with visitor share bars"></td>
+  </tr>
+  <tr>
+    <td><img src="static/screenshots/locations.png" alt="Locations report showing visitor distribution by country"></td>
+    <td><img src="static/screenshots/languages.png" alt="Languages report showing visitor language distribution"></td>
+  </tr>
+  <tr>
+    <td><img src="static/screenshots/screen-size.png" alt="Screen sizes report showing visitor device classes"></td>
+    <td><img src="static/screenshots/campaigns.png" alt="Campaigns report showing traffic by campaign"></td>
+  </tr>
+  <tr>
+    <td><img src="static/screenshots/referrers.png" alt="Referrers report showing top referring sites"></td>
+    <td><img src="static/screenshots/customize.png" alt="Customize page with saved views and overview widget order"></td>
+  </tr>
+</table>
+
+### Administration
+
+<table>
+  <tr>
+    <td><img src="static/screenshots/settings.png" alt="Site settings with retention, data collection, visibility, and visitor counter options"></td>
+    <td><img src="static/screenshots/exports.png" alt="Data exports page with CSV and JSON format choice and export status"></td>
+  </tr>
+</table>
+
+### Sign in and errors
+
+<table>
+  <tr>
+    <td><img src="static/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form"></td>
+    <td><img src="static/screenshots/not-found.png" alt="Not found error page with Continue and Previous page actions"></td>
+  </tr>
+</table>
 
 ---
 
@@ -301,7 +350,13 @@ goatcounter.Strings` API error.
 
 Set `GOATCOUNTER_ADMIN_URL` to a public HTTPS GoatCounter administration URL to
 show the **Open GoatCounter** handoff on this page. It opens in a separate tab;
-the dashboard never forwards the API token to the browser.
+the dashboard never forwards the API token to the browser. The same URL is the
+base of the share link for sites set to **Secret link**.
+
+The visitor counter is served by GoatCounter at `/counter/*`. The generated
+Caddyfile and the Kubernetes Ingress route that path to GoatCounter; existing
+Docker installs need `./scripts/setup.sh` re-run (or the `handle /counter/*`
+block added to their Caddyfile) before the counter embeds work.
 
 ---
 
@@ -309,7 +364,7 @@ the dashboard never forwards the API token to the browser.
 
 - **Keyboard Navigation**: Full keyboard tab order, skip link (`<a href="#main-content">`), and `Cmd+B` / `Ctrl+B` sidebar toggle.
 - **Charts & Screen Readers**: Area and bar charts include accessible SVG `<title>`, `<desc>`, and hidden fallback tables (`.sr-only`) for screen-reader users.
-- **Controls**: Theme toggles and date-range pickers use standard `role="radiogroup"` with keyboard arrow navigation.
+- **Controls**: The theme menu uses menu radio items, and period presets, grouping, and chart scale use toggle groups, all with keyboard arrow navigation.
 - **Reduced Motion**: All animations and transitions respect `prefers-reduced-motion: reduce`.
 
 ---
@@ -327,7 +382,7 @@ Contributions, bug reports, and suggestions are welcome!
 ## 🙏 Acknowledgements
 
 - [Martin Tournoij (arp242)](https://github.com/arp242) for creating [GoatCounter](https://github.com/arp242/goatcounter) — a true gem in the open-source privacy analytics space.
-- The [SvelteKit](https://kit.svelte.dev/) and [DaisyUI](https://daisyui.com/) teams for fantastic tooling.
+- The [SvelteKit](https://kit.svelte.dev/) and [shadcn-svelte](https://shadcn-svelte.com/) teams for fantastic tooling, and the [ReUI](https://reui.io/) team for the design system this dashboard is styled with.
 
 ---
 
