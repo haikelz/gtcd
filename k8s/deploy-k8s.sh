@@ -70,6 +70,8 @@ secret_vars=(
   SMTP_PASSWORD
   SMTP_FROM
   GTCD_PUBLIC_URL
+  TURNSTILE_SITE_KEY
+  TURNSTILE_SECRET_KEY
 )
 
 echo "  Creating/updating Secret '$secret_name'..."

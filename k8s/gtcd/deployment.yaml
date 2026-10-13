@@ -107,6 +107,19 @@ spec:
                   name: gtcd-env
                   key: GTCD_PUBLIC_URL
                   optional: true
+            # Optional Turnstile login check (off until both keys are set).
+            - name: TURNSTILE_SITE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: TURNSTILE_SITE_KEY
+                  optional: true
+            - name: TURNSTILE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: TURNSTILE_SECRET_KEY
+                  optional: true
             # In-cluster Redis deployed from redis.yaml in this directory.
             # REDIS_PASSWORD must precede REDIS_URL for $(VAR) expansion.
             - name: REDIS_PASSWORD
