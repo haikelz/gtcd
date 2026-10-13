@@ -23,7 +23,7 @@ A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter]
 - **Curated Dark & Light Modes**: Clean UI built on ReUI/shadcn CSS design tokens (`.dark` class on the document root, applied before first paint to avoid flashing).
 - **Power-User Ergonomics**: Collapsible desktop sidebar with `Cmd+B` / `Ctrl+B` toggle, mobile drawer, GoatCounter's period presets (day, week, month, quarter, half year, year) with back/forward stepping, saved report views, and a customizable overview.
 - **Your GoatCounter Preferences**: Dates, hours, and numbers follow the timezone, date format, 24-hour clock, and thousands separator set in GoatCounter, so report ranges match GoatCounter's own dashboard even when the server runs in UTC.
-- **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses HTTP-only session cookies validated against your GoatCounter login. Docker Compose passes `PROTOCOL_HEADER`/`HOST_HEADER`, so CSRF origin checks and cookie flags derive from the reverse proxy's request headers.
+- **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses HTTP-only session cookies validated against your GoatCounter login. An optional Cloudflare Turnstile check on the login form (`TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`) stops bots before they reach GoatCounter. Docker Compose passes `PROTOCOL_HEADER`/`HOST_HEADER`, so CSRF origin checks and cookie flags derive from the reverse proxy's request headers.
 - **Zero Third-Party Requests**: Fonts are self-hosted; the dashboard makes no calls to external CDNs, so visitor IPs never leak to third parties and it works fully offline.
 - **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
 - **Resilient Session Store**: Distributed Redis session layer with automatic fallback to an in-memory store if Redis is unavailable.
@@ -171,7 +171,7 @@ are illustrative.
 
 <table>
   <tr>
-    <td><img src="static/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form"></td>
+    <td><img src="static/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form and a passed Cloudflare Turnstile check"></td>
     <td><img src="static/screenshots/not-found.png" alt="Not found error page with Continue and Previous page actions"></td>
   </tr>
 </table>
@@ -373,6 +373,8 @@ Configure these in your `.env` file or container environment:
 | `SMTP_PASSWORD`         |    No    | —                         | SMTP password.                                                                                                                                                                                                 |
 | `SMTP_FROM`             |    No    | —                         | Sender address, e.g. `gtcd reports <reports@example.com>`.                                                                                                                                                     |
 | `GTCD_PUBLIC_URL`       |    No    | —                         | Public HTTPS URL of the dashboard, used for links in email reports.                                                                                                                                            |
+| `TURNSTILE_SITE_KEY`    |    No    | —                         | Cloudflare Turnstile site key. With `TURNSTILE_SECRET_KEY`, the login form requires a Turnstile check.                                                                                                         |
+| `TURNSTILE_SECRET_KEY`  |    No    | —                         | Turnstile secret key, verified server-side. The check stays off until both keys are set.                                                                                                                       |
 
 The login session cookie is `HttpOnly`, `SameSite=Lax`, and its `Secure` flag
 follows the protocol the client actually used, so both `http://localhost`
