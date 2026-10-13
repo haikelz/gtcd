@@ -38,13 +38,15 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 - **API Secret Isolation**: The client browser never receives `GOATCOUNTER_API_KEY`. All GoatCounter API traffic is routed through the SvelteKit backend (`src/lib/server/goatcounter/`).
 - **Dynamic Secrets**: Secrets must be loaded via `$env/dynamic/private` with `process.env` fallback to ensure zero build-time secret requirements inside container pipelines.
 - **Session Layer**: HTTP-only, `SameSite=Lax` cookies authenticate against Redis (`src/lib/server/auth/session-store.ts`). When Redis is unavailable, the service degrades gracefully to an in-memory session store rather than halting.
+- **Login Guard**: Failed logins are counted per email and, only when `ADDRESS_HEADER` is set, per client IP (`src/lib/server/auth/login-guard.ts`). GoatCounter's TOTP login token stays server-side in the pending-MFA store; never send it to the browser.
+- **CSP**: `kit.csp` in `vite.config.ts` owns the Content Security Policy with per-request nonces; `script-src` must not regain `'unsafe-inline'`. Inline scripts in `app.html` carry `nonce="%sveltekit.nonce%"`.
 
 ### 2. GoatCounter Rate Limiting & Outbound Pacing
 
 - GoatCounter instances enforce an upstream limit of 4 requests/second.
 - All outbound calls through `gcFetch` MUST be paced by `paceRequest()` (minimum 280ms threshold).
 - Upstream HTTP 429 responses trigger exponential backoff with random jitter and an absolute minimum delay of 1,000ms.
-- Dashboard queries are served through a 30-second in-memory query cache to eliminate duplicate upstream fetches on rapid route transitions.
+- Dashboard queries are served through a 30-second query cache (in-memory per process, shared through Redis under `gc-cache:*`) to eliminate duplicate upstream fetches across route transitions and replicas.
 
 ### 3. Data Normalization
 

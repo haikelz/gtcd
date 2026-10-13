@@ -23,9 +23,9 @@ A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter]
 - **Curated Dark & Light Modes**: Clean UI built on ReUI/shadcn CSS design tokens (`.dark` class on the document root, applied before first paint to avoid flashing).
 - **Power-User Ergonomics**: Collapsible desktop sidebar with `Cmd+B` / `Ctrl+B` toggle, mobile drawer, GoatCounter's period presets (day, week, month, quarter, half year, year) with back/forward stepping, saved report views, and a customizable overview.
 - **Your GoatCounter Preferences**: Dates, hours, and numbers follow the timezone, date format, 24-hour clock, and thousands separator set in GoatCounter, so report ranges match GoatCounter's own dashboard even when the server runs in UTC.
-- **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses HTTP-only session cookies validated against your GoatCounter login. An optional Cloudflare Turnstile check on the login form (`TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`) stops bots before they reach GoatCounter. Docker Compose passes `PROTOCOL_HEADER`/`HOST_HEADER`, so CSRF origin checks and cookie flags derive from the reverse proxy's request headers.
-- **Zero Third-Party Requests**: Fonts are self-hosted; the dashboard makes no calls to external CDNs, so visitor IPs never leak to third parties and it works fully offline.
-- **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
+- **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses HTTP-only session cookies validated against your GoatCounter login. Accounts with GoatCounter two-factor authentication (TOTP) finish login with their code. Failed logins are rate limited per email (5 per 15 minutes) and per client IP (20) when `ADDRESS_HEADER` names the proxy header. An optional Cloudflare Turnstile check on the login form (`TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`) stops bots before they reach GoatCounter. The Content Security Policy allows only nonced inline scripts. Docker Compose passes `PROTOCOL_HEADER`/`HOST_HEADER`, so CSRF origin checks and cookie flags derive from the reverse proxy's request headers.
+- **Zero Third-Party Requests**: Fonts are self-hosted; apart from the optional Turnstile widget on the login page, the dashboard makes no calls to external CDNs, so visitor IPs never leak to third parties and it works fully offline.
+- **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache (shared across replicas through Redis) prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
 - **Resilient Session Store**: Distributed Redis session layer with automatic fallback to an in-memory store if Redis is unavailable.
 - **Accessible Visualizations (WCAG 2.1 AA)**: Interactive charts with SVG `<title>`, `<desc>`, semantic `role="meter"`, high-contrast focus rings, and screen-reader accessible data tables.
 - **Installable PWA**: Web app manifest, service worker with auto-update, and offline-cached app assets — installable from the browser address bar.
@@ -172,7 +172,11 @@ are illustrative.
 <table>
   <tr>
     <td><img src="static/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form and a passed Cloudflare Turnstile check"></td>
+    <td><img src="static/screenshots/login-mfa.png" alt="Two-factor step asking for the 6-digit code from an authenticator app"></td>
+  </tr>
+  <tr>
     <td><img src="static/screenshots/not-found.png" alt="Not found error page with Continue and Previous page actions"></td>
+    <td></td>
   </tr>
 </table>
 
@@ -262,6 +266,12 @@ pnpm dev
 # Run TypeScript & Svelte type checking
 pnpm check
 
+# Run the logic self-checks (src/**/*.check.ts)
+pnpm test:checks
+
+# Smoke-test the production build against a mock GoatCounter
+pnpm build && pnpm exec playwright install chromium && pnpm test:e2e
+
 # Production build
 pnpm build
 ```
@@ -273,8 +283,9 @@ pnpm build
 [`.github/workflows/docker.yml`](.github/workflows/docker.yml) runs on every push
 and pull request to `master` and on `v*.*.*` tags:
 
-1. **Verify**: `pnpm lint`, `pnpm check`, the preferences self-check, and
-   `pnpm build`.
+1. **Verify**: `pnpm lint`, `pnpm check`, `pnpm test:checks`, `pnpm build`,
+   and the Playwright smoke tests (`pnpm test:e2e`), which log in to the built
+   app against [`e2e/mock-goatcounter.mjs`](e2e/mock-goatcounter.mjs).
 2. **Smoke test**: builds the amd64 image and runs
    [`scripts/smoke-image.sh`](scripts/smoke-image.sh), which starts it with a
    read-only root filesystem and no capabilities, waits for `/login`, checks
@@ -355,26 +366,28 @@ Add the tracking snippet to your website:
 
 Configure these in your `.env` file or container environment:
 
-| Variable                | Required | Default                   | Purpose                                                                                                                                                                                                        |
-| :---------------------- | :------: | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DOMAIN`                |    No    | `localhost`               | Custom domain for your dashboard (e.g., `analytics.example.com`)                                                                                                                                               |
-| `GOATCOUNTER_URL`       | **Yes**  | `http://goatcounter:8080` | URL of your GoatCounter instance                                                                                                                                                                               |
-| `GOATCOUNTER_API_KEY`   | **Yes**  | —                         | GoatCounter API token. Use the setup script's full-permission token (`127`), or at minimum grant the permissions required by the views you enable; site settings require site-read and site-update.            |
-| `REDIS_URL`             | **Yes**  | —                         | Redis connection for sessions and saved views, with the password from `secrets/redis.conf`: `redis://:<password>@redis:6379`. `scripts/setup.sh` writes both. In Kubernetes it is built from `REDIS_PASSWORD`. |
-| `PORT`                  |    No    | `3000`                    | Port for the Node.js server to listen on                                                                                                                                                                       |
-| `NODE_ENV`              |    No    | `production`              | Environment mode                                                                                                                                                                                               |
-| `COOKIE_SECURE`         |    No    | auto                      | Force the session cookie's `Secure` flag (`true`/`false`). By default it is set automatically from the request protocol, including `X-Forwarded-Proto` behind reverse proxies.                                 |
-| `GTCD_ADMIN_EMAILS`     |    No    | —                         | Comma-separated emails permitted to manage sites and exports in gtcd.                                                                                                                                          |
-| `GOATCOUNTER_ADMIN_URL` |    No    | —                         | Public HTTPS GoatCounter administration URL for users, API tokens, TOTP, imports, page management, dashboard preferences, and email reports. HTTP is allowed only on localhost.                                |
-| `SMTP_HOST`             |    No    | —                         | SMTP server for email reports. Reports stay off until `SMTP_HOST` and `SMTP_FROM` are set.                                                                                                                     |
-| `SMTP_PORT`             |    No    | `587` (`465` if secure)   | SMTP port.                                                                                                                                                                                                     |
-| `SMTP_SECURE`           |    No    | `false`                   | `true` for implicit TLS (port 465); otherwise STARTTLS is used when offered.                                                                                                                                   |
-| `SMTP_USER`             |    No    | —                         | SMTP username, if your server needs authentication.                                                                                                                                                            |
-| `SMTP_PASSWORD`         |    No    | —                         | SMTP password.                                                                                                                                                                                                 |
-| `SMTP_FROM`             |    No    | —                         | Sender address, e.g. `gtcd reports <reports@example.com>`.                                                                                                                                                     |
-| `GTCD_PUBLIC_URL`       |    No    | —                         | Public HTTPS URL of the dashboard, used for links in email reports.                                                                                                                                            |
-| `TURNSTILE_SITE_KEY`    |    No    | —                         | Cloudflare Turnstile site key. With `TURNSTILE_SECRET_KEY`, the login form requires a Turnstile check.                                                                                                         |
-| `TURNSTILE_SECRET_KEY`  |    No    | —                         | Turnstile secret key, verified server-side. The check stays off until both keys are set.                                                                                                                       |
+| Variable                | Required | Default                     | Purpose                                                                                                                                                                                                        |
+| :---------------------- | :------: | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DOMAIN`                |    No    | `localhost`                 | Custom domain for your dashboard (e.g., `analytics.example.com`)                                                                                                                                               |
+| `GOATCOUNTER_URL`       | **Yes**  | `http://goatcounter:8080`   | URL of your GoatCounter instance                                                                                                                                                                               |
+| `GOATCOUNTER_API_KEY`   | **Yes**  | —                           | GoatCounter API token. Use the setup script's full-permission token (`127`), or at minimum grant the permissions required by the views you enable; site settings require site-read and site-update.            |
+| `REDIS_URL`             | **Yes**  | —                           | Redis connection for sessions and saved views, with the password from `secrets/redis.conf`: `redis://:<password>@redis:6379`. `scripts/setup.sh` writes both. In Kubernetes it is built from `REDIS_PASSWORD`. |
+| `PORT`                  |    No    | `3000`                      | Port for the Node.js server to listen on                                                                                                                                                                       |
+| `NODE_ENV`              |    No    | `production`                | Environment mode                                                                                                                                                                                               |
+| `COOKIE_SECURE`         |    No    | auto                        | Force the session cookie's `Secure` flag (`true`/`false`). By default it is set automatically from the request protocol, including `X-Forwarded-Proto` behind reverse proxies.                                 |
+| `GTCD_ADMIN_EMAILS`     |    No    | —                           | Comma-separated emails permitted to manage sites and exports in gtcd.                                                                                                                                          |
+| `GOATCOUNTER_ADMIN_URL` |    No    | —                           | Public HTTPS GoatCounter administration URL for users, API tokens, TOTP, imports, page management, dashboard preferences, and email reports. HTTP is allowed only on localhost.                                |
+| `SMTP_HOST`             |    No    | —                           | SMTP server for email reports. Reports stay off until `SMTP_HOST` and `SMTP_FROM` are set.                                                                                                                     |
+| `SMTP_PORT`             |    No    | `587` (`465` if secure)     | SMTP port.                                                                                                                                                                                                     |
+| `SMTP_SECURE`           |    No    | `false`                     | `true` for implicit TLS (port 465); otherwise STARTTLS is used when offered.                                                                                                                                   |
+| `SMTP_USER`             |    No    | —                           | SMTP username, if your server needs authentication.                                                                                                                                                            |
+| `SMTP_PASSWORD`         |    No    | —                           | SMTP password.                                                                                                                                                                                                 |
+| `SMTP_FROM`             |    No    | —                           | Sender address, e.g. `gtcd reports <reports@example.com>`.                                                                                                                                                     |
+| `GTCD_PUBLIC_URL`       |    No    | —                           | Public HTTPS URL of the dashboard, used for links in email reports.                                                                                                                                            |
+| `TURNSTILE_SITE_KEY`    |    No    | —                           | Cloudflare Turnstile site key. With `TURNSTILE_SECRET_KEY`, the login form requires a Turnstile check.                                                                                                         |
+| `TURNSTILE_SECRET_KEY`  |    No    | —                           | Turnstile secret key, verified server-side. The check stays off until both keys are set.                                                                                                                       |
+| `ADDRESS_HEADER`        |    No    | `x-forwarded-for` (Compose) | Request header carrying the client IP, for the per-IP login rate limit. Empty skips the per-IP limit. Use `cf-connecting-ip` behind Cloudflare.                                                                |
+| `XFF_DEPTH`             |    No    | `1`                         | Trusted proxies in front of gtcd when `ADDRESS_HEADER` is `x-forwarded-for`.                                                                                                                                   |
 
 The login session cookie is `HttpOnly`, `SameSite=Lax`, and its `Secure` flag
 follows the protocol the client actually used, so both `http://localhost`
@@ -386,7 +399,7 @@ development stacks and TLS production domains work without configuration.
 
 `gtcd` separates user authentication from API access:
 
-1. **User Login**: Users sign in on `/login` with their GoatCounter account email and password. `gtcd` verifies the credentials against GoatCounter's `/user/requestlogin` endpoint.
+1. **User Login**: Users sign in on `/login` with their GoatCounter account email and password. `gtcd` verifies the credentials against GoatCounter's `/user/requestlogin` endpoint. Accounts with TOTP enabled then enter their 6-digit code, which gtcd sends to GoatCounter's `/user/totplogin`; GoatCounter's login token stays on the server for the 5 minutes the step lasts. With `GOATCOUNTER_ADMIN_URL` set, the login form links to GoatCounter's password reset page.
 2. **Session Creation**: On success, `gtcd` issues an HTTP-only, `SameSite=Lax` session cookie (protocol-aware `Secure` flag) and stores the session in Redis (or in-memory fallback).
 3. **API Access**: All dashboard requests are made server-side using the `GOATCOUNTER_API_KEY` defined in the environment. Your API key is never leaked to the browser.
 
@@ -436,7 +449,7 @@ block added to their Caddyfile) before the counter embeds work.
 Contributions, bug reports, and suggestions are welcome!
 
 1. Fork the repo and create your branch: `git checkout -b feature/cool-idea`.
-2. Ensure types and checks pass: `pnpm check && pnpm build`.
+2. Ensure types and checks pass: `pnpm check && pnpm test:checks && pnpm build && pnpm test:e2e`.
 3. Commit your changes and open a Pull Request.
 
 ---

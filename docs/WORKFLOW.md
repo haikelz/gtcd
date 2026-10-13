@@ -24,7 +24,9 @@ Run the narrowest applicable command first, then the relevant complete boundary 
 
 - `pnpm check` for Svelte and TypeScript diagnostics.
 - `pnpm lint` for formatting and ESLint validation.
+- `pnpm test:checks` for the logic self-checks (`src/**/*.check.ts`).
 - `pnpm build` for the production bundle.
+- `pnpm test:e2e` for the Playwright smoke tests against the build and `e2e/mock-goatcounter.mjs`.
 - `pnpm dev` or `pnpm preview` plus the relevant browser flow when a UI or route changes.
 
 Documentation and harness changes require link and command verification; application checks are required only when the changed behavior affects the application. A successful structural harness check does not prove runtime behavior.
