@@ -1,5 +1,9 @@
 // English messages: auth. Keys are "auth.<name>"; {param} placeholders.
 export default {
+  "auth.challengeError": "The security check could not load.",
+  "auth.challengeFailed":
+    "Security check failed. Complete the check and try again.",
+  "auth.challengeRetry": "Retry",
   "auth.email": "Email",
   "auth.emailPlaceholder": "you@example.com",
   "auth.footnote":

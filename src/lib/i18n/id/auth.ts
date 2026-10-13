@@ -2,6 +2,10 @@ import type en from "../en/auth";
 
 // Bahasa Indonesia: auth. Must define every key of the English catalog.
 export default {
+  "auth.challengeError": "Pemeriksaan keamanan tidak dapat dimuat.",
+  "auth.challengeFailed":
+    "Pemeriksaan keamanan gagal. Selesaikan pemeriksaan lalu coba lagi.",
+  "auth.challengeRetry": "Coba lagi",
   "auth.email": "Email",
   "auth.emailPlaceholder": "nama@contoh.com",
   "auth.footnote":

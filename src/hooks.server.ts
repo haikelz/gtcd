@@ -17,7 +17,9 @@ const securityHeaders: Record<string, string> = {
   "Content-Security-Policy": [
     "default-src 'self'",
     // SvelteKit hydration and the app.html theme bootstrap are inline scripts.
-    "script-src 'self' 'unsafe-inline'",
+    // challenges.cloudflare.com serves the Turnstile login widget.
+    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
     // SVG charts use inline style attributes for geometry.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",

@@ -3,6 +3,7 @@ import {
   shouldUseSecureCookies,
 } from "$lib/server/auth/session.js";
 import { authenticateWithGoatCounter } from "$lib/server/goatcounter/auth.js";
+import { getTurnstileSiteKey, verifyTurnstile } from "$lib/server/turnstile";
 import { translate } from "$lib/i18n";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
@@ -12,6 +13,8 @@ export const load: PageServerLoad = async ({ locals }) => {
   if (locals.user) {
     throw redirect(302, "/dashboard");
   }
+
+  return { turnstileSiteKey: getTurnstileSiteKey() };
 };
 
 export const actions: Actions = {
@@ -31,6 +34,13 @@ export const actions: Actions = {
     if (!email || !password || email.length > 254 || password.length > 1024) {
       return fail(400, {
         error: translate(locals.locale, "auth.missingCredentials"),
+      });
+    }
+
+    // Check the bot challenge before spending a GoatCounter login attempt.
+    if (!(await verifyTurnstile(data.get("cf-turnstile-response")))) {
+      return fail(400, {
+        error: translate(locals.locale, "auth.challengeFailed"),
       });
     }
 
