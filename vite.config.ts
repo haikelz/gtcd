@@ -53,6 +53,27 @@ export default defineConfig({
           filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
       },
       adapter: adapter(),
+      // SvelteKit nonces its own inline scripts and the app.html theme
+      // bootstrap, so scripts need no 'unsafe-inline'. hooks.server.ts sets
+      // the remaining security headers.
+      csp: {
+        mode: "nonce",
+        directives: {
+          "default-src": ["self"],
+          // challenges.cloudflare.com serves the Turnstile login widget.
+          "script-src": ["self", "https://challenges.cloudflare.com"],
+          "frame-src": ["https://challenges.cloudflare.com"],
+          // SVG charts use inline style attributes for geometry.
+          "style-src": ["self", "unsafe-inline"],
+          "img-src": ["self", "data:"],
+          "font-src": ["self"],
+          "connect-src": ["self"],
+          "object-src": ["none"],
+          "base-uri": ["self"],
+          "form-action": ["self"],
+          "frame-ancestors": ["none"],
+        },
+      },
     }),
   ],
 });
