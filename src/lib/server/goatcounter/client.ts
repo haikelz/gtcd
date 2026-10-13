@@ -1,4 +1,5 @@
 import { env } from "$env/dynamic/private";
+import { getRedis, pingRedis } from "$lib/server/auth/session-store.js";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
@@ -15,6 +16,55 @@ interface CacheEntry<T> {
 const memoryCache = new Map<string, CacheEntry<unknown>>();
 // Identical GETs that overlap (layout and page loads) share one upstream call.
 const inflightRequests = new Map<string, Promise<unknown>>();
+
+// Redis copy of the cache, shared by every replica so a second pod does not
+// spend GoatCounter's 4 req/s budget on a query the first already answered.
+const SHARED_CACHE_PREFIX = "gc-cache:";
+
+async function readSharedCache<T>(cacheKey: string): Promise<T | undefined> {
+  if (!(await pingRedis(100))) return undefined;
+  try {
+    const raw = await getRedis().get(SHARED_CACHE_PREFIX + cacheKey);
+    return raw === null ? undefined : (JSON.parse(raw) as T);
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeSharedCache(
+  cacheKey: string,
+  data: unknown,
+  ttlMs: number
+): Promise<void> {
+  if (!(await pingRedis(100))) return;
+  try {
+    await getRedis().set(
+      SHARED_CACHE_PREFIX + cacheKey,
+      JSON.stringify(data),
+      "PX",
+      ttlMs
+    );
+  } catch {
+    // The per-process cache still holds the value.
+  }
+}
+
+async function clearSharedCache(): Promise<void> {
+  if (!(await pingRedis())) return;
+  const redis = getRedis();
+  let cursor = "0";
+  do {
+    const [next, keys] = await redis.scan(
+      cursor,
+      "MATCH",
+      `${SHARED_CACHE_PREFIX}*`,
+      "COUNT",
+      500
+    );
+    if (keys.length) await redis.del(...keys);
+    cursor = next;
+  } while (cursor !== "0");
+}
 
 let lastRequestTime = 0;
 let pacerQueue: Promise<void> = Promise.resolve();
@@ -152,6 +202,7 @@ function requireApiConfig(): { baseUrl: string; apiKey: string } {
 
 export function clearClientCache(): void {
   memoryCache.clear();
+  clearSharedCache().catch(() => {});
 }
 
 /**
@@ -223,8 +274,22 @@ export async function gcFetch<T>(
     if (pending) return pending;
   }
 
-  const request = requestWithRetry<T>(url, init, isGet, cacheKey, options);
-  if (!isGet) return request;
+  if (!isGet) return requestWithRetry<T>(url, init, isGet, cacheKey, options);
+
+  const request = (async () => {
+    if (!options.bypassCache) {
+      const shared = await readSharedCache<T>(cacheKey);
+      if (shared !== undefined) {
+        sweepCache(Date.now());
+        memoryCache.set(cacheKey, {
+          data: shared,
+          expiresAt: Date.now() + (options.ttlMs ?? DEFAULT_CACHE_TTL_MS),
+        });
+        return shared;
+      }
+    }
+    return requestWithRetry<T>(url, init, isGet, cacheKey, options);
+  })();
 
   inflightRequests.set(cacheKey, request);
   try {
@@ -300,6 +365,7 @@ async function requestWithRetry<T>(
           data: result,
           expiresAt: Date.now() + ttl,
         });
+        await writeSharedCache(cacheKey, result, ttl);
       }
 
       return result;
