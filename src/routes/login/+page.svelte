@@ -71,6 +71,22 @@
     }
   });
 
+  // Re-render the widget when the page theme changes.
+  $effect(() => {
+    if (!data.turnstileSiteKey) return;
+
+    const root = document.documentElement;
+    let dark = root.classList.contains("dark");
+    const observer = new MutationObserver(() => {
+      if (root.classList.contains("dark") === dark) return;
+      dark = !dark;
+      challengeAttempt++;
+    });
+
+    observer.observe(root, { attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  });
+
   // Tokens are single-use, so each attempt renders a fresh widget.
   $effect(() => {
     const container = challengeEl;
@@ -86,8 +102,6 @@
     loadTurnstile().then(
       (turnstile) => {
         if (cancelled) return;
-        // ponytail: the theme is read once; toggling it on this page keeps the
-        // widget's old theme until the next render.
         const widgetId = turnstile.render(container, {
           action: "login",
           callback: (token: string) => (challengeToken = token),
