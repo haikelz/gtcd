@@ -8,7 +8,7 @@ import ts from "typescript-eslint";
 
 export default ts.config(
   includeIgnoreFile(path.resolve(import.meta.dirname, ".gitignore")),
-  { ignores: [".cursor/**"] },
+  { ignores: [".cursor/**", ".amp/**"] },
   js.configs.recommended,
   ...ts.configs.recommended,
   ...svelte.configs["flat/recommended"],

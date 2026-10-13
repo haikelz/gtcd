@@ -5,3 +5,4 @@ pnpm-lock.yaml
 static/fonts/
 # Installed by the ai-guideline manifest; keep byte-identical to upstream.
 .agents/
+.amp/
