@@ -21,6 +21,7 @@ export default {
   "auth.showPassword": "Show password",
   "auth.signIn": "Sign in",
   "auth.signingIn": "Signing in…",
+  "auth.tooManyAttempts": "Too many sign-in attempts. Try again in 15 minutes.",
   "auth.unavailable":
     "GoatCounter is currently unavailable. Please try again later.",
   "auth.welcome": "Welcome back",

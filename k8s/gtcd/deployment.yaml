@@ -107,6 +107,19 @@ spec:
                   name: gtcd-env
                   key: GTCD_PUBLIC_URL
                   optional: true
+            # Optional client IP header for the per-IP login rate limit.
+            - name: ADDRESS_HEADER
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: ADDRESS_HEADER
+                  optional: true
+            - name: XFF_DEPTH
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: XFF_DEPTH
+                  optional: true
             # Optional Turnstile login check (off until both keys are set).
             - name: TURNSTILE_SITE_KEY
               valueFrom:

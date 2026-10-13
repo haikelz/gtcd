@@ -65,6 +65,11 @@ services:
       # TLS production domains without per-deployment ORIGIN configuration.
       PROTOCOL_HEADER: x-forwarded-proto
       HOST_HEADER: host
+      # Client IP for the per-IP login rate limit. Caddy fronts gtcd, so the
+      # last X-Forwarded-For entry is the client. Behind Cloudflare, set
+      # ADDRESS_HEADER=cf-connecting-ip in .env instead.
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-x-forwarded-for}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
     expose:
       - "3000"
     read_only: true

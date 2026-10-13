@@ -54,6 +54,9 @@ else
   echo "  Traefik CRDs not found - skipping middlewares. Install Traefik first." >&2
 fi
 
+# adapter-node reads an empty XFF_DEPTH as NaN, so give it a value.
+: "${XFF_DEPTH:=1}"
+
 # Create/update the Secret from env vars. Secret keys are read by the pod at
 # container start, so the deployment is rolled again after the apply below.
 secret_name="gtcd-env"
@@ -72,6 +75,8 @@ secret_vars=(
   GTCD_PUBLIC_URL
   TURNSTILE_SITE_KEY
   TURNSTILE_SECRET_KEY
+  ADDRESS_HEADER
+  XFF_DEPTH
 )
 
 echo "  Creating/updating Secret '$secret_name'..."

@@ -1,4 +1,10 @@
 import {
+  clearLoginFailures,
+  clientIp,
+  isLoginLimited,
+  recordLoginFailure,
+} from "$lib/server/auth/login-guard.js";
+import {
   createDashboardSession,
   shouldUseSecureCookies,
 } from "$lib/server/auth/session.js";
@@ -18,7 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-  login: async ({ request, cookies, locals, url }) => {
+  login: async ({ request, cookies, getClientAddress, locals, url }) => {
     const data = await request.formData();
     const emailValue = data.get("email");
     const password = data.get("password");
@@ -37,6 +43,14 @@ export const actions: Actions = {
       });
     }
 
+    const ip = clientIp(getClientAddress);
+
+    if (await isLoginLimited(email, ip)) {
+      return fail(429, {
+        error: translate(locals.locale, "auth.tooManyAttempts"),
+      });
+    }
+
     // Check the bot challenge before spending a GoatCounter login attempt.
     if (!(await verifyTurnstile(data.get("cf-turnstile-response")))) {
       return fail(400, {
@@ -49,6 +63,7 @@ export const actions: Actions = {
     if (!result.success) {
       switch (result.reason) {
         case "invalid_credentials":
+          await recordLoginFailure(email, ip);
           return fail(400, {
             error: translate(locals.locale, "auth.invalidCredentials"),
           });
@@ -64,6 +79,7 @@ export const actions: Actions = {
     }
 
     // Authentication successful — create dashboard session
+    await clearLoginFailures(email);
     await createDashboardSession(
       cookies,
       result.user.email,

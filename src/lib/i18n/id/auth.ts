@@ -23,6 +23,8 @@ export default {
   "auth.showPassword": "Tampilkan kata sandi",
   "auth.signIn": "Masuk",
   "auth.signingIn": "Sedang masuk…",
+  "auth.tooManyAttempts":
+    "Terlalu banyak percobaan masuk. Coba lagi dalam 15 menit.",
   "auth.unavailable": "GoatCounter sedang tidak tersedia. Coba lagi nanti.",
   "auth.welcome": "Selamat datang kembali",
 } satisfies Record<keyof typeof en, string>;
