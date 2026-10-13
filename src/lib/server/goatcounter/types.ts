@@ -1,3 +1,5 @@
+import type { TotpChallenge } from "./totp-form.js";
+
 export interface GoatCounterUser {
   user: {
     id: number;
@@ -166,5 +168,14 @@ export type GoatCounterAuthResult =
     }
   | {
       success: false;
-      reason: "invalid_credentials" | "mfa_required" | "unavailable";
+      reason: "invalid_credentials" | "unavailable";
+    }
+  | {
+      success: false;
+      reason: "mfa_required";
+      challenge: TotpChallenge;
     };
+
+export type GoatCounterTotpResult =
+  | { success: true }
+  | { success: false; reason: "invalid_code" | "expired" | "unavailable" };

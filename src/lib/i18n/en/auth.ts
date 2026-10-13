@@ -8,11 +8,21 @@ export default {
   "auth.emailPlaceholder": "you@example.com",
   "auth.footnote":
     "Your analytics stay connected to your GoatCounter instance. No separate account needed.",
+  "auth.forgotPassword": "Forgot password?",
   "auth.hidePassword": "Hide password",
   "auth.intro": "Sign in with your existing GoatCounter account.",
   "auth.invalidCredentials": "Invalid email or password",
-  "auth.mfaRequired":
-    "Two-factor authentication is required. Please disable TOTP or use the GoatCounter dashboard directly.",
+  "auth.mfaBack": "Use a different account",
+  "auth.mfaCode": "Authentication code",
+  "auth.mfaExpired":
+    "The sign-in expired. Enter your email and password again.",
+  "auth.mfaIntro":
+    "Enter the 6-digit code from your authenticator app for {email}.",
+  "auth.mfaInvalid":
+    "That code is not valid. Check your authenticator app and try again.",
+  "auth.mfaTitle": "Two-factor authentication",
+  "auth.mfaVerify": "Verify",
+  "auth.mfaVerifying": "Verifying…",
   "auth.missingCredentials": "Please enter both email and password",
   "auth.password": "Password",
   "auth.passwordPlaceholder": "Your GoatCounter password",

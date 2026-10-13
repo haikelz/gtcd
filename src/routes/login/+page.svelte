@@ -60,6 +60,7 @@
   let challengeError = $state(false);
   let challengeEl = $state<HTMLDivElement | null>(null);
   let challengeToken = $state("");
+  let codeEl = $state<HTMLInputElement | null>(null);
   let loading = $state(false);
   let showPassword = $state(false);
   let errorEl = $state<HTMLDivElement | null>(null);
@@ -69,6 +70,11 @@
     if (form?.error && errorEl) {
       errorEl.focus();
     }
+  });
+
+  // Land on the code field when the two-factor step appears.
+  $effect(() => {
+    if (data.mfaEmail && codeEl && !form?.error) codeEl.focus();
   });
 
   // Re-render the widget when the page theme changes.
@@ -147,122 +153,20 @@
       <Frame spacing="lg">
         <FrameHeader class="gap-1 pt-3">
           <h1 class="text-lg font-semibold tracking-tight">
-            {t("auth.welcome")}
+            {data.mfaEmail ? t("auth.mfaTitle") : t("auth.welcome")}
           </h1>
           <FrameDescription>
-            {t("auth.intro")}
+            {data.mfaEmail
+              ? t("auth.mfaIntro", { email: data.mfaEmail })
+              : t("auth.intro")}
           </FrameDescription>
         </FrameHeader>
         <FramePanel>
-          <form
-            action="?/login"
-            class="grid gap-5"
-            method="POST"
-            use:enhance={() => {
-              loading = true;
-              return async ({ result, update }) => {
-                try {
-                  await update();
-                } finally {
-                  loading = false;
-                  if (result.type === "failure") challengeAttempt++;
-                }
-              };
-            }}
-          >
-            <div class="grid gap-2">
-              <Label for="email">{t("auth.email")}</Label>
-              <Input
-                autocomplete="email"
-                id="email"
-                name="email"
-                placeholder={t("auth.emailPlaceholder")}
-                required
-                type="email"
-              />
-            </div>
-            <div class="grid gap-2">
-              <Label for="password">{t("auth.password")}</Label>
-              <div class="relative">
-                <Input
-                  autocomplete="current-password"
-                  class="pr-9"
-                  id="password"
-                  name="password"
-                  placeholder={t("auth.passwordPlaceholder")}
-                  required
-                  type={showPassword ? "text" : "password"}
-                />
-                <Button
-                  aria-label={showPassword
-                    ? t("auth.hidePassword")
-                    : t("auth.showPassword")}
-                  aria-pressed={showPassword}
-                  class="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
-                  onclick={() => (showPassword = !showPassword)}
-                  size="icon-xs"
-                  title={showPassword
-                    ? t("auth.hidePassword")
-                    : t("auth.showPassword")}
-                  variant="ghost"
-                >
-                  {#if showPassword}
-                    <EyeOff />
-                  {:else}
-                    <Eye />
-                  {/if}
-                </Button>
-              </div>
-            </div>
-            {#if data.turnstileSiteKey}
-              <div class="flex flex-col gap-2">
-                <div bind:this={challengeEl} class="min-h-[65px]"></div>
-                {#if challengeError}
-                  <Alert variant="destructive">
-                    <CircleAlert />
-                    <AlertTitle class="line-clamp-none">
-                      {t("auth.challengeError")}
-                    </AlertTitle>
-                    <AlertAction>
-                      <Button
-                        onclick={() => challengeAttempt++}
-                        size="xs"
-                        variant="outline"
-                      >
-                        {t("auth.challengeRetry")}
-                      </Button>
-                    </AlertAction>
-                  </Alert>
-                {/if}
-              </div>
-            {/if}
-            {#if form?.error}
-              <Alert
-                bind:ref={errorEl}
-                class="focus:outline-none"
-                tabindex={-1}
-                variant="destructive"
-              >
-                <CircleAlert />
-                <AlertTitle class="line-clamp-none">{form.error}</AlertTitle>
-              </Alert>
-            {/if}
-            <Button
-              class="w-full"
-              disabled={loading ||
-                (data.turnstileSiteKey !== null && !challengeToken)}
-              size="lg"
-              type="submit"
-            >
-              {#if loading}
-                <LoaderCircle aria-hidden="true" class="animate-spin" />
-                <span>{t("auth.signingIn")}</span>
-              {:else}
-                <span>{t("auth.signIn")}</span>
-                <ArrowRight aria-hidden="true" />
-              {/if}
-            </Button>
-          </form>
+          {#if data.mfaEmail}
+            {@render mfaForm()}
+          {:else}
+            {@render passwordForm()}
+          {/if}
         </FramePanel>
       </Frame>
       <p class="px-2 text-center text-xs leading-relaxed text-muted-foreground">
@@ -271,3 +175,172 @@
     </div>
   </div>
 </main>
+
+{#snippet errorAlert()}
+  {#if form?.error}
+    <Alert
+      bind:ref={errorEl}
+      class="focus:outline-none"
+      tabindex={-1}
+      variant="destructive"
+    >
+      <CircleAlert />
+      <AlertTitle class="line-clamp-none">{form.error}</AlertTitle>
+    </Alert>
+  {/if}
+{/snippet}
+
+{#snippet submitButton(label: string, pendingLabel: string, disabled: boolean)}
+  <Button class="w-full" disabled={loading || disabled} size="lg" type="submit">
+    {#if loading}
+      <LoaderCircle aria-hidden="true" class="animate-spin" />
+      <span>{pendingLabel}</span>
+    {:else}
+      <span>{label}</span>
+      <ArrowRight aria-hidden="true" />
+    {/if}
+  </Button>
+{/snippet}
+
+{#snippet mfaForm()}
+  <div class="grid gap-3">
+    <form
+      action="?/totp"
+      class="grid gap-5"
+      method="POST"
+      use:enhance={() => {
+        loading = true;
+        return async ({ update }) => {
+          try {
+            await update();
+          } finally {
+            loading = false;
+          }
+        };
+      }}
+    >
+      <div class="grid gap-2">
+        <Label for="code">{t("auth.mfaCode")}</Label>
+        <Input
+          autocomplete="one-time-code"
+          bind:ref={codeEl}
+          class="font-mono tracking-widest tabular-nums"
+          id="code"
+          inputmode="numeric"
+          maxlength={6}
+          name="code"
+          pattern={"[0-9]{6}"}
+          placeholder="123456"
+          required
+        />
+      </div>
+      {@render errorAlert()}
+      {@render submitButton(t("auth.mfaVerify"), t("auth.mfaVerifying"), false)}
+    </form>
+    <form action="?/cancelMfa" method="POST" use:enhance>
+      <Button class="w-full" type="submit" variant="ghost">
+        {t("auth.mfaBack")}
+      </Button>
+    </form>
+  </div>
+{/snippet}
+
+{#snippet passwordForm()}
+  <form
+    action="?/login"
+    class="grid gap-5"
+    method="POST"
+    use:enhance={() => {
+      loading = true;
+      return async ({ result, update }) => {
+        try {
+          await update();
+        } finally {
+          loading = false;
+          if (result.type === "failure") challengeAttempt++;
+        }
+      };
+    }}
+  >
+    <div class="grid gap-2">
+      <Label for="email">{t("auth.email")}</Label>
+      <Input
+        autocomplete="email"
+        id="email"
+        name="email"
+        placeholder={t("auth.emailPlaceholder")}
+        required
+        type="email"
+      />
+    </div>
+    <div class="grid gap-2">
+      <div class="flex items-center justify-between gap-2">
+        <Label for="password">{t("auth.password")}</Label>
+        {#if data.passwordResetUrl}
+          <a
+            class="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            href={data.passwordResetUrl}
+          >
+            {t("auth.forgotPassword")}
+          </a>
+        {/if}
+      </div>
+      <div class="relative">
+        <Input
+          autocomplete="current-password"
+          class="pr-9"
+          id="password"
+          name="password"
+          placeholder={t("auth.passwordPlaceholder")}
+          required
+          type={showPassword ? "text" : "password"}
+        />
+        <Button
+          aria-label={showPassword
+            ? t("auth.hidePassword")
+            : t("auth.showPassword")}
+          aria-pressed={showPassword}
+          class="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+          onclick={() => (showPassword = !showPassword)}
+          size="icon-xs"
+          title={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+          variant="ghost"
+        >
+          {#if showPassword}
+            <EyeOff />
+          {:else}
+            <Eye />
+          {/if}
+        </Button>
+      </div>
+    </div>
+    {#if data.turnstileSiteKey}
+      <div class="flex flex-col gap-2">
+        <div bind:this={challengeEl} class="min-h-[65px]"></div>
+        {#if challengeError}
+          <Alert variant="destructive">
+            <CircleAlert />
+            <AlertTitle class="line-clamp-none">
+              {t("auth.challengeError")}
+            </AlertTitle>
+            <AlertAction>
+              <Button
+                onclick={() => challengeAttempt++}
+                size="xs"
+                variant="outline"
+              >
+                {t("auth.challengeRetry")}
+              </Button>
+            </AlertAction>
+          </Alert>
+        {/if}
+      </div>
+    {/if}
+    {@render errorAlert()}
+    {@render submitButton(
+      t("auth.signIn"),
+      t("auth.signingIn"),
+      data.turnstileSiteKey !== null && !challengeToken
+    )}
+  </form>
+{/snippet}

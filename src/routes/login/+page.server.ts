@@ -1,26 +1,50 @@
+import { getGoatCounterAdminUrl } from "$lib/server/auth/admin.js";
 import {
   clearLoginFailures,
+  clearMfa,
   clientIp,
+  getPendingMfa,
   isLoginLimited,
   recordLoginFailure,
+  recordMfaFailure,
+  startMfa,
 } from "$lib/server/auth/login-guard.js";
 import {
   createDashboardSession,
   shouldUseSecureCookies,
 } from "$lib/server/auth/session.js";
-import { authenticateWithGoatCounter } from "$lib/server/goatcounter/auth.js";
+import {
+  authenticateWithGoatCounter,
+  verifyTotpWithGoatCounter,
+} from "$lib/server/goatcounter/auth.js";
 import { getTurnstileSiteKey, verifyTurnstile } from "$lib/server/turnstile";
 import { translate } from "$lib/i18n";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ locals }) => {
+/** GoatCounter's own reset page, when its public URL is configured. */
+function passwordResetUrl(): string | null {
+  const adminUrl = getGoatCounterAdminUrl();
+  if (!adminUrl) return null;
+  return new URL(
+    "user/forgot",
+    adminUrl.endsWith("/") ? adminUrl : `${adminUrl}/`
+  ).href;
+}
+
+export const load: PageServerLoad = async ({ cookies, locals }) => {
   // If already logged in, redirect to dashboard
   if (locals.user) {
     throw redirect(302, "/dashboard");
   }
 
-  return { turnstileSiteKey: getTurnstileSiteKey() };
+  const mfa = await getPendingMfa(cookies);
+
+  return {
+    mfaEmail: mfa?.pending.email ?? null,
+    passwordResetUrl: passwordResetUrl(),
+    turnstileSiteKey: getTurnstileSiteKey(),
+  };
 };
 
 export const actions: Actions = {
@@ -58,6 +82,7 @@ export const actions: Actions = {
       });
     }
 
+    const secure = shouldUseSecureCookies(request.headers, url);
     const result = await authenticateWithGoatCounter(email, password);
 
     if (!result.success) {
@@ -68,9 +93,9 @@ export const actions: Actions = {
             error: translate(locals.locale, "auth.invalidCredentials"),
           });
         case "mfa_required":
-          return fail(400, {
-            error: translate(locals.locale, "auth.mfaRequired"),
-          });
+          // The password was right; the code step finishes the login.
+          await startMfa(cookies, email, result.challenge, secure);
+          return { mfa: true };
         case "unavailable":
           return fail(502, {
             error: translate(locals.locale, "auth.unavailable"),
@@ -80,12 +105,68 @@ export const actions: Actions = {
 
     // Authentication successful — create dashboard session
     await clearLoginFailures(email);
+    await createDashboardSession(cookies, result.user.email, secure);
+
+    throw redirect(302, "/dashboard");
+  },
+
+  totp: async ({ request, cookies, getClientAddress, locals, url }) => {
+    const mfa = await getPendingMfa(cookies);
+    if (!mfa) {
+      await clearMfa(cookies);
+      return fail(400, { error: translate(locals.locale, "auth.mfaExpired") });
+    }
+
+    const code = String((await request.formData()).get("code") ?? "").replace(
+      /\s/g,
+      ""
+    );
+    if (!/^\d{6}$/.test(code)) {
+      return fail(400, { error: translate(locals.locale, "auth.mfaInvalid") });
+    }
+
+    const result = await verifyTotpWithGoatCounter(mfa.pending.challenge, code);
+
+    if (!result.success) {
+      switch (result.reason) {
+        case "invalid_code": {
+          await recordLoginFailure(
+            mfa.pending.email,
+            clientIp(getClientAddress)
+          );
+          const canRetry = await recordMfaFailure(cookies, mfa.id, mfa.pending);
+          return fail(400, {
+            error: translate(
+              locals.locale,
+              canRetry ? "auth.mfaInvalid" : "auth.mfaExpired"
+            ),
+          });
+        }
+        case "expired":
+          await clearMfa(cookies, mfa.id);
+          return fail(400, {
+            error: translate(locals.locale, "auth.mfaExpired"),
+          });
+        case "unavailable":
+          return fail(502, {
+            error: translate(locals.locale, "auth.unavailable"),
+          });
+      }
+    }
+
+    await clearMfa(cookies, mfa.id);
+    await clearLoginFailures(mfa.pending.email);
     await createDashboardSession(
       cookies,
-      result.user.email,
+      mfa.pending.email,
       shouldUseSecureCookies(request.headers, url)
     );
 
     throw redirect(302, "/dashboard");
+  },
+
+  cancelMfa: async ({ cookies }) => {
+    await clearMfa(cookies);
+    return { mfa: false };
   },
 };

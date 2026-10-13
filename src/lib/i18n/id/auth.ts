@@ -10,11 +10,21 @@ export default {
   "auth.emailPlaceholder": "nama@contoh.com",
   "auth.footnote":
     "Analitik tetap terhubung ke instance GoatCounter Anda, jadi tidak perlu akun terpisah.",
+  "auth.forgotPassword": "Lupa kata sandi?",
   "auth.hidePassword": "Sembunyikan kata sandi",
   "auth.intro": "Masuk dengan akun GoatCounter yang sudah ada.",
   "auth.invalidCredentials": "Email atau kata sandi salah",
-  "auth.mfaRequired":
-    "Akun ini memakai autentikasi dua faktor. Nonaktifkan TOTP atau buka dasbor GoatCounter langsung.",
+  "auth.mfaBack": "Gunakan akun lain",
+  "auth.mfaCode": "Kode autentikasi",
+  "auth.mfaExpired":
+    "Sesi masuk kedaluwarsa. Masukkan email dan kata sandi lagi.",
+  "auth.mfaIntro":
+    "Masukkan kode 6 digit dari aplikasi autentikator untuk {email}.",
+  "auth.mfaInvalid":
+    "Kode tidak valid. Periksa aplikasi autentikator lalu coba lagi.",
+  "auth.mfaTitle": "Autentikasi dua faktor",
+  "auth.mfaVerify": "Verifikasi",
+  "auth.mfaVerifying": "Memverifikasi…",
   "auth.missingCredentials": "Masukkan email dan kata sandi",
   "auth.password": "Kata sandi",
   "auth.passwordPlaceholder": "Kata sandi GoatCounter",
