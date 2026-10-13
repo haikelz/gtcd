@@ -43,3 +43,5 @@ cache
 # Deployment secrets (scripts/setup.sh writes secrets/redis.conf); keep examples.
 /secrets/*
 !/secrets/*.example
+/test-results/
+/playwright-report/
