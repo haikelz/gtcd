@@ -6,6 +6,8 @@ const PORT = Number(process.env.MOCK_PORT ?? 5187);
 const PASSWORD = "correct-horse";
 const MFA_EMAIL = "mfa@example.com";
 const TOTP_CODE = "123456";
+// Slow stats responses make the dashboard stream its widget data.
+const STATS_DELAY_MS = Number(process.env.STATS_DELAY_MS ?? 0);
 
 const settings = {
   allow_bosmang: false,
@@ -71,6 +73,9 @@ function json(res, value) {
 http
   .createServer(async (req, res) => {
     const path = new URL(req.url, "http://localhost").pathname;
+    if (STATS_DELAY_MS && path.includes("/stats/")) {
+      await new Promise((resolve) => setTimeout(resolve, STATS_DELAY_MS));
+    }
 
     if (path === "/user/requestlogin") {
       const form = await readForm(req);

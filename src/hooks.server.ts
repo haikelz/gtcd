@@ -3,6 +3,7 @@ import { isLocale } from "$lib/dashboard-layout.js";
 import { LOCALE_COOKIE, localeFromAcceptLanguage } from "$lib/i18n/index.js";
 import { getDashboardSession } from "$lib/server/auth/session.js";
 import { startReportScheduler } from "$lib/server/email-reports.js";
+import { markScriptsForRocketLoader } from "$lib/server/rocket-loader.js";
 import type { Handle, ServerInit } from "@sveltejs/kit";
 
 export const init: ServerInit = () => {
@@ -27,14 +28,29 @@ export const handle: Handle = async ({ event, resolve }) => {
     ? savedLocale
     : localeFromAcceptLanguage(event.request.headers.get("accept-language"));
 
-  const response = await resolve(event, {
-    // data-cfasync="false" makes Cloudflare Rocket Loader skip our scripts:
-    // it re-injects scripts without their CSP nonce, which blocks hydration.
+  const resolved = await resolve(event, {
     transformPageChunk: ({ html }) =>
-      html
-        .replace('<html lang="en">', `<html lang="${event.locals.locale}">`)
-        .replaceAll("<script", '<script data-cfasync="false"'),
+      html.replace('<html lang="en">', `<html lang="${event.locals.locale}">`),
   });
+
+  // Rewrite the whole HTML stream, not just transformPageChunk's output, so
+  // the scripts SvelteKit streams for unresolved load promises are marked too.
+  let response = resolved;
+  if (
+    resolved.body &&
+    resolved.headers.get("content-type")?.startsWith("text/html")
+  ) {
+    response = new Response(
+      resolved.body.pipeThrough(markScriptsForRocketLoader()),
+      {
+        headers: resolved.headers,
+        status: resolved.status,
+        statusText: resolved.statusText,
+      }
+    );
+    // The added attributes change the byte count.
+    response.headers.delete("content-length");
+  }
 
   for (const [header, value] of Object.entries(securityHeaders)) {
     response.headers.set(header, value);

@@ -12,7 +12,7 @@ export default defineConfig({
   webServer: [
     {
       command: "node e2e/mock-goatcounter.mjs",
-      env: { MOCK_PORT: String(MOCK_PORT) },
+      env: { MOCK_PORT: String(MOCK_PORT), STATS_DELAY_MS: "300" },
       port: MOCK_PORT,
     },
     {

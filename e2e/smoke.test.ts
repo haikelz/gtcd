@@ -55,13 +55,15 @@ test("repeated wrong passwords hit the rate limit", async ({ page }) => {
   await expect(page.getByText("Too many sign-in attempts.")).toBeVisible();
 });
 
-test("every script opts out of Cloudflare Rocket Loader", async ({
-  request,
-}) => {
-  const html = await (await request.get("/login")).text();
+test("every script opts out of Cloudflare Rocket Loader", async ({ page }) => {
+  await signIn(page, "qa@example.com");
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  // The dashboard streams widget data as extra <script> chunks.
+  const html = await (await page.request.get("/dashboard")).text();
   const scripts = html.match(/<script\b[^>]*>/g) ?? [];
 
-  expect(scripts.length).toBeGreaterThan(0);
+  expect(scripts.length).toBeGreaterThan(5);
   for (const tag of scripts) expect(tag).toContain('data-cfasync="false"');
 });
 
