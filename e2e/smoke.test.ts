@@ -55,6 +55,16 @@ test("repeated wrong passwords hit the rate limit", async ({ page }) => {
   await expect(page.getByText("Too many sign-in attempts.")).toBeVisible();
 });
 
+test("every script opts out of Cloudflare Rocket Loader", async ({
+  request,
+}) => {
+  const html = await (await request.get("/login")).text();
+  const scripts = html.match(/<script\b[^>]*>/g) ?? [];
+
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const tag of scripts) expect(tag).toContain('data-cfasync="false"');
+});
+
 test("login links to GoatCounter's password reset", async ({ page }) => {
   await page.goto("/login");
   await expect(

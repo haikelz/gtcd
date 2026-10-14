@@ -28,8 +28,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     : localeFromAcceptLanguage(event.request.headers.get("accept-language"));
 
   const response = await resolve(event, {
+    // data-cfasync="false" makes Cloudflare Rocket Loader skip our scripts:
+    // it re-injects scripts without their CSP nonce, which blocks hydration.
     transformPageChunk: ({ html }) =>
-      html.replace('<html lang="en">', `<html lang="${event.locals.locale}">`),
+      html
+        .replace('<html lang="en">', `<html lang="${event.locals.locale}">`)
+        .replaceAll("<script", '<script data-cfasync="false"'),
   });
 
   for (const [header, value] of Object.entries(securityHeaders)) {
