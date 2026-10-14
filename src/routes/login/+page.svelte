@@ -278,7 +278,7 @@
         <Label for="password">{t("auth.password")}</Label>
         {#if data.passwordResetUrl}
           <a
-            class="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            class="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-"
             href={data.passwordResetUrl}
           >
             {t("auth.forgotPassword")}

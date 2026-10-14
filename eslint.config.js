@@ -24,5 +24,10 @@ export default ts.config(
     languageOptions: {
       parserOptions: { parser: ts.parser },
     },
+  },
+  {
+    rules: {
+      "svelte/no-navigation-without-resolve": ["error", { ignoreLinks: true }],
+    },
   }
 );
