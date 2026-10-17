@@ -34,6 +34,13 @@ export const load: PageServerLoad = async ({ url, parent }) => {
     preferences.timezone
   );
   const requestOptions = { vhost };
+  const prevWall = previousRange(startWall, endWall);
+  const previous = toDateRange(
+    "previous",
+    prevWall.start,
+    prevWall.end,
+    preferences.timezone
+  );
 
   let includePaths: number[] | undefined;
   try {
@@ -44,6 +51,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
     return {
       browsers: none,
       campaigns: none,
+      comparison: { total: none, browsers: none, locations: none },
       diffs: none,
       error: Promise.resolve(
         e instanceof Error
@@ -84,7 +92,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
   }
 
   const requests = {
-    browsers: needs("kpis", "browsers") ? topStats("browsers") : null,
+    browsers: needs("kpis", "browsers") ? topStats("browsers", 100) : null,
     campaigns: needs("campaigns")
       ? topStats("campaigns", limitFor("campaigns"))
       : null,
@@ -103,9 +111,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
     languages: needs("languages")
       ? topStats("languages", limitFor("languages"))
       : null,
-    locations: needs("kpis", "locations")
-      ? topStats("locations", limitFor("locations"))
-      : null,
+    locations: needs("kpis", "locations") ? topStats("locations", 100) : null,
     referrers: needs("referrers")
       ? topStats("toprefs", limitFor("referrers"))
       : null,
@@ -126,16 +132,9 @@ export const load: PageServerLoad = async ({ url, parent }) => {
   ): Promise<Record<number, number | null> | null> {
     if (!hits || hits.hits.length === 0) return null;
 
-    const prevWall = previousRange(startWall, endWall);
-    const prev = toDateRange(
-      "previous",
-      prevWall.start,
-      prevWall.end,
-      preferences.timezone
-    );
     const prevHits = await stats.getHits(
-      prev.start,
-      prev.end,
+      previous.start,
+      previous.end,
       100,
       undefined,
       undefined,
@@ -157,9 +156,51 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
   const hits = orNull(requests.hits);
 
+  // Queue comparison work after current widgets. Stats calls retain the shared
+  // cache, site isolation and outbound pacing; failures stay comparison-local.
+  const comparison = {
+    total: orNull(
+      needs("kpis", "traffic")
+        ? stats.getTotal(
+            previous.start,
+            previous.end,
+            includePaths,
+            requestOptions
+          )
+        : null
+    ),
+    browsers: orNull(
+      needs("kpis", "browsers")
+        ? stats.getStats(
+            "browsers",
+            previous.start,
+            previous.end,
+            100,
+            undefined,
+            includePaths,
+            requestOptions
+          )
+        : null
+    ),
+    locations: orNull(
+      needs("kpis", "locations")
+        ? stats.getStats(
+            "locations",
+            previous.start,
+            previous.end,
+            100,
+            undefined,
+            includePaths,
+            requestOptions
+          )
+        : null
+    ),
+  };
+
   return {
     browsers: orNull(requests.browsers),
     campaigns: orNull(requests.campaigns),
+    comparison,
     diffs: hits.then(previousPeriodDiffs).catch(() => null),
     // Only a load-wide failure gets the page-level alert; a single failed
     // widget falls back to its empty state.

@@ -11,6 +11,7 @@
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
+  import OverviewComparison from "$lib/components/OverviewComparison.svelte";
   import { showToast } from "$lib/components/toast.js";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -240,10 +241,15 @@
   {/if}
 {/await}
 
-<div class="grid gap-4 xl:grid-flow-dense xl:grid-cols-12">
+{#if !visibleWidgets.includes("kpis")}
+  <div class="mb-6">{@render comparisonWidget()}</div>
+{/if}
+
+<div class="grid gap-6 xl:grid-flow-dense xl:grid-cols-12">
   {#each visibleWidgets as widgetId (widgetId)}
     {#if widgetId === "kpis"}
       {@render kpiWidget()}
+      <div class="xl:col-span-12">{@render comparisonWidget()}</div>
     {:else if widgetId === "traffic"}
       {@render trafficWidget()}
     {:else if widgetId === "browsers"}
@@ -260,6 +266,24 @@
     {/if}
   {/each}
 </div>
+
+{#snippet comparisonWidget()}
+  {#if visibleWidgets.some( (id) => ["kpis", "traffic", "browsers", "locations"].includes(id) )}
+    <OverviewComparison
+      browsers={data.browsers}
+      locations={data.locations}
+      period={prevPeriodLabel}
+      previous={data.comparison}
+      showBrowsers={visibleWidgets.includes("kpis") ||
+        visibleWidgets.includes("browsers")}
+      showLocations={visibleWidgets.includes("kpis") ||
+        visibleWidgets.includes("locations")}
+      showTotal={visibleWidgets.includes("kpis") ||
+        visibleWidgets.includes("traffic")}
+      total={data.total}
+    />
+  {/if}
+{/snippet}
 
 {#snippet kpiWidget()}
   <section
@@ -334,7 +358,13 @@
 {/snippet}
 
 {#snippet trafficWidget()}
-  <Frame aria-labelledby="heading-traffic" class="xl:col-span-8" role="region">
+  <Frame
+    aria-labelledby="heading-traffic"
+    class="xl:col-span-8"
+    dense
+    spacing="default"
+    role="region"
+  >
     <FrameHeader class="flex-row items-center justify-between gap-3">
       <div class="min-w-0">
         <FrameTitle id="heading-traffic"
@@ -373,7 +403,13 @@
 {/snippet}
 
 {#snippet browsersWidget()}
-  <Frame aria-labelledby="heading-audience" class="xl:col-span-4" role="region">
+  <Frame
+    aria-labelledby="heading-audience"
+    class="xl:col-span-4"
+    dense
+    spacing="default"
+    role="region"
+  >
     <FrameHeader class="flex-row items-center justify-between gap-3">
       <div class="min-w-0">
         <FrameTitle id="heading-audience"
@@ -408,7 +444,13 @@
 {/snippet}
 
 {#snippet pagesWidget()}
-  <Frame aria-labelledby="heading-pages" class="xl:col-span-8" role="region">
+  <Frame
+    aria-labelledby="heading-pages"
+    class="xl:col-span-8"
+    dense
+    spacing="default"
+    role="region"
+  >
     <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
       <div class="min-w-0">
         <FrameTitle id="heading-pages">{t("overview.pagesTitle")}</FrameTitle>
@@ -465,6 +507,8 @@
   <Frame
     aria-labelledby="heading-locations"
     class="xl:col-span-4"
+    dense
+    spacing="default"
     role="region"
   >
     <FrameHeader class="flex-row items-center justify-between gap-3">
@@ -516,6 +560,8 @@
   <Frame
     aria-labelledby="heading-{report.id}"
     class="xl:col-span-4"
+    dense
+    spacing="default"
     role="region"
   >
     <FrameHeader class="flex-row items-center justify-between gap-3">
