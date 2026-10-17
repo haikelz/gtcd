@@ -10,6 +10,7 @@ import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js
 import {
   createShareLink,
   getShareLink,
+  isShareExpiryDays,
   revokeShareLink,
 } from "$lib/server/share-store.js";
 import type { Site, SiteSettings } from "$lib/server/goatcounter/types.js";
@@ -256,6 +257,7 @@ export async function load({ locals, url }) {
 
   return {
     publicLink: shareLink ? `${url.origin}/share/${shareLink.token}` : null,
+    publicLinkExpiresAt: shareLink?.expiresAt ?? null,
     sharing: {
       counterOrigin: site.cname ? `https://${site.cname}` : null,
       secret,
@@ -276,8 +278,21 @@ export const actions = {
   createShareLink: async ({ locals, request }) => {
     requireDashboardAdmin(locals.user);
 
+    const form = await request.formData();
+    const expiry = form.get("expiryDays");
+    const expiryDays = expiry === null ? 7 : Number(expiry);
+    if (
+      (expiry !== null && !["1", "7", "30"].includes(String(expiry))) ||
+      !isShareExpiryDays(expiryDays)
+    ) {
+      return fail(400, {
+        field: "expiryDays",
+        message: translate(locals.locale, "share.invalidExpiry"),
+      });
+    }
+
     const siteContext = await getDashboardSiteContext(new URL(request.url));
-    await createShareLink(siteContext.site.id);
+    await createShareLink(siteContext.site.id, { expiryDays });
     return { shareLink: "created" };
   },
   revokeShareLink: async ({ locals, request }) => {

@@ -2,11 +2,18 @@ import type en from "../en/share";
 
 // Bahasa Indonesia: share. Must define every key of the English catalog.
 export default {
-  "share.browsers": "Komposisi browser",
+  "share.browsers": "Browser",
   "share.country": "Negara",
-  "share.footer":
-    "Dibagikan lewat gtcd · Analitik ramah privasi oleh GoatCounter",
-  "share.kpis": "Indikator kinerja utama",
+  "share.expiry": "Masa berlaku tautan",
+  "share.expiryHelp":
+    "Berlaku untuk tautan baru. Mengganti tautan langsung menonaktifkan URL lama.",
+  "share.expiresAt": "Kedaluwarsa {date}",
+  "share.invalidExpiry": "Pilih masa berlaku tautan 1, 7, atau 30 hari.",
+  "share.oneDay": "1 hari",
+  "share.sevenDays": "7 hari",
+  "share.thirtyDays": "30 hari",
+  "share.footer": "Dibagikan lewat gtcd · Analitik oleh GoatCounter",
+  "share.kpis": "Metrik utama",
   "share.loading": "Memuat",
   "share.locations": "Lokasi pengunjung",
   "share.mostVisits": "Kunjungan terbanyak",
@@ -14,9 +21,10 @@ export default {
   "share.noLocationData": "Belum ada data lokasi",
   "share.noPageData": "Belum ada data halaman",
   "share.noReferrerData": "Belum ada data perujuk",
-  "share.notFound": "Tautan publik ini tidak ada atau sudah dicabut.",
-  "share.pages": "Halaman paling banyak dibaca",
-  "share.pagesDescription": "Konten yang mendatangkan pengunjung",
+  "share.notFound":
+    "Tautan publik ini tidak ada, sudah kedaluwarsa, atau sudah dicabut.",
+  "share.pages": "Halaman teratas",
+  "share.pagesDescription": "Kunjungan menurut halaman",
   "share.period": "Periode",
   "share.rangeMonth": "Bulan lalu",
   "share.rangeQuarter": "Kuartal lalu",

@@ -56,8 +56,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     response.headers.set(header, value);
   }
 
-  if (event.locals.user) {
+  const sharedReport = event.url.pathname.startsWith("/share/");
+  if (event.locals.user || sharedReport) {
     response.headers.set("Cache-Control", "private, no-store");
+  }
+
+  if (sharedReport) {
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 
   if (event.url.protocol === "https:") {

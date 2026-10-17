@@ -665,14 +665,55 @@
         </FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="public-link-heading" class="grid gap-3">
+        <fieldset class="grid gap-2">
+          <legend class="mb-2 text-sm font-medium">{t("share.expiry")}</legend>
+          <div class="flex flex-wrap gap-4">
+            {#each [1, 7, 30] as days (days)}
+              <label class="flex min-h-9 items-center gap-2 text-sm">
+                <input
+                  checked={days === 7}
+                  form="share-create"
+                  name="expiryDays"
+                  type="radio"
+                  value={days}
+                />
+                {t(
+                  days === 1
+                    ? "share.oneDay"
+                    : days === 7
+                      ? "share.sevenDays"
+                      : "share.thirtyDays"
+                )}
+              </label>
+            {/each}
+          </div>
+          <p class="text-xs text-muted-foreground">{t("share.expiryHelp")}</p>
+          {#if form?.field === "expiryDays"}
+            <p class="text-sm text-destructive" role="alert">{form.message}</p>
+          {/if}
+        </fieldset>
         {#if data.publicLink}
           <CopyField
             id="public-link"
             label={t("settings.publicDashboardLink")}
             value={data.publicLink}
           />
+          {#if data.publicLinkExpiresAt}
+            <p class="text-xs text-muted-foreground">
+              {t("share.expiresAt", {
+                date: data.publicLinkExpiresAt
+                  .replace("T", " ")
+                  .replace(/\.\d+Z$/, " UTC"),
+              })}
+            </p>
+          {/if}
           <div class="flex flex-wrap gap-2">
-            <form action="?/createShareLink" method="POST" use:enhance>
+            <form
+              id="share-create"
+              action="?/createShareLink"
+              method="POST"
+              use:enhance
+            >
               <Button size="sm" type="submit" variant="outline">
                 <RefreshCw />
                 {t("settings.newLink")}
@@ -688,7 +729,12 @@
             {t("settings.publicLinkHelp")}
           </p>
         {:else}
-          <form action="?/createShareLink" method="POST" use:enhance>
+          <form
+            id="share-create"
+            action="?/createShareLink"
+            method="POST"
+            use:enhance
+          >
             <Button class="w-full" type="submit" variant="outline">
               <Link2 />
               {t("settings.createPublicLink")}
