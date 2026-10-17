@@ -8,6 +8,7 @@ import {
   IMPORTED_VIEW_NAME,
   layoutFromGoatCounter,
   parseDashboardLayout,
+  sanitizeViewQuery,
   sanitizeWidgetOptions,
   widgetLimit,
   widgetStyle,
@@ -36,6 +37,15 @@ assert.equal(legacy.widgets.length, DEFAULT_DASHBOARD_LAYOUT.widgets.length);
 assert.deepEqual(legacy.overrides, { fewerNumbers: null, locale: null });
 assert.equal(widgetLimit(legacy, "pages"), 6);
 assert.equal(widgetStyle(legacy, "traffic"), "line");
+
+// A view keeps its site without admitting invalid IDs or unrelated URL state.
+assert.equal(
+  sanitizeViewQuery("site=2&filter=docs&evil=1"),
+  "filter=docs&site=2"
+);
+for (const site of ["0", "-1", "1.5", "nope", "9007199254740992"]) {
+  assert.equal(sanitizeViewQuery(`site=${site}`), "");
+}
 
 // GoatCounter import: order, options, removed widgets hidden, default view.
 const imported = layoutFromGoatCounter({

@@ -37,7 +37,7 @@ const series = Array.from({ length: 7 }, (_, i) => ({
   hourly: Array.from({ length: 24 }, (_, h) => 3 + ((h + i) % 19)),
 }));
 const hits = ["/", "/blog", "/docs"].map((path, i) => ({
-  count: 980 - i * 140,
+  count: [980, 700, 400][i],
   event: false,
   max: 430,
   path,
@@ -106,14 +106,29 @@ http
         },
       });
     }
-    if (path.endsWith("/sites")) return json(res, { sites: [site] });
+    if (path.endsWith("/sites"))
+      return json(res, {
+        sites: [
+          site,
+          { ...site, id: 2, cname: "journal.example", code: "journal" },
+        ],
+      });
     if (path.includes("/sites/")) return json(res, site);
     if (path.endsWith("/total")) {
+      const start =
+        new URL(req.url, "http://localhost").searchParams.get("start") ?? "";
+      // Fixed future periods exercise scheduled alert delivery without a clock override.
+      const scheduled = start.startsWith("2040-04-");
+      const total = scheduled
+        ? start.startsWith("2040-04-01")
+          ? 100
+          : 300
+        : 2080;
       return json(res, {
         stats: series,
-        total: 2080,
-        total_events: 42,
-        total_utc: 2080,
+        total,
+        total_events: scheduled ? 0 : 42,
+        total_utc: total,
       });
     }
     if (path.includes("/hits"))
@@ -126,8 +141,19 @@ http
     }
     if (path.includes("/export")) return json(res, { exports: [] });
 
-    const stats = ["Chrome", "Safari", "Firefox"].map((name, i) => ({
-      count: 980 - i * 220,
+    const categories = {
+      locations: ["United States", "Indonesia", "Germany"],
+      toprefs: ["google.com", "github.com", "Direct"],
+      campaigns: ["Newsletter", "Documentation", "Launch"],
+      systems: ["Windows", "macOS", "Linux"],
+      languages: ["English", "Indonesian", "German"],
+      sizes: ["Desktop", "Mobile", "Tablet"],
+    };
+    const names = Object.entries(categories).find(([category]) =>
+      path.includes(category)
+    )?.[1] ?? ["Chrome", "Safari", "Firefox"];
+    const stats = names.map((name, i) => ({
+      count: [980, 760, 340][i],
       id: String(i + 1),
       name,
     }));

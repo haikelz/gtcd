@@ -67,6 +67,9 @@ function getTransporter(config: SmtpConfig): Transporter {
     host: config.host,
     port: config.port,
     secure: config.secure,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
   });
   transporterKey = key;
   return transporter;

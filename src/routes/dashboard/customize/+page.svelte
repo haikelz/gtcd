@@ -81,6 +81,24 @@
 
   const reports = $derived(data.emailReports);
   const siteParam = $derived(page.url.searchParams.get("site") ?? "");
+  const trafficAlert = $derived(reports.subscription.trafficAlert);
+  let alertPending = $state(false);
+  const saveAlert: SubmitFunction = () => {
+    alertPending = true;
+    return async ({ result, update }) => {
+      try {
+        await update({ reset: false });
+        if (
+          result.type === "success" &&
+          typeof result.data?.message === "string"
+        ) {
+          showToast(result.data.message, "success");
+        }
+      } finally {
+        alertPending = false;
+      }
+    };
+  };
 
   let widgets = $derived<WidgetSetting[]>(
     layout.widgets.map((widget) => ({ ...widget }))
@@ -101,7 +119,7 @@
 
   function viewHref(query: string): string {
     const params = new SvelteURLSearchParams(query);
-    if (siteParam) params.set("site", siteParam);
+    if (siteParam && !params.has("site")) params.set("site", siteParam);
     const search = params.toString();
     return `${resolve("/dashboard")}${search ? `?${search}` : ""}`;
   }
@@ -156,7 +174,7 @@
           <FramePanel aria-labelledby="save-view-heading" class="grid gap-5">
             <input name="query" type="hidden" value={data.saveQuery} />
             <input name="returnTo" type="hidden" value={data.returnTo ?? ""} />
-            <input name="site" type="hidden" value={siteParam} />
+            <input name="site" type="hidden" value={data.site.id} />
             <div class="flex flex-wrap gap-1.5">
               {#each describeView(data.saveQuery) as part (part)}
                 <Badge variant="secondary">{part}</Badge>
@@ -462,6 +480,133 @@
           </p>
         </FramePanel>
       {/if}
+    </Frame>
+    <Frame role="region" aria-labelledby="traffic-alert-heading">
+      <FrameHeader>
+        <FrameTitle id="traffic-alert-heading"
+          >{t("customize.trafficAlerts")}</FrameTitle
+        >
+        <FrameDescription
+          >{t("customize.alertDescription", {
+            email: reports.recipient,
+          })}</FrameDescription
+        >
+      </FrameHeader>
+      <form action="?/saveTrafficAlert" method="POST" use:enhance={saveAlert}>
+        <FramePanel class="grid gap-4">
+          <Label for="alert-enabled" class="leading-normal">
+            <Checkbox
+              id="alert-enabled"
+              name="enabled"
+              checked={!!trafficAlert}
+              disabled={!reports.configured && !trafficAlert}
+            />
+            {t("customize.alertEnable")}
+          </Label>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-2">
+              <Label for="alert-site">{t("customize.emailSite")}</Label>
+              <NativeSelect
+                id="alert-site"
+                name="siteId"
+                value={String(trafficAlert?.siteId ?? data.site.id)}
+              >
+                {#each data.sites as site (site.id)}
+                  <NativeSelectOption value={String(site.id)}
+                    >{site.cname || site.code}</NativeSelectOption
+                  >
+                {/each}
+              </NativeSelect>
+            </div>
+            <div class="grid gap-2">
+              <Label for="alert-direction"
+                >{t("customize.alertDirection")}</Label
+              >
+              <NativeSelect
+                id="alert-direction"
+                name="direction"
+                value={trafficAlert?.rule.direction ?? "either"}
+              >
+                <NativeSelectOption value="either"
+                  >{t("customize.alertEither")}</NativeSelectOption
+                >
+                <NativeSelectOption value="increase"
+                  >{t("customize.alertIncrease")}</NativeSelectOption
+                >
+                <NativeSelectOption value="decrease"
+                  >{t("customize.alertDecrease")}</NativeSelectOption
+                >
+              </NativeSelect>
+            </div>
+            <div class="grid gap-2">
+              <Label for="alert-threshold"
+                >{t("customize.alertThreshold")}</Label
+              >
+              <Input
+                id="alert-threshold"
+                name="threshold"
+                type="number"
+                min={1}
+                max={10000}
+                step={1}
+                required
+                value={trafficAlert?.rule.threshold ?? 50}
+                aria-describedby="alert-help"
+              />
+            </div>
+            <div class="grid gap-2">
+              <Label for="alert-minimum">{t("customize.alertMinimum")}</Label>
+              <Input
+                id="alert-minimum"
+                name="minimum"
+                type="number"
+                min={1}
+                max={1000000000}
+                step={1}
+                required
+                value={trafficAlert?.rule.minimum ?? 100}
+                aria-describedby="alert-help"
+              />
+            </div>
+          </div>
+          <p
+            id="alert-help"
+            class="text-xs leading-relaxed text-muted-foreground"
+          >
+            {t("customize.alertHelp")}
+          </p>
+          {#if !reports.configured}
+            <p class="text-sm text-muted-foreground">
+              {t("customize.emailNotConfigured")}
+            </p>
+          {/if}
+          {#if trafficAlert?.lastSentAt}
+            <p class="text-xs text-muted-foreground">
+              {t("customize.lastSent", {
+                date: formatDate(
+                  new Date(trafficAlert.lastSentAt),
+                  preferences.dateFormat,
+                  "full",
+                  preferences.locale
+                ),
+              })}
+            </p>
+          {/if}
+          {#if trafficAlert?.lastError}
+            <Alert variant="destructive"
+              ><CircleAlert /><AlertTitle>{trafficAlert.lastError}</AlertTitle
+              ></Alert
+            >
+          {/if}
+        </FramePanel>
+        <FrameFooter class="justify-end">
+          <Button type="submit" disabled={alertPending}
+            ><Save />{t(
+              alertPending ? "customize.alertSaving" : "customize.alertSave"
+            )}</Button
+          >
+        </FrameFooter>
+      </form>
     </Frame>
   </div>
   <Frame>

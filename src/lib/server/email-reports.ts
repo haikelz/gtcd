@@ -31,6 +31,19 @@ import {
   sendMail,
 } from "$lib/server/mailer.js";
 import { loadReportSummary } from "$lib/server/report-summary.js";
+import {
+  evaluateTrafficAlert,
+  parseTrafficAlertRule,
+  type TrafficAlertRule,
+} from "$lib/traffic-alert.js";
+
+type TrafficAlertSubscription = {
+  readonly lastError: string | null;
+  readonly lastPeriodKey: string | null;
+  readonly lastSentAt: string | null;
+  readonly rule: TrafficAlertRule;
+  readonly siteId: number;
+};
 
 export type EmailReportSubscription = {
   readonly frequency: ReportFrequency;
@@ -39,6 +52,7 @@ export type EmailReportSubscription = {
   readonly lastSentAt: string | null;
   /** null: the API token owner's default site. */
   readonly siteId: number | null;
+  readonly trafficAlert: TrafficAlertSubscription | null;
 };
 
 const SUBSCRIBERS_KEY = "email-report:subscribers";
@@ -51,6 +65,7 @@ export const DEFAULT_SUBSCRIPTION: EmailReportSubscription = {
   lastPeriodKey: null,
   lastSentAt: null,
   siteId: null,
+  trafficAlert: null,
 };
 
 const FREQUENCY_TITLES: Record<
@@ -87,6 +102,11 @@ function parseSubscription(value: unknown): EmailReportSubscription {
   const record = value as Record<string, unknown>;
   const text = (field: unknown) =>
     typeof field === "string" && field ? field : null;
+  const alert =
+    typeof record.trafficAlert === "object" && record.trafficAlert !== null
+      ? (record.trafficAlert as Record<string, unknown>)
+      : null;
+  const rule = parseTrafficAlertRule(alert?.rule);
 
   return {
     frequency: isReportFrequency(record.frequency) ? record.frequency : "never",
@@ -96,6 +116,20 @@ function parseSubscription(value: unknown): EmailReportSubscription {
     siteId:
       typeof record.siteId === "number" && Number.isSafeInteger(record.siteId)
         ? record.siteId
+        : null,
+    trafficAlert:
+      alert &&
+      rule &&
+      typeof alert.siteId === "number" &&
+      Number.isSafeInteger(alert.siteId) &&
+      alert.siteId > 0
+        ? {
+            lastError: text(alert.lastError),
+            lastPeriodKey: text(alert.lastPeriodKey),
+            lastSentAt: text(alert.lastSentAt),
+            rule,
+            siteId: alert.siteId,
+          }
         : null,
   };
 }
@@ -121,7 +155,8 @@ async function writeSubscription(
 
   const subscribers = new Set(await getSubscribers());
   const normalized = normalizeEmail(email);
-  if (subscription.frequency === "never") subscribers.delete(normalized);
+  if (subscription.frequency === "never" && !subscription.trafficAlert)
+    subscribers.delete(normalized);
   else subscribers.add(normalized);
   await setJson(SUBSCRIBERS_KEY, [...subscribers]);
 }
@@ -153,6 +188,43 @@ export async function updateSubscription(
     lastError: null,
     lastPeriodKey,
     siteId,
+  });
+}
+
+/** Enabling or editing starts tomorrow; it never sends a catch-up alert. */
+export async function updateTrafficAlert(
+  email: string,
+  rule: TrafficAlertRule | null,
+  siteId: number
+): Promise<void> {
+  const current = await getSubscription(email);
+  if (!rule) {
+    await writeSubscription(email, { ...current, trafficAlert: null });
+    return;
+  }
+  if (
+    !parseTrafficAlertRule(rule) ||
+    !Number.isSafeInteger(siteId) ||
+    siteId <= 0
+  ) {
+    throw new RangeError("Invalid traffic alert rule or site");
+  }
+
+  const [me, sites] = await Promise.all([getMe(), getSites()]);
+  if (!sites.some((site) => site.id === siteId)) {
+    throw new Error("The alert site is not accessible");
+  }
+
+  const { timezone } = toDisplayPreferences(me.user.settings);
+  await writeSubscription(email, {
+    ...current,
+    trafficAlert: {
+      lastError: null,
+      lastPeriodKey: latestCompletedPeriod("daily", wallClockNow(timezone)).key,
+      lastSentAt: null,
+      rule,
+      siteId,
+    },
   });
 }
 
@@ -346,12 +418,107 @@ async function resolveSite(
   locale: Locale
 ): Promise<Site> {
   const sites = await getSites();
-  const site =
-    sites.find((candidate) => candidate.id === (siteId ?? defaultSiteId)) ??
-    sites.find((candidate) => candidate.id === defaultSiteId);
+  const site = sites.find(
+    (candidate) => candidate.id === (siteId ?? defaultSiteId)
+  );
   if (!site) throw new Error(translate(locale, "email.siteUnavailable"));
 
   return site;
+}
+
+async function checkTrafficAlert(
+  email: string,
+  subscription: EmailReportSubscription,
+  settings: unknown,
+  localNow: Date,
+  now: Date
+): Promise<EmailReportSubscription> {
+  const alert = subscription.trafficAlert;
+  if (!alert || !isReportDue("daily", localNow, alert.lastPeriodKey))
+    return subscription;
+
+  const period = latestCompletedPeriod("daily", localNow);
+  let updated: TrafficAlertSubscription;
+  let locale: Locale = "en";
+  try {
+    locale = await recipientLocale(email, settings);
+    const layout = await getDashboardLayout(email);
+    const preferences = applyDisplayOverrides(
+      toDisplayPreferences(settings),
+      layout.overrides
+    );
+    const site = await resolveSite(alert.siteId, alert.siteId, locale);
+    const options = { vhost: site.cname ?? getVhost() };
+    const [current, previous] = await Promise.all([
+      getTotal(
+        toZonedRFC3339(period.start, preferences.timezone),
+        toZonedRFC3339(period.end, preferences.timezone),
+        undefined,
+        options
+      ),
+      getTotal(
+        toZonedRFC3339(period.previousStart, preferences.timezone),
+        toZonedRFC3339(period.previousEnd, preferences.timezone),
+        undefined,
+        options
+      ),
+    ]);
+    const currentViews = current.total - current.total_events;
+    const previousViews = previous.total - previous.total_events;
+    const change = evaluateTrafficAlert(
+      alert.rule,
+      currentViews,
+      previousViews
+    );
+
+    if (change !== null) {
+      const siteName = site.cname || site.code;
+      const date = formatDate(
+        period.start,
+        preferences.dateFormat,
+        "full",
+        locale
+      );
+      const headline = translate(locale, "email.trafficHeadline", {
+        change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
+        date,
+      });
+      const counts = preferences.fewerNumbers
+        ? ""
+        : translate(locale, "email.trafficCounts", {
+            current: formatNumber(currentViews, preferences.numberSeparator),
+            previous: formatNumber(previousViews, preferences.numberSeparator),
+          });
+      const manage = translate(locale, "email.manageFallback");
+      const text = `${siteName}\n${headline}\n${counts}\n\n${manage}`;
+      await sendMail({
+        html: `<h1>${escapeHtml(siteName)}</h1><p>${escapeHtml(headline)}</p><p>${escapeHtml(counts)}</p><p>${escapeHtml(manage)}</p>`,
+        subject: translate(locale, "email.trafficSubject", { site: siteName }),
+        text,
+        to: email,
+      });
+    }
+    updated = {
+      ...alert,
+      lastError: null,
+      lastPeriodKey: period.key,
+      lastSentAt: change === null ? alert.lastSentAt : now.toISOString(),
+    };
+  } catch {
+    updated = {
+      ...alert,
+      lastError: translate(locale, "email.trafficFailed"),
+    };
+  }
+
+  // Do not resurrect a rule disabled or changed while upstream/SMTP was pending.
+  const latest = await getSubscription(email);
+  if (JSON.stringify(latest.trafficAlert) !== JSON.stringify(alert))
+    return latest;
+
+  const result = { ...latest, trafficAlert: updated };
+  await writeSubscription(email, result);
+  return result;
 }
 
 /** Send one report now, for the test button; does not change the schedule. */
@@ -374,8 +541,7 @@ export async function sendTestReport(email: string): Promise<void> {
   await sendMail({ ...report, to: email });
 }
 
-/** Send every report whose period completed since it was last sent. */
-export async function sendDueReports(now: Date = new Date()): Promise<void> {
+async function runDueReports(now: Date): Promise<void> {
   if (!isMailConfigured()) return;
   // Shorter than the tick, so a crashed holder never blocks the next run.
   if (!(await acquireLock(LOCK_KEY, 10 * 60))) return;
@@ -386,9 +552,18 @@ export async function sendDueReports(now: Date = new Date()): Promise<void> {
   const me = await getMe();
   const { timezone } = toDisplayPreferences(me.user.settings);
   const localNow = wallClockNow(timezone, now);
+  const deadline = Date.now() + 8 * 60_000;
 
   for (const email of subscribers) {
-    const subscription = await getSubscription(email);
+    if (Date.now() >= deadline) break;
+    let subscription = await getSubscription(email);
+    subscription = await checkTrafficAlert(
+      email,
+      subscription,
+      me.user.settings,
+      localNow,
+      now
+    );
     if (subscription.frequency === "never") continue;
     if (
       !isReportDue(subscription.frequency, localNow, subscription.lastPeriodKey)
@@ -409,22 +584,38 @@ export async function sendDueReports(now: Date = new Date()): Promise<void> {
         locale
       );
       await sendMail({ ...report, to: email });
+      const latest = await getSubscription(email);
       await writeSubscription(email, {
-        ...subscription,
+        ...latest,
         lastError: null,
         lastPeriodKey: period.key,
         lastSentAt: now.toISOString(),
       });
     } catch (cause: unknown) {
       // Keep the period unsent so the next tick retries; surface the reason.
+      const latest = await getSubscription(email);
       await writeSubscription(email, {
-        ...subscription,
+        ...latest,
         lastError:
           cause instanceof Error
             ? cause.message
             : translate(locale, "email.sendFailed"),
       });
     }
+  }
+}
+
+let running = false;
+
+/** Complete days only; prevent overlapping ticks even during Redis outages. */
+export async function sendDueReports(now: Date = new Date()): Promise<void> {
+  if (running) return;
+
+  running = true;
+  try {
+    await runDueReports(now);
+  } finally {
+    running = false;
   }
 }
 

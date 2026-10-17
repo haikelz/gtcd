@@ -1,5 +1,11 @@
 // English messages: email. Keys are "email.<name>"; {param} placeholders.
 export default {
+  "email.trafficSubject": "Traffic alert: {site}",
+  "email.trafficHeadline":
+    "Pageviews changed {change} on {date} compared with the previous day.",
+  "email.trafficCounts": "{current} pageviews, previously {previous}.",
+  "email.trafficFailed":
+    "Could not check or deliver the traffic alert. The next scheduled check will retry. Check GoatCounter access and SMTP settings.",
   "email.headlineChange": "Visits {change} vs. the previous period",
   "email.headlineCount": "{count} visits",
   "email.headlineCountChange": "{count} visits ({change})",

@@ -20,8 +20,11 @@ import {
   getSubscription,
   sendTestReport,
   updateSubscription,
+  updateTrafficAlert,
 } from "$lib/server/email-reports.js";
+import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import { isMailConfigured } from "$lib/server/mailer.js";
+import { parseTrafficAlertRule } from "$lib/traffic-alert.js";
 
 /** Only return to dashboard report routes after saving a view. */
 function safeReturnPath(value: FormDataEntryValue | null): string | null {
@@ -57,8 +60,36 @@ export const actions = {
     const formData = await request.formData();
     const name = sanitizeViewName(formData.get("name"));
     const rawQuery = formData.get("query");
-    const query =
-      typeof rawQuery === "string" ? sanitizeViewQuery(rawQuery) : "";
+    const params = new URLSearchParams(
+      typeof rawQuery === "string" ? sanitizeViewQuery(rawQuery) : ""
+    );
+    const selectedSite = formData.get("site");
+    if (typeof selectedSite === "string" && selectedSite)
+      params.set("site", selectedSite);
+    const requestedSite = params.get("site");
+    if (
+      requestedSite &&
+      (!/^\d+$/.test(requestedSite) ||
+        !Number.isSafeInteger(Number(requestedSite)) ||
+        Number(requestedSite) < 1)
+    ) {
+      return fail(400, {
+        action: "saveView",
+        message: translate(locals.locale, "customize.siteUnavailable"),
+      });
+    }
+    const contextUrl = new URL(request.url);
+    if (params.has("site"))
+      contextUrl.searchParams.set("site", params.get("site") ?? "");
+    const context = await getDashboardSiteContext(contextUrl).catch(() => null);
+    if (!context) {
+      return fail(400, {
+        action: "saveView",
+        message: translate(locals.locale, "customize.siteUnavailable"),
+      });
+    }
+    params.set("site", String(context.site.id));
+    const query = sanitizeViewQuery(params.toString());
     const makeDefault = formData.get("makeDefault") === "on";
     const returnTo = safeReturnPath(formData.get("returnTo"));
 
@@ -88,10 +119,6 @@ export const actions = {
 
     if (returnTo) {
       const target = new URLSearchParams(query);
-      const site = formData.get("site");
-      if (typeof site === "string" && /^\d+$/.test(site)) {
-        target.set("site", site);
-      }
       const search = target.toString();
       throw redirect(303, search ? `${returnTo}?${search}` : returnTo);
     }
@@ -195,7 +222,22 @@ export const actions = {
 
     const siteId =
       typeof site === "string" && /^\d+$/.test(site) ? Number(site) : null;
-    await updateSubscription(email, frequency, siteId);
+    if (siteId === null || !Number.isSafeInteger(siteId) || siteId < 1) {
+      return fail(400, {
+        action: "saveEmailReport",
+        message: translate(locals.locale, "customize.siteUnavailable"),
+      });
+    }
+    const contextUrl = new URL(request.url);
+    if (siteId !== null) contextUrl.searchParams.set("site", String(siteId));
+    const context = await getDashboardSiteContext(contextUrl).catch(() => null);
+    if (!context) {
+      return fail(400, {
+        action: "saveEmailReport",
+        message: translate(locals.locale, "customize.siteUnavailable"),
+      });
+    }
+    await updateSubscription(email, frequency, context.site.id);
 
     return {
       action: "saveEmailReport",
@@ -203,6 +245,49 @@ export const actions = {
         frequency === "never"
           ? translate(locals.locale, "customize.emailReportsOff")
           : translate(locals.locale, "customize.emailScheduleSaved"),
+    };
+  },
+  saveTrafficAlert: async ({ locals, request }) => {
+    const email = requireEmail(locals);
+    const formData = await request.formData();
+    const enabled = formData.get("enabled") === "on";
+    const rule = parseTrafficAlertRule({
+      direction: formData.get("direction"),
+      minimum: Number(formData.get("minimum")),
+      threshold: Number(formData.get("threshold")),
+    });
+    const siteValue = formData.get("siteId");
+    const siteId =
+      typeof siteValue === "string" && /^\d+$/.test(siteValue)
+        ? Number(siteValue)
+        : NaN;
+    if (enabled && (!rule || !Number.isSafeInteger(siteId) || siteId < 1)) {
+      return fail(400, {
+        action: "saveTrafficAlert",
+        message: translate(locals.locale, "customize.alertInvalid"),
+      });
+    }
+    if (enabled && !isMailConfigured()) {
+      return fail(400, {
+        action: "saveTrafficAlert",
+        message: translate(locals.locale, "customize.emailNotConfigured"),
+      });
+    }
+    try {
+      await updateTrafficAlert(email, enabled ? rule : null, siteId);
+    } catch {
+      return fail(400, {
+        action: "saveTrafficAlert",
+        message: translate(locals.locale, "customize.alertSaveFailed"),
+      });
+    }
+
+    return {
+      action: "saveTrafficAlert",
+      message: translate(
+        locals.locale,
+        enabled ? "customize.alertSaved" : "customize.alertOff"
+      ),
     };
   },
   sendTestEmail: async ({ locals }) => {

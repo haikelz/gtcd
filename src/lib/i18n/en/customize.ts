@@ -1,5 +1,28 @@
 // English messages: customize. Keys are "customize.<name>"; {param} placeholders.
 export default {
+  "customize.trafficAlerts": "Traffic alerts",
+  "customize.alertDescription":
+    "Email {email} when daily pageviews meet the change threshold.",
+  "customize.alertEnable": "Enable daily traffic alerts",
+  "customize.alertDirection": "Change direction",
+  "customize.alertEither": "Increases and decreases",
+  "customize.alertIncrease": "Increases only",
+  "customize.alertDecrease": "Decreases only",
+  "customize.alertThreshold": "Minimum change (%)",
+  "customize.alertMinimum": "Minimum previous-day pageviews",
+  "customize.alertHelp":
+    "Checks the last completed day against the day before after 07:00 in your GoatCounter timezone. Starts tomorrow. Low or zero baselines are skipped. Failed checks retry; separate from your summary schedule.",
+  "customize.alertSave": "Save traffic alert",
+  "customize.alertSaving": "Saving…",
+  "customize.alertSaved": "Traffic alert saved. Checks start tomorrow.",
+  "customize.alertOff": "Traffic alerts turned off.",
+  "customize.alertInvalid":
+    "Choose a change from 1 to 10,000%, a baseline from 1 to 1,000,000,000 pageviews, and an accessible site.",
+  "customize.alertSaveFailed":
+    "Could not save the traffic alert. Check site access and try again.",
+  "customize.viewSite": "Site ID: {site}",
+  "customize.siteUnavailable":
+    "Choose an accessible GoatCounter site and try again.",
   "customize.cancel": "Cancel",
   "customize.chart": "Chart",
   "customize.defaultBadge": "Default",
@@ -8,7 +31,7 @@ export default {
   "customize.deleteView": "Delete view",
   "customize.deleteViewNamed": "Delete {name}",
   "customize.description":
-    "Save the report views you come back to and choose what the overview shows. These settings belong to your account.",
+    "Manage saved views and overview widgets for your account.",
   "customize.display": "Display",
   "customize.displayDescription":
     "Override GoatCounter's display settings for your account.",
@@ -30,13 +53,13 @@ export default {
   "customize.emailSite": "Site",
   "customize.fewerNumbers": "Fewer numbers",
   "customize.fewerNumbersHelp":
-    "Hides visit counts and keeps charts and shares, to take the edge off checking stats.",
+    "Hide visit counts. Keep charts and percentages visible.",
   "customize.fewerNumbersLocked":
-    "GoatCounter has fewer-numbers mode locked on for now.",
+    "Fewer-numbers mode is enforced by GoatCounter.",
   "customize.fewerNumbersOff": "Show all numbers",
   "customize.fewerNumbersOn": "Hide counts",
   "customize.followGoatCounter": "Follow GoatCounter",
-  "customize.frequency": "How often",
+  "customize.frequency": "Frequency",
   "customize.frequencyBiweekly": "Every two weeks",
   "customize.frequencyDaily": "Daily",
   "customize.frequencyInvalid": "Choose how often to receive reports.",
@@ -51,7 +74,7 @@ export default {
   "customize.moveUp": "Move {widget} up",
   "customize.noViews": "No saved views yet",
   "customize.noViewsDescription":
-    "Set up a report the way you like it, then choose Views → Save current view in the toolbar.",
+    "To save a report, select Views → Save current view in the toolbar.",
   "customize.removeDefault": "Remove default",
   "customize.reset": "Reset",
   "customize.rows": "Rows",
@@ -60,7 +83,7 @@ export default {
   "customize.saveSchedule": "Save schedule",
   "customize.saveView": "Save view",
   "customize.saveViewDescription":
-    "Keep the current period, filter and grouping under a name.",
+    "Save the current site, period, filter, and grouping.",
   "customize.saveViewTitle": "Save this view",
   "customize.savedViews": "Saved views",
   "customize.savedViewsDescription":
@@ -104,12 +127,12 @@ export default {
   "customize.viewRangeYear": "Period: last year",
   "customize.viewSaved": "Saved “{name}”.",
   "customize.viewSharedScale": "Shared chart scale",
-  "customize.widgetBrowsers": "Browser mix",
+  "customize.widgetBrowsers": "Browsers",
   "customize.widgetCampaigns": "Campaigns",
   "customize.widgetKpis": "Key metrics",
   "customize.widgetLanguages": "Languages",
-  "customize.widgetLocations": "Where visitors are",
-  "customize.widgetPages": "Most-read pages",
+  "customize.widgetLocations": "Visitor locations",
+  "customize.widgetPages": "Top pages",
   "customize.widgetReferrers": "Top referrers",
   "customize.widgetSizes": "Screen sizes",
   "customize.widgetSystems": "Operating systems",

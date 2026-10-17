@@ -2,6 +2,12 @@ import type en from "../en/email";
 
 // Bahasa Indonesia: email. Must define every key of the English catalog.
 export default {
+  "email.trafficSubject": "Peringatan trafik: {site}",
+  "email.trafficHeadline":
+    "Tayangan halaman berubah {change} pada {date} dibanding sehari sebelumnya.",
+  "email.trafficCounts": "{current} tayangan halaman, sebelumnya {previous}.",
+  "email.trafficFailed":
+    "Peringatan trafik tidak dapat diperiksa atau dikirim. Pemeriksaan berikutnya akan mencoba lagi. Periksa akses GoatCounter dan pengaturan SMTP.",
   "email.headlineChange": "Kunjungan {change} dibanding periode sebelumnya",
   "email.headlineCount": "{count} kunjungan",
   "email.headlineCountChange": "{count} kunjungan ({change})",

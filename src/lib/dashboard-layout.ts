@@ -82,6 +82,7 @@ export const VIEW_PARAMS = [
   "filter",
   "group",
   "scale",
+  "site",
 ] as const;
 
 export const MAX_SAVED_VIEWS = 20;
@@ -138,6 +139,14 @@ export function sanitizeViewQuery(query: string): string {
 
   for (const key of VIEW_PARAMS) {
     const value = source.get(key)?.trim();
+    if (
+      key === "site" &&
+      (!value ||
+        !/^\d+$/.test(value) ||
+        !Number.isSafeInteger(Number(value)) ||
+        Number(value) < 1)
+    )
+      continue;
     if (value && value.length <= 200) target.set(key, value);
   }
 
@@ -407,6 +416,9 @@ export function describeViewQuery(query: string): ViewQueryPart[] {
   const end = params.get("end");
   const filter = params.get("filter");
   const group = params.get("group");
+  const site = params.get("site");
+
+  if (site) parts.push({ key: "customize.viewSite", params: { site } });
 
   if (start && end) {
     parts.push({ key: "customize.viewPeriodCustom", params: { end, start } });

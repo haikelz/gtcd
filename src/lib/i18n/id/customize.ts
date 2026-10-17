@@ -2,6 +2,30 @@ import type en from "../en/customize";
 
 // Bahasa Indonesia: customize. Must define every key of the English catalog.
 export default {
+  "customize.trafficAlerts": "Peringatan trafik",
+  "customize.alertDescription":
+    "Kirim email ke {email} saat perubahan tayangan halaman harian mencapai ambang batas.",
+  "customize.alertEnable": "Aktifkan peringatan trafik harian",
+  "customize.alertDirection": "Arah perubahan",
+  "customize.alertEither": "Kenaikan dan penurunan",
+  "customize.alertIncrease": "Kenaikan saja",
+  "customize.alertDecrease": "Penurunan saja",
+  "customize.alertThreshold": "Perubahan minimum (%)",
+  "customize.alertMinimum": "Tayangan halaman minimum hari sebelumnya",
+  "customize.alertHelp":
+    "Membandingkan hari yang telah selesai dengan sehari sebelumnya setelah pukul 07.00 dalam zona waktu GoatCounter. Dimulai besok. Data pembanding yang sedikit atau nol dilewati. Pemeriksaan yang gagal dicoba lagi; terpisah dari jadwal ringkasan.",
+  "customize.alertSave": "Simpan peringatan trafik",
+  "customize.alertSaving": "Menyimpan…",
+  "customize.alertSaved":
+    "Peringatan trafik disimpan. Pemeriksaan dimulai besok.",
+  "customize.alertOff": "Peringatan trafik dinonaktifkan.",
+  "customize.alertInvalid":
+    "Pilih perubahan 1–10.000%, data pembanding 1–1.000.000.000 tayangan halaman, dan situs yang dapat diakses.",
+  "customize.alertSaveFailed":
+    "Peringatan trafik tidak dapat disimpan. Periksa akses situs lalu coba lagi.",
+  "customize.viewSite": "ID situs: {site}",
+  "customize.siteUnavailable":
+    "Pilih situs GoatCounter yang dapat diakses lalu coba lagi.",
   "customize.cancel": "Batal",
   "customize.chart": "Grafik",
   "customize.defaultBadge": "Bawaan",
@@ -10,7 +34,7 @@ export default {
   "customize.deleteView": "Hapus tampilan",
   "customize.deleteViewNamed": "Hapus {name}",
   "customize.description":
-    "Simpan tampilan laporan yang sering dibuka dan pilih isi Ringkasan. Pengaturan ini berlaku untuk akun Anda.",
+    "Kelola tampilan tersimpan dan widget ringkasan untuk akun Anda.",
   "customize.display": "Tampilan",
   "customize.displayDescription":
     "Ganti pengaturan tampilan GoatCounter khusus untuk akun Anda.",
@@ -31,13 +55,13 @@ export default {
   "customize.emailSite": "Situs",
   "customize.fewerNumbers": "Mode sembunyikan angka",
   "customize.fewerNumbersHelp":
-    "Menyembunyikan jumlah kunjungan tetapi tetap menampilkan grafik dan persentase, supaya memantau statistik terasa lebih santai.",
+    "Sembunyikan jumlah kunjungan. Grafik dan persentase tetap tampil.",
   "customize.fewerNumbersLocked":
-    "GoatCounter sedang mengunci mode sembunyikan angka.",
+    "Mode sembunyikan angka diwajibkan oleh GoatCounter.",
   "customize.fewerNumbersOff": "Tampilkan semua angka",
   "customize.fewerNumbersOn": "Sembunyikan jumlah",
   "customize.followGoatCounter": "Ikuti GoatCounter",
-  "customize.frequency": "Seberapa sering",
+  "customize.frequency": "Frekuensi",
   "customize.frequencyBiweekly": "Setiap dua minggu",
   "customize.frequencyDaily": "Harian",
   "customize.frequencyInvalid": "Pilih seberapa sering laporan dikirim.",
@@ -52,7 +76,7 @@ export default {
   "customize.moveUp": "Pindahkan {widget} ke atas",
   "customize.noViews": "Belum ada tampilan tersimpan",
   "customize.noViewsDescription":
-    "Atur laporan sesuai keinginan, lalu pilih Tampilan → Simpan tampilan ini di toolbar.",
+    "Untuk menyimpan laporan, pilih Tampilan → Simpan tampilan ini di toolbar.",
   "customize.removeDefault": "Hapus bawaan",
   "customize.reset": "Atur ulang",
   "customize.rows": "Baris",
@@ -61,7 +85,7 @@ export default {
   "customize.saveSchedule": "Simpan jadwal",
   "customize.saveView": "Simpan tampilan",
   "customize.saveViewDescription":
-    "Simpan periode, filter, dan pengelompokan saat ini dengan sebuah nama.",
+    "Simpan situs, periode, filter, dan pengelompokan saat ini.",
   "customize.saveViewTitle": "Simpan tampilan ini",
   "customize.savedViews": "Tampilan tersimpan",
   "customize.savedViewsDescription":
@@ -105,12 +129,12 @@ export default {
   "customize.viewRangeYear": "Periode: tahun lalu",
   "customize.viewSaved": "“{name}” disimpan.",
   "customize.viewSharedScale": "Skala grafik bersama",
-  "customize.widgetBrowsers": "Komposisi browser",
+  "customize.widgetBrowsers": "Browser",
   "customize.widgetCampaigns": "Kampanye",
   "customize.widgetKpis": "Metrik utama",
   "customize.widgetLanguages": "Bahasa",
   "customize.widgetLocations": "Lokasi pengunjung",
-  "customize.widgetPages": "Halaman paling banyak dibaca",
+  "customize.widgetPages": "Halaman teratas",
   "customize.widgetReferrers": "Perujuk teratas",
   "customize.widgetSizes": "Ukuran layar",
   "customize.widgetSystems": "Sistem operasi",

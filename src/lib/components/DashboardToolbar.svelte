@@ -106,9 +106,11 @@
       : resolve("/dashboard/customize")
   );
   const saveViewHref = $derived.by(() => {
+    const saved = new SvelteURLSearchParams(page.url.search);
+    if (page.data.site) saved.set("site", String(page.data.site.id));
     const params = new SvelteURLSearchParams({
       from: page.url.pathname,
-      save: sanitizeViewQuery(page.url.search),
+      save: sanitizeViewQuery(saved.toString()),
     });
     if (siteParam) params.set("site", siteParam);
     return `${resolve("/dashboard/customize")}?${params}`;
@@ -116,7 +118,7 @@
 
   function viewHref(query: string): string {
     const params = new SvelteURLSearchParams(query);
-    if (siteParam) params.set("site", siteParam);
+    if (siteParam && !params.has("site")) params.set("site", siteParam);
     return `${page.url.pathname}?${params}`;
   }
 

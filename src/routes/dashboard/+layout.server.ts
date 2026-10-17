@@ -35,7 +35,9 @@ export const load: LayoutServerLoad = async ({ cookies, locals, url }) => {
   if (
     defaultView?.query &&
     REPORT_ROUTE.test(url.pathname) &&
-    !VIEW_PARAMS.some((param) => url.searchParams.has(param))
+    !VIEW_PARAMS.some(
+      (param) => param !== "site" && url.searchParams.has(param)
+    )
   ) {
     const target = new URLSearchParams(defaultView.query);
     for (const [key, value] of url.searchParams) target.set(key, value);
