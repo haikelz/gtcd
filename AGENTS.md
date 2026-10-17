@@ -75,6 +75,7 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 - Responsive breakpoints: Mobile drawer (<1024px) and collapsible desktop sidebar (>=1024px) with preference persistence in `localStorage`.
 
 <!-- graft:start -->
+
 ## Graft — repo context graph
 
 This repo is indexed in `graft/`: small linked markdown nodes that explain each
