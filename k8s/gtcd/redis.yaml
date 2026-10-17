@@ -6,6 +6,8 @@ metadata:
     app: redis
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: redis
@@ -82,11 +84,23 @@ spec:
             secretName: redis-config
             defaultMode: 0440
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: redis-data
         - name: tmp
           emptyDir:
             medium: Memory
             sizeLimit: 16Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service

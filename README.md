@@ -87,8 +87,8 @@ flowchart TD
   supporting GoatCounter builds. GoatCounter 2.7 and older support CSV only;
   gtcd disables JSON for those releases. Use **Refresh status** to check a
   pending job without creating another export.
-- **Saved Views & Overview Layout**: Save a period, filter, grouping, and chart scale under a name, pick a default view, and choose which overview widgets show, in what order, with how many rows and which chart style (GoatCounter's own widgets and default view are imported on first use). Stored per user in Redis (in-memory fallback); hidden widgets skip their GoatCounter requests.
-- **Email Reports**: Daily, weekly, two-weekly, or monthly summaries (visits with change, top pages, referrers, countries) over your SMTP server, sent after 07:00 in your GoatCounter timezone, with a test-email button. A Redis lock keeps replicas from sending twice.
+- **Saved Views & Overview Layout**: Save a period, filter, grouping, and chart scale under a name, pick a default view, and choose which overview widgets show, in what order, with how many rows and which chart style (GoatCounter's own widgets and default view are imported on first use). Stored per user in Redis; saves fail explicitly when storage is unavailable. Hidden widgets skip their GoatCounter requests.
+- **Email Reports**: Daily, weekly, two-weekly, or monthly summaries (visits with change, top pages, referrers, countries) over your SMTP server, sent after 07:00 in your GoatCounter timezone, with a test-email button. Durable jobs and renewable Redis leases coordinate replicas and retries; SMTP delivery remains at-least-once.
 - **Public Dashboard**: A read-only gtcd overview behind a revocable share link, for people without a login.
 - **English and Bahasa Indonesia**: The interface and email reports follow your GoatCounter language, with a per-user override.
 - **Fewer Numbers Mode**: Hide visit counts and keep chart shapes and shares, following GoatCounter's setting (including its lock) with a per-user override.
@@ -216,7 +216,7 @@ The setup script will:
 cp .env.example .env
 # Redis loads its password from secrets/redis.conf (gitignored)
 mkdir -p secrets && chmod 700 secrets
-printf 'requirepass %s\n' "$(openssl rand -hex 32)" > secrets/redis.conf
+printf 'requirepass %s\nsave ""\nappendonly yes\nappendfsync always\ndir /data\n' "$(openssl rand -hex 32)" > secrets/redis.conf
 chmod 644 secrets/redis.conf
 # Edit .env: credentials, domain, and REDIS_URL with the same password
 nano .env
@@ -273,7 +273,8 @@ pnpm check
 pnpm test:checks
 
 # Smoke-test the production build against a mock GoatCounter
-pnpm build && pnpm exec playwright install chromium && pnpm test:e2e
+# Requires an isolated Redis 7 instance; never use production Redis for tests.
+pnpm build && pnpm exec playwright install chromium && TEST_REDIS_URL=redis://127.0.0.1:6379 pnpm test:e2e
 
 # Production build
 pnpm build
@@ -517,11 +518,19 @@ to disappear after deployment and recrawling; noindex is not authentication.
 
 The Node server checks schedules every 15 minutes while running; it is not an
 external cron service. Redis stores subscriptions and delivery state. The
-in-memory fallback is process-local and loses state on restart. Redis locking
-and a local overlap guard reduce duplicate deliveries, but SMTP delivery is not
-exactly-once: a crash after acceptance or a Redis outage across replicas can
+worker fails closed during Redis outages. Renewable leases coordinate replicas,
+and persisted attempts retry with backoff up to five times. SMTP delivery is not
+exactly-once: a crash after acceptance but before the success checkpoint can
 produce duplicates. Turn subscriptions off to stop future sends; delivered
-emails cannot be recalled.
+emails cannot be recalled. See [Redis state and safe upgrades](docs/REDIS_STATE.md)
+before upgrading an existing cache-only Redis installation. New installs use AOF
+and a persistent volume; existing ephemeral Kubernetes state requires migration.
+
+Administrators can inspect timestamped dependency observations, process-local
+request/cache counters and aggregate delivery state in **Diagnostics**. Public
+reports support independently named links, rotation/revocation, expiry (including
+never), a fixed date range and allowed metric categories. These controls are
+enforced before fetching and serializing public report data.
 
 ---
 

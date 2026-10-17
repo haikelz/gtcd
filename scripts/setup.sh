@@ -38,6 +38,16 @@ if ! docker compose version &>/dev/null; then
   exit 1
 fi
 
+# Do not restart an older cache-only Redis before its live state is persisted.
+redis_container="$(docker compose ps -q redis)"
+if [ -n "$redis_container" ]; then
+  persistence="$(docker exec "$redis_container" sh -c 'export REDISCLI_AUTH="$(sed -n "s/^requirepass //p" /run/secrets/redis.conf)"; redis-cli --raw CONFIG GET appendonly | tail -1')"
+  if [ "$persistence" != "yes" ]; then
+    error "Enable and verify live Redis persistence before setup; see docs/REDIS_STATE.md. No containers have been changed."
+    exit 1
+  fi
+fi
+
 # ─── Create .env if missing ───────────────────────────────────────────────────
 
 if [ ! -f "$ENV_FILE" ]; then
@@ -165,6 +175,13 @@ if ! printf '%s' "$REDIS_PASSWORD" | grep -Eq '^[A-Za-z0-9]{16,}$'; then
 else
   ok "Reusing Redis password from $REDIS_CONF"
 fi
+# Redis also owns share grants and delivery checkpoints, not just cache data.
+# Replace only persistence directives; preserve password and custom settings.
+redis_conf_tmp="$(mktemp)"
+grep -Ev '^(save|appendonly|appendfsync|dir)[[:space:]]' "$REDIS_CONF" > "$redis_conf_tmp" || true
+printf 'save ""\nappendonly yes\nappendfsync always\ndir /data\n' >> "$redis_conf_tmp"
+cat "$redis_conf_tmp" > "$REDIS_CONF"
+rm "$redis_conf_tmp"
 # The redis container user must read the bind-mounted file; the 700 directory
 # keeps it private on the host.
 chmod 644 "$REDIS_CONF"

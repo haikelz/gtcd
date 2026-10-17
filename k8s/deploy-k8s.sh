@@ -30,6 +30,16 @@ if [[ ! "$REDIS_PASSWORD" =~ ^[A-Za-z0-9]{16,}$ ]]; then
   exit 1
 fi
 
+# Refuse to replace an ephemeral Redis pod before its state has been migrated.
+# See docs/REDIS_STATE.md; this check runs before any cluster mutations.
+if kubectl get deployment redis >/dev/null 2>&1; then
+  redis_claim="$(kubectl get deployment redis -o 'jsonpath={.spec.template.spec.volumes[?(@.name=="data")].persistentVolumeClaim.claimName}')"
+  if [[ -z "$redis_claim" ]]; then
+    echo "Redis still uses ephemeral storage. Back up and migrate its state to redis-data before deploying; see docs/REDIS_STATE.md." >&2
+    exit 1
+  fi
+fi
+
 # render_apply
 render_apply() {
   if envsubst < "$1" | grep -q '\${'; then
@@ -92,7 +102,7 @@ kubectl create secret generic "$secret_name" \
 # Redis loads requirepass from this Secret, mounted as /run/secrets/redis.conf.
 # The checksum annotation restarts Redis only when the config changes, so a
 # routine deploy does not drop every session.
-redis_conf="$(printf 'requirepass %s\nsave ""\nappendonly no\n' "$REDIS_PASSWORD")"
+redis_conf="$(printf 'requirepass %s\nsave ""\nappendonly yes\nappendfsync always\ndir /data\n' "$REDIS_PASSWORD")"
 echo "  Creating/updating Secret 'redis-config'..."
 kubectl create secret generic redis-config \
   --from-literal=redis.conf="$redis_conf" \
