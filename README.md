@@ -452,7 +452,9 @@ block added to their Caddyfile) before the counter embeds work.
   preceding equal-length period, plus the current browser/country leader's
   audience-share shift. Missing or incomplete baselines show unavailable.
 - **Read-only sharing:** administrators can create links in Settings with a
-  1-, 7- or 30-day expiry (7 by default). Replacing or revoking a link stops
+  1-, 7- or 30-day expiry (7 by default), or choose **Never expires**.
+  Non-expiring links remain active until replaced or revoked, provided their
+  stored records are retained. Replacing or revoking a link stops
   access through the old URL. Anyone holding an active URL can read the report;
   shared responses disable caching, indexing and referrer transmission.
 - **Email summaries and traffic alerts:** configure SMTP, then opt in separately

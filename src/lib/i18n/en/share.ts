@@ -6,7 +6,10 @@ export default {
   "share.expiryHelp":
     "Applies to new links. Replacing a link disables the old URL immediately.",
   "share.expiresAt": "Expires {date}",
-  "share.invalidExpiry": "Choose 1, 7, or 30 days for the link expiry.",
+  "share.invalidExpiry": "Choose 1, 7, or 30 days, or Never expires.",
+  "share.neverExpires": "Never expires",
+  "share.noExpiryHelp":
+    "Never expires. Revoke or replace this link to stop access.",
   "share.oneDay": "1 day",
   "share.sevenDays": "7 days",
   "share.thirtyDays": "30 days",

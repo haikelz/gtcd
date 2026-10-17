@@ -6,15 +6,17 @@ const ALPHABET =
 const TOKEN_PATTERN = /^[A-Za-z0-9]{32}$/;
 const DAY_MS = 86_400_000;
 
-export const SHARE_EXPIRY_DAYS = [1, 7, 30] as const;
+export const SHARE_EXPIRY_DAYS = [1, 7, 30, "never"] as const;
 
-export function isShareExpiryDays(value: number): value is 1 | 7 | 30 {
+export function isShareExpiryDays(
+  value: unknown
+): value is (typeof SHARE_EXPIRY_DAYS)[number] {
   return SHARE_EXPIRY_DAYS.some((days) => days === value);
 }
 
 export type ShareLink = {
   readonly createdAt: string;
-  readonly expiresAt: string;
+  readonly expiresAt: string | null;
   readonly token: string;
 };
 
@@ -38,6 +40,9 @@ function parseShareLink(value: unknown): ShareLink | null {
     return null;
   }
 
+  // Only an explicit null means no expiry; missing legacy fields still expire.
+  if (expiresAt === null) return { createdAt, expiresAt: null, token };
+
   // Legacy links get seven days from creation, never a fresh lease on read.
   const expiry =
     expiresAt === undefined
@@ -52,16 +57,19 @@ function parseShareLink(value: unknown): ShareLink | null {
 
 export async function getShareLink(siteId: number): Promise<ShareLink | null> {
   const link = parseShareLink(await getJson(siteKey(siteId)));
-  return link && Date.parse(link.expiresAt) > Date.now() ? link : null;
+  return link &&
+    (link.expiresAt === null || Date.parse(link.expiresAt) > Date.now())
+    ? link
+    : null;
 }
 
 /** Replace any existing link for the site; the old URL stops working. */
 export async function createShareLink(
   siteId: number,
-  { expiryDays = 7 }: { expiryDays?: number } = {}
+  { expiryDays = 7 }: { expiryDays?: number | "never" } = {}
 ): Promise<ShareLink> {
   if (!isShareExpiryDays(expiryDays)) {
-    throw new RangeError("Share expiry must be 1, 7, or 30 days");
+    throw new RangeError("Share expiry must be 1, 7, or 30 days, or never");
   }
 
   await revokeShareLink(siteId);
@@ -69,14 +77,18 @@ export async function createShareLink(
   const now = Date.now();
   const link: ShareLink = {
     createdAt: new Date(now).toISOString(),
-    expiresAt: new Date(now + expiryDays * DAY_MS).toISOString(),
+    expiresAt:
+      expiryDays === "never"
+        ? null
+        : new Date(now + expiryDays * DAY_MS).toISOString(),
     token: Array.from(
       { length: 32 },
       () => ALPHABET[randomInt(ALPHABET.length)]
     ).join(""),
   };
-  await setJson(tokenKey(link.token), { siteId }, expiryDays * 86_400);
-  await setJson(siteKey(siteId), link, expiryDays * 86_400);
+  const ttlSeconds = expiryDays === "never" ? undefined : expiryDays * 86_400;
+  await setJson(tokenKey(link.token), { siteId }, ttlSeconds);
+  await setJson(siteKey(siteId), link, ttlSeconds);
   return link;
 }
 

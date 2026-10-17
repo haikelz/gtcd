@@ -686,6 +686,15 @@
                 )}
               </label>
             {/each}
+            <label class="flex min-h-9 items-center gap-2 text-sm">
+              <input
+                form="share-create"
+                name="expiryDays"
+                type="radio"
+                value="never"
+              />
+              {t("share.neverExpires")}
+            </label>
           </div>
           <p class="text-xs text-muted-foreground">{t("share.expiryHelp")}</p>
           {#if form?.field === "expiryDays"}
@@ -705,6 +714,10 @@
                   .replace("T", " ")
                   .replace(/\.\d+Z$/, " UTC"),
               })}
+            </p>
+          {:else}
+            <p class="text-xs text-muted-foreground">
+              {t("share.noExpiryHelp")}
             </p>
           {/if}
           <div class="flex flex-wrap gap-2">

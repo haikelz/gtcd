@@ -49,7 +49,13 @@ test("share tokens expire, rotate, revoke, and reject malformed stored links", a
     Date.now = () => now + 7 * 86_400_000;
     expect(await store.resolveShareToken(token)).toBeNull();
     Date.now = () => now;
-    for (const expiresAt of ["invalid", null, new Date(now).toISOString()]) {
+    for (const expiresAt of [
+      "invalid",
+      false,
+      0,
+      "",
+      new Date(now).toISOString(),
+    ]) {
       await kv.setJson("share-link:site:992", {
         createdAt: new Date(now).toISOString(),
         expiresAt,
@@ -57,6 +63,26 @@ test("share tokens expire, rotate, revoke, and reject malformed stored links", a
       });
       expect(await store.resolveShareToken(token)).toBeNull();
     }
+
+    const permanent = await store.createShareLink(993, { expiryDays: "never" });
+    expect(permanent.expiresAt).toBeNull();
+    Date.now = () => now + 10 * 365 * 86_400_000;
+    expect(await store.getShareLink(993)).toEqual(permanent);
+    expect(await store.resolveShareToken(permanent.token)).toBe(993);
+
+    const rotated = await store.createShareLink(993, { expiryDays: "never" });
+    expect(await store.resolveShareToken(permanent.token)).toBeNull();
+    expect(await store.resolveShareToken(rotated.token)).toBe(993);
+    await store.revokeShareLink(993);
+    expect(await store.resolveShareToken(rotated.token)).toBeNull();
+
+    const permanentToExpire = await store.createShareLink(993, {
+      expiryDays: "never",
+    });
+    const expiring = await store.createShareLink(993, { expiryDays: 1 });
+    expect(await store.resolveShareToken(permanentToExpire.token)).toBeNull();
+    Date.now = () => Date.parse(expiring.expiresAt);
+    expect(await store.resolveShareToken(expiring.token)).toBeNull();
   } finally {
     Date.now = originalNow;
     await server.close();
@@ -82,6 +108,17 @@ test("sharing controls default to seven days and preserve rotation and revocatio
   await page.goto("/dashboard/settings");
   await expect(
     page.getByRole("radio", { name: "7 days", exact: true })
+  ).toBeChecked();
+  await expect(
+    page.getByRole("radio", { name: "Never expires", exact: true })
+  ).not.toBeChecked();
+  await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
+    path: ".amp/in/artifacts/share-default-desktop.png",
+  });
+  await page.getByRole("radio", { name: "30 days", exact: true }).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    page.getByRole("radio", { name: "Never expires", exact: true })
   ).toBeChecked();
   await page.getByRole("radio", { name: "1 day", exact: true }).check();
   await page.getByRole("button", { name: "Create public link" }).click();
@@ -116,10 +153,37 @@ test("sharing controls default to seven days and preserve rotation and revocatio
       status: 400,
     });
     expect((await publicClient.get(url)).status()).toBe(200);
+    await page
+      .getByRole("radio", { name: "Never expires", exact: true })
+      .check();
     await page.getByRole("button", { name: "New link", exact: true }).click();
     await expect(field).not.toHaveValue(url);
     expect((await publicClient.get(url)).status()).toBe(404);
     const rotated = await field.inputValue();
+    await expect(
+      page.getByText(
+        "Never expires. Revoke or replace this link to stop access.",
+        { exact: true }
+      )
+    ).toBeVisible();
+    expect((await publicClient.get(rotated)).status()).toBe(200);
+    await page.reload();
+    await expect(field).toHaveValue(rotated);
+    await page
+      .getByRole("radio", { name: "Never expires", exact: true })
+      .check();
+    await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
+      path: ".amp/in/artifacts/share-never-desktop.png",
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    await expect(field).toHaveValue(rotated);
+    await page
+      .getByRole("radio", { name: "Never expires", exact: true })
+      .check();
+    await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
+      path: ".amp/in/artifacts/share-never-mobile.png",
+    });
     await page.getByRole("button", { name: "Revoke", exact: true }).click();
     await expect(field).toHaveCount(0);
     expect((await publicClient.get(rotated)).status()).toBe(404);

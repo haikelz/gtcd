@@ -8,7 +8,10 @@ export default {
   "share.expiryHelp":
     "Berlaku untuk tautan baru. Mengganti tautan langsung menonaktifkan URL lama.",
   "share.expiresAt": "Kedaluwarsa {date}",
-  "share.invalidExpiry": "Pilih masa berlaku tautan 1, 7, atau 30 hari.",
+  "share.invalidExpiry": "Pilih 1, 7, atau 30 hari, atau Tidak kedaluwarsa.",
+  "share.neverExpires": "Tidak kedaluwarsa",
+  "share.noExpiryHelp":
+    "Tidak kedaluwarsa. Cabut atau ganti tautan ini untuk menghentikan akses.",
   "share.oneDay": "1 hari",
   "share.sevenDays": "7 hari",
   "share.thirtyDays": "30 hari",

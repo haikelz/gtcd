@@ -280,9 +280,11 @@ export const actions = {
 
     const form = await request.formData();
     const expiry = form.get("expiryDays");
-    const expiryDays = expiry === null ? 7 : Number(expiry);
+    const expiryDays =
+      expiry === "never" ? "never" : expiry === null ? 7 : Number(expiry);
     if (
-      (expiry !== null && !["1", "7", "30"].includes(String(expiry))) ||
+      (expiry !== null &&
+        !["1", "7", "30", "never"].includes(String(expiry))) ||
       !isShareExpiryDays(expiryDays)
     ) {
       return fail(400, {
