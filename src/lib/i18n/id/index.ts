@@ -9,6 +9,7 @@ import customize from "./customize";
 import share from "./share";
 import email from "./email";
 import auth from "./auth";
+import diagnostics from "./diagnostics";
 
 export default {
   ...common,
@@ -22,4 +23,5 @@ export default {
   ...share,
   ...email,
   ...auth,
+  ...diagnostics,
 };

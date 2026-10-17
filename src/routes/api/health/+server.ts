@@ -1,6 +1,6 @@
 import { pingRedis } from "$lib/server/auth/session-store.js";
 import {
-  getUpstreamStatus,
+  getUpstreamObservation,
   refreshUpstreamStatus,
 } from "$lib/server/goatcounter/client.js";
 import { json } from "@sveltejs/kit";
@@ -21,16 +21,28 @@ export const GET: RequestHandler = async () => {
 
   // Bounded probe: a health check must never block longer than the probe timeout.
   const isRedisUp = await pingRedis(400);
-  const goatcounter = getUpstreamStatus();
+  const upstream = getUpstreamObservation();
+  const goatcounter = upstream.status;
 
   const degraded = isRedisUp === false || goatcounter === "down";
 
   return json(
     {
-      status: degraded ? "degraded" : "healthy",
+      status: degraded
+        ? "degraded"
+        : goatcounter === "unknown"
+          ? "unknown"
+          : "healthy",
       goatcounter,
       redis: isRedisUp ? "connected" : "disconnected",
+      dependencies: {
+        goatcounter: upstream,
+        redis: {
+          status: isRedisUp ? "up" : "down",
+          observedAt: Date.now(),
+        },
+      },
     },
-    { status: 200 }
+    { status: 200, headers: { "cache-control": "no-store" } }
   );
 };

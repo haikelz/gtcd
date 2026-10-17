@@ -1,0 +1,41 @@
+export default {
+  "diagnostics.title": "Diagnostik",
+  "diagnostics.description": "Pengamatan dependensi dan aktivitas operasional.",
+  "diagnostics.refresh": "Perbarui pengamatan",
+  "diagnostics.retry": "Coba lagi",
+  "diagnostics.refreshError": "Pengamatan tidak dapat diperbarui. Coba lagi.",
+  "diagnostics.loading": "Memuat pengamatan…",
+  "diagnostics.dependencies": "Dependensi",
+  "diagnostics.observations":
+    "Pengamatan GoatCounter kedaluwarsa setelah lima menit. Pembaruan menjadwalkan pemeriksaan latar belakang paling sering sekali per menit.",
+  "diagnostics.up": "Tersedia",
+  "diagnostics.down": "Tidak tersedia",
+  "diagnostics.unknown": "Belum diketahui",
+  "diagnostics.observedAt": "Pengamatan terakhir",
+  "diagnostics.checkedAt": "Status Redis diperiksa",
+  "diagnostics.lastSuccessAt": "Keberhasilan terakhir",
+  "diagnostics.lastFailureAt": "Kegagalan terakhir",
+  "diagnostics.counters": "Cache dan upstream",
+  "diagnostics.local":
+    "Penghitung lokal proses sejak {startedAt}; bukan total klaster. Pembaruan dapat menuju replika lain. Cache miss tidak mencakup pembacaan tanpa cache dan permintaan yang dideduplikasi.",
+  "diagnostics.sampledAt": "Waktu pengambilan",
+  "diagnostics.memoryHits": "Hit cache memori",
+  "diagnostics.sharedHits": "Hit cache bersama",
+  "diagnostics.misses": "Cache miss",
+  "diagnostics.inflightDeduplications": "Deduplikasi permintaan berjalan",
+  "diagnostics.upstreamAttempts": "Percobaan ke upstream",
+  "diagnostics.rateLimited": "Respons dibatasi (429)",
+  "diagnostics.backoffs": "Jeda backoff",
+  "diagnostics.retries": "Percobaan ulang",
+  "diagnostics.scheduler": "Penjadwal email",
+  "diagnostics.schedulerDescription":
+    "Status pengiriman bersama. Jumlah mencakup tugas pengiriman yang tersimpan, bukan penerima.",
+  "diagnostics.lastRunAt": "Penjadwal terakhir berjalan",
+  "diagnostics.pending": "Tugas tertunda",
+  "diagnostics.failed": "Tugas gagal",
+  "diagnostics.schedulerError":
+    "Penyimpanan penjadwal tidak dapat dibaca. Coba lagi untuk memeriksa ulang.",
+  "diagnostics.empty":
+    "Belum ada aktivitas penjadwal yang tercatat. Atur laporan email untuk memulai.",
+  "diagnostics.configure": "Atur laporan email",
+};

@@ -130,6 +130,11 @@
         label: t("shell.navExports"),
       },
       {
+        href: "/dashboard/diagnostics",
+        icon: Monitor,
+        label: t("diagnostics.title"),
+      },
+      {
         href: "/dashboard/admin/users",
         icon: Settings,
         label: "Administration",
@@ -315,6 +320,7 @@
 {#if isDashboard && data.authenticated}
   <div class="flex min-h-dvh bg-background">
     {#if sidebarOpen && !wideViewport}
+      <!-- Existing responsive sidebar backdrop, not a modal/dialog overlay. -->
       <button
         aria-label={t("shell.closeNavigationOverlay")}
         class="fixed inset-0 z-30 bg-black/10 supports-backdrop-filter:backdrop-blur-xs lg:hidden"

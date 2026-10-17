@@ -17,6 +17,19 @@ const memoryCache = new Map<string, CacheEntry<unknown>>();
 // Identical GETs that overlap (layout and page loads) share one upstream call.
 const inflightRequests = new Map<string, Promise<unknown>>();
 
+// Lifetime totals for this process only; never include cache keys or requests.
+const counters = {
+  memoryHits: 0,
+  sharedHits: 0,
+  misses: 0,
+  inflightDeduplications: 0,
+  upstreamAttempts: 0,
+  rateLimited: 0,
+  backoffs: 0,
+  retries: 0,
+};
+const startedAt = Date.now();
+
 // Redis copy of the cache, shared by every replica so a second pod does not
 // spend GoatCounter's 4 req/s budget on a query the first already answered.
 const SHARED_CACHE_PREFIX = "gc-cache:";
@@ -240,6 +253,24 @@ export function getUpstreamStatus(): "up" | "down" | "unknown" {
   return "unknown";
 }
 
+export function getUpstreamObservation() {
+  return {
+    status: getUpstreamStatus(),
+    observedAt: Math.max(lastUpstreamSuccessAt, lastUpstreamFailureAt) || null,
+    lastSuccessAt: lastUpstreamSuccessAt || null,
+    lastFailureAt: lastUpstreamFailureAt || null,
+  };
+}
+
+export function getClientDiagnostics() {
+  return {
+    startedAt,
+    sampledAt: Date.now(),
+    upstream: getUpstreamObservation(),
+    counters: { ...counters },
+  };
+}
+
 /**
  * Trigger a background refresh of the upstream status. Never await this from a
  * liveness path. Share overlapping probes and sample at most once per minute
@@ -293,13 +324,17 @@ export async function gcFetch<T>(
   if (isGet && !options.bypassCache) {
     const cached = memoryCache.get(cacheKey) as CacheEntry<T> | undefined;
     if (cached && cached.expiresAt > now) {
+      counters.memoryHits++;
       return cached.data;
     }
   }
 
   if (isGet && !options.bypassCache) {
     const pending = inflightRequests.get(cacheKey) as Promise<T> | undefined;
-    if (pending) return pending;
+    if (pending) {
+      counters.inflightDeduplications++;
+      return pending;
+    }
   }
 
   if (!isGet) return requestWithRetry<T>(url, init, isGet, cacheKey, options);
@@ -308,6 +343,7 @@ export async function gcFetch<T>(
     if (!options.bypassCache) {
       const shared = await readSharedCache<T>(cacheKey);
       if (shared !== undefined) {
+        counters.sharedHits++;
         sweepCache(Date.now());
         memoryCache.set(cacheKey, {
           data: shared,
@@ -315,6 +351,7 @@ export async function gcFetch<T>(
         });
         return shared;
       }
+      counters.misses++;
     }
     return requestWithRetry<T>(url, init, isGet, cacheKey, options);
   })();
@@ -340,6 +377,8 @@ async function requestWithRetry<T>(
     try {
       await paceRequest();
 
+      counters.upstreamAttempts++;
+      if (attempt > 0) counters.retries++;
       const response = await fetch(url.toString(), {
         ...init,
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -350,6 +389,7 @@ async function requestWithRetry<T>(
       });
 
       if (response.status === 429) {
+        counters.rateLimited++;
         const retryAfterHeader =
           response.headers.get("Retry-After") ||
           response.headers.get("X-Rate-Limit-Reset");
@@ -371,6 +411,7 @@ async function requestWithRetry<T>(
 
         lastUpstreamFailureAt = Date.now();
         if (attempt === MAX_RETRIES) break;
+        counters.backoffs++;
         await sleep(waitMs);
         continue;
       }
@@ -418,6 +459,7 @@ async function requestWithRetry<T>(
       }
 
       if (attempt < MAX_RETRIES) {
+        counters.backoffs++;
         const jitter = Math.floor(Math.random() * 150);
         await sleep(BASE_DELAY_MS * Math.pow(2, attempt) + jitter);
       }
@@ -445,19 +487,28 @@ export async function gcFetchRaw(
   const apiKey = getApiKey();
   const vhost = options.vhost ?? getVhost();
 
-  const response = await fetch(url, {
-    ...init,
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    headers: {
-      "Content-Type": "application/json",
-      // The login form endpoint does not require an API token; only send the
-      // header when a key exists so we never transmit an empty Bearer value.
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      ...(vhost ? { Host: vhost } : {}),
-      ...init.headers,
-    },
-  });
+  counters.upstreamAttempts++;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      headers: {
+        "Content-Type": "application/json",
+        // The login form endpoint does not require an API token; only send the
+        // header when a key exists so we never transmit an empty Bearer value.
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        ...(vhost ? { Host: vhost } : {}),
+        ...init.headers,
+      },
+    });
+  } catch (cause) {
+    lastUpstreamFailureAt = Date.now();
+    throw cause;
+  }
 
-  lastUpstreamSuccessAt = Date.now();
+  if (response.ok) lastUpstreamSuccessAt = Date.now();
+  else lastUpstreamFailureAt = Date.now();
+  if (response.status === 429) counters.rateLimited++;
   return response;
 }
