@@ -69,8 +69,20 @@ test("private routes and shared reports stay out of search metadata", async ({
     expect(metadata).not.toContain("qa@example.com");
   }
 
-  await page.goto("/dashboard/settings");
-  await page.locator("#share-create").getByRole("button").click();
+  // Sharing workflow tests rotate site 1's link in parallel. Keep this
+  // metadata-only fixture on site 2 so neither test revokes the other's URL.
+  const shareSettings = "/dashboard/settings?site=2";
+  const actionHeaders = {
+    accept: "application/json",
+    origin: new URL(page.url()).origin,
+    "x-sveltekit-action": "true",
+  };
+  const created = await page.request.post(
+    "/dashboard/settings?/createShareLink&site=2",
+    { form: { expiryDays: "7" }, headers: actionHeaders }
+  );
+  expect(await created.json()).toMatchObject({ type: "success" });
+  await page.goto(shareSettings);
   await expect(page.locator("#public-link")).toBeVisible();
   const sharedUrl = await page.locator("#public-link").inputValue();
   const token = new URL(sharedUrl).pathname.split("/").at(-1);
@@ -87,6 +99,7 @@ test("private routes and shared reports stay out of search metadata", async ({
   expect(metadata).not.toContain("application/ld+json");
   expect(metadata).not.toContain("qa@example.com");
   expect(metadata).not.toContain("demo.example");
+  expect(metadata).not.toContain("journal.example");
   await page.goto(sharedUrl);
   await expect(page).toHaveTitle("Shared analytics — gtcd");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(

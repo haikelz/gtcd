@@ -143,7 +143,7 @@ test("sharing controls default to seven days and preserve rotation and revocatio
         form: { expiryDays: "2" },
         headers: {
           accept: "application/json",
-          origin: "http://127.0.0.1:4173",
+          origin: new URL(page.url()).origin,
           "x-sveltekit-action": "true",
         },
       }
