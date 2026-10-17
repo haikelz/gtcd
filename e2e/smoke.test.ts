@@ -71,5 +71,8 @@ test("login links to GoatCounter's password reset", async ({ page }) => {
   await page.goto("/login");
   await expect(
     page.getByRole("link", { name: "Forgot password?" })
-  ).toHaveAttribute("href", "http://localhost:5187/user/forgot");
+  ).toHaveAttribute(
+    "href",
+    `http://localhost:${process.env.TEST_MOCK_PORT ?? 5187}/user/forgot`
+  );
 });

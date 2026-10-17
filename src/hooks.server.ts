@@ -3,8 +3,16 @@ import { isLocale } from "$lib/dashboard-layout.js";
 import { LOCALE_COOKIE, localeFromAcceptLanguage } from "$lib/i18n/index.js";
 import { getDashboardSession } from "$lib/server/auth/session.js";
 import { startReportScheduler } from "$lib/server/email-reports.js";
+import { DurableStateUnavailable } from "$lib/server/durable-state.js";
 import { markScriptsForRocketLoader } from "$lib/server/rocket-loader.js";
-import type { Handle, ServerInit } from "@sveltejs/kit";
+import type { Handle, HandleServerError, ServerInit } from "@sveltejs/kit";
+
+export const handleError: HandleServerError = ({ error }) => ({
+  message:
+    error instanceof DurableStateUnavailable
+      ? error.message
+      : "An unexpected error occurred. Please retry.",
+});
 
 export const init: ServerInit = () => {
   if (!building) startReportScheduler();

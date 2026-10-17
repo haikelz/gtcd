@@ -3,7 +3,11 @@ import {
   layoutFromGoatCounter,
   parseDashboardLayout,
 } from "$lib/dashboard-layout.js";
-import { getJson, setJson } from "$lib/server/kv.js";
+import { getJson } from "$lib/server/kv.js";
+import {
+  DurableStateUnavailable,
+  updateDurableJson,
+} from "$lib/server/durable-state.js";
 
 function keyFor(email: string): string {
   return `dashboard-layout:${email.trim().toLowerCase()}`;
@@ -30,7 +34,12 @@ export async function getDashboardLayout(
   }
 
   const layout = imported ?? parseDashboardLayout(null);
-  await saveDashboardLayout(email, layout);
+  try {
+    await saveDashboardLayout(email, layout);
+  } catch (cause) {
+    if (!(cause instanceof DurableStateUnavailable)) throw cause;
+    // Reading a dashboard may use defaults; explicit saves must persist.
+  }
   return layout;
 }
 
@@ -38,5 +47,5 @@ export async function saveDashboardLayout(
   email: string,
   layout: DashboardLayout
 ): Promise<void> {
-  await setJson(keyFor(email), parseDashboardLayout(layout));
+  await updateDurableJson(keyFor(email), () => parseDashboardLayout(layout));
 }
