@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Locale } from "$lib/dashboard-layout.js";
 import {
   type MessageKey,
@@ -24,7 +25,19 @@ import { getSites } from "$lib/server/goatcounter/admin.js";
 import { getVhost } from "$lib/server/goatcounter/client.js";
 import { getMe, getTotal } from "$lib/server/goatcounter/stats.js";
 import type { Site } from "$lib/server/goatcounter/types.js";
-import { acquireLock, getJson, setJson } from "$lib/server/kv.js";
+import {
+  acquireDeliveryLease,
+  deliveryDiagnostics,
+  deliveryIdentity,
+  getSchedulerState,
+  runDeliveryJob,
+  saveSchedulerState,
+  selectDeliveryPeriod,
+} from "$lib/server/delivery-jobs.js";
+import {
+  readDurableJson,
+  updateDurableJson,
+} from "$lib/server/durable-state.js";
 import {
   getPublicUrl,
   isMailConfigured,
@@ -38,6 +51,7 @@ import {
 } from "$lib/traffic-alert.js";
 
 type TrafficAlertSubscription = {
+  readonly revision?: string;
   readonly lastError: string | null;
   readonly lastPeriodKey: string | null;
   readonly lastSentAt: string | null;
@@ -46,6 +60,7 @@ type TrafficAlertSubscription = {
 };
 
 export type EmailReportSubscription = {
+  readonly revision?: string;
   readonly frequency: ReportFrequency;
   readonly lastError: string | null;
   readonly lastPeriodKey: string | null;
@@ -56,7 +71,6 @@ export type EmailReportSubscription = {
 };
 
 const SUBSCRIBERS_KEY = "email-report:subscribers";
-const LOCK_KEY = "email-report:scheduler-lock";
 const TICK_MS = 15 * 60_000;
 
 export const DEFAULT_SUBSCRIPTION: EmailReportSubscription = {
@@ -109,6 +123,7 @@ function parseSubscription(value: unknown): EmailReportSubscription {
   const rule = parseTrafficAlertRule(alert?.rule);
 
   return {
+    revision: text(record.revision) ?? undefined,
     frequency: isReportFrequency(record.frequency) ? record.frequency : "never",
     lastError: text(record.lastError),
     lastPeriodKey: text(record.lastPeriodKey),
@@ -124,6 +139,7 @@ function parseSubscription(value: unknown): EmailReportSubscription {
       Number.isSafeInteger(alert.siteId) &&
       alert.siteId > 0
         ? {
+            revision: text(alert.revision) ?? undefined,
             lastError: text(alert.lastError),
             lastPeriodKey: text(alert.lastPeriodKey),
             lastSentAt: text(alert.lastSentAt),
@@ -135,7 +151,7 @@ function parseSubscription(value: unknown): EmailReportSubscription {
 }
 
 async function getSubscribers(): Promise<string[]> {
-  const value = await getJson(SUBSCRIBERS_KEY);
+  const value = await readDurableJson(SUBSCRIBERS_KEY);
   return Array.isArray(value)
     ? value.filter((email): email is string => typeof email === "string")
     : [];
@@ -144,21 +160,25 @@ async function getSubscribers(): Promise<string[]> {
 export async function getSubscription(
   email: string
 ): Promise<EmailReportSubscription> {
-  return parseSubscription(await getJson(subscriptionKey(email)));
+  return parseSubscription(await readDurableJson(subscriptionKey(email)));
 }
 
 async function writeSubscription(
   email: string,
   subscription: EmailReportSubscription
 ): Promise<void> {
-  await setJson(subscriptionKey(email), subscription);
-
-  const subscribers = new Set(await getSubscribers());
   const normalized = normalizeEmail(email);
-  if (subscription.frequency === "never" && !subscription.trafficAlert)
-    subscribers.delete(normalized);
-  else subscribers.add(normalized);
-  await setJson(SUBSCRIBERS_KEY, [...subscribers]);
+  // Register before saving: a failure may leave a harmless default entry,
+  // but never an enabled subscription missing from the scheduler's index.
+  await updateDurableJson(SUBSCRIBERS_KEY, (value) => [
+    ...new Set([
+      ...(Array.isArray(value)
+        ? value.filter((entry): entry is string => typeof entry === "string")
+        : []),
+      normalized,
+    ]),
+  ]);
+  await updateDurableJson(subscriptionKey(email), () => subscription);
 }
 
 /**
@@ -184,6 +204,7 @@ export async function updateSubscription(
 
   await writeSubscription(email, {
     ...current,
+    revision: randomUUID(),
     frequency,
     lastError: null,
     lastPeriodKey,
@@ -219,6 +240,7 @@ export async function updateTrafficAlert(
   await writeSubscription(email, {
     ...current,
     trafficAlert: {
+      revision: randomUUID(),
       lastError: null,
       lastPeriodKey: latestCompletedPeriod("daily", wallClockNow(timezone)).key,
       lastSentAt: null,
@@ -431,94 +453,119 @@ async function checkTrafficAlert(
   subscription: EmailReportSubscription,
   settings: unknown,
   localNow: Date,
-  now: Date
+  now: Date,
+  assertValid: () => Promise<void>
 ): Promise<EmailReportSubscription> {
   const alert = subscription.trafficAlert;
   if (!alert || !isReportDue("daily", localNow, alert.lastPeriodKey))
     return subscription;
 
-  const period = latestCompletedPeriod("daily", localNow);
-  let updated: TrafficAlertSubscription;
+  const configuration = [alert.siteId, alert.rule, alert.revision];
+  const period = await selectDeliveryPeriod(
+    email,
+    "alert",
+    configuration,
+    "daily",
+    localNow
+  );
   let locale: Locale = "en";
-  try {
-    locale = await recipientLocale(email, settings);
-    const layout = await getDashboardLayout(email);
-    const preferences = applyDisplayOverrides(
-      toDisplayPreferences(settings),
-      layout.overrides
-    );
-    const site = await resolveSite(alert.siteId, alert.siteId, locale);
-    const options = { vhost: site.cname ?? getVhost() };
-    const [current, previous] = await Promise.all([
-      getTotal(
-        toZonedRFC3339(period.start, preferences.timezone),
-        toZonedRFC3339(period.end, preferences.timezone),
-        undefined,
-        options
-      ),
-      getTotal(
-        toZonedRFC3339(period.previousStart, preferences.timezone),
-        toZonedRFC3339(period.previousEnd, preferences.timezone),
-        undefined,
-        options
-      ),
-    ]);
-    const currentViews = current.total - current.total_events;
-    const previousViews = previous.total - previous.total_events;
-    const change = evaluateTrafficAlert(
-      alert.rule,
-      currentViews,
-      previousViews
-    );
-
-    if (change !== null) {
-      const siteName = site.cname || site.code;
-      const date = formatDate(
-        period.start,
-        preferences.dateFormat,
-        "full",
-        locale
+  const identity = deliveryIdentity([
+    email,
+    "alert",
+    configuration,
+    period.key,
+  ]);
+  const outcome = await runDeliveryJob(
+    email,
+    identity,
+    async (assertJobValid) => {
+      locale = await recipientLocale(email, settings);
+      const layout = await getDashboardLayout(email);
+      const preferences = applyDisplayOverrides(
+        toDisplayPreferences(settings),
+        layout.overrides
       );
-      const headline = translate(locale, "email.trafficHeadline", {
-        change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
-        date,
-      });
-      const counts = preferences.fewerNumbers
-        ? ""
-        : translate(locale, "email.trafficCounts", {
-            current: formatNumber(currentViews, preferences.numberSeparator),
-            previous: formatNumber(previousViews, preferences.numberSeparator),
-          });
-      const manage = translate(locale, "email.manageFallback");
-      const text = `${siteName}\n${headline}\n${counts}\n\n${manage}`;
-      await sendMail({
-        html: `<h1>${escapeHtml(siteName)}</h1><p>${escapeHtml(headline)}</p><p>${escapeHtml(counts)}</p><p>${escapeHtml(manage)}</p>`,
-        subject: translate(locale, "email.trafficSubject", { site: siteName }),
-        text,
-        to: email,
-      });
+      const site = await resolveSite(alert.siteId, alert.siteId, locale);
+      const options = { vhost: site.cname ?? getVhost() };
+      const [current, previous] = await Promise.all([
+        getTotal(
+          toZonedRFC3339(period.start, preferences.timezone),
+          toZonedRFC3339(period.end, preferences.timezone),
+          undefined,
+          options
+        ),
+        getTotal(
+          toZonedRFC3339(period.previousStart, preferences.timezone),
+          toZonedRFC3339(period.previousEnd, preferences.timezone),
+          undefined,
+          options
+        ),
+      ]);
+      const currentViews = current.total - current.total_events;
+      const previousViews = previous.total - previous.total_events;
+      const change = evaluateTrafficAlert(
+        alert.rule,
+        currentViews,
+        previousViews
+      );
+
+      if (change !== null) {
+        const siteName = site.cname || site.code;
+        const date = formatDate(
+          period.start,
+          preferences.dateFormat,
+          "full",
+          locale
+        );
+        const headline = translate(locale, "email.trafficHeadline", {
+          change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
+          date,
+        });
+        const counts = preferences.fewerNumbers
+          ? ""
+          : translate(locale, "email.trafficCounts", {
+              current: formatNumber(currentViews, preferences.numberSeparator),
+              previous: formatNumber(
+                previousViews,
+                preferences.numberSeparator
+              ),
+            });
+        const manage = translate(locale, "email.manageFallback");
+        const text = `${siteName}\n${headline}\n${counts}\n\n${manage}`;
+        const latest = await getSubscription(email);
+        if (JSON.stringify(latest.trafficAlert) !== JSON.stringify(alert))
+          throw new Error("Subscription changed");
+        await assertValid();
+        await assertJobValid();
+        await sendMail({
+          html: `<h1>${escapeHtml(siteName)}</h1><p>${escapeHtml(headline)}</p><p>${escapeHtml(counts)}</p><p>${escapeHtml(manage)}</p>`,
+          subject: translate(locale, "email.trafficSubject", {
+            site: siteName,
+          }),
+          text,
+          to: email,
+        });
+        return true;
+      }
+      return false;
     }
-    updated = {
-      ...alert,
-      lastError: null,
-      lastPeriodKey: period.key,
-      lastSentAt: change === null ? alert.lastSentAt : now.toISOString(),
+  );
+  if (outcome === "deferred") return getSubscription(email);
+  await updateDurableJson(subscriptionKey(email), (value) => {
+    const latest = parseSubscription(value);
+    if (JSON.stringify(latest.trafficAlert) !== JSON.stringify(alert))
+      return latest;
+    return {
+      ...latest,
+      trafficAlert: {
+        ...alert,
+        lastError: null,
+        lastPeriodKey: period.key,
+        lastSentAt: outcome === "sent" ? now.toISOString() : alert.lastSentAt,
+      },
     };
-  } catch {
-    updated = {
-      ...alert,
-      lastError: translate(locale, "email.trafficFailed"),
-    };
-  }
-
-  // Do not resurrect a rule disabled or changed while upstream/SMTP was pending.
-  const latest = await getSubscription(email);
-  if (JSON.stringify(latest.trafficAlert) !== JSON.stringify(alert))
-    return latest;
-
-  const result = { ...latest, trafficAlert: updated };
-  await writeSubscription(email, result);
-  return result;
+  });
+  return getSubscription(email);
 }
 
 /** Send one report now, for the test button; does not change the schedule. */
@@ -543,66 +590,159 @@ export async function sendTestReport(email: string): Promise<void> {
 
 async function runDueReports(now: Date): Promise<void> {
   if (!isMailConfigured()) return;
-  // Shorter than the tick, so a crashed holder never blocks the next run.
-  if (!(await acquireLock(LOCK_KEY, 10 * 60))) return;
-
-  const subscribers = await getSubscribers();
-  if (subscribers.length === 0) return;
-
-  const me = await getMe();
-  const { timezone } = toDisplayPreferences(me.user.settings);
-  const localNow = wallClockNow(timezone, now);
+  const lease = await acquireDeliveryLease("scheduler");
+  if (!lease) return;
   const deadline = Date.now() + 8 * 60_000;
-
-  for (const email of subscribers) {
-    if (Date.now() >= deadline) break;
-    let subscription = await getSubscription(email);
-    subscription = await checkTrafficAlert(
-      email,
-      subscription,
-      me.user.settings,
-      localNow,
-      now
-    );
-    if (subscription.frequency === "never") continue;
-    if (
-      !isReportDue(subscription.frequency, localNow, subscription.lastPeriodKey)
-    ) {
-      continue;
-    }
-
-    const period = latestCompletedPeriod(subscription.frequency, localNow);
-    let locale: Locale = "en";
-    try {
-      locale = await recipientLocale(email, me.user.settings);
-      const site = await resolveSite(subscription.siteId, me.user.site, locale);
-      const report = await buildReport(
-        subscription.frequency,
-        period,
-        site,
-        me.user.settings,
-        locale
-      );
-      await sendMail({ ...report, to: email });
-      const latest = await getSubscription(email);
-      await writeSubscription(email, {
-        ...latest,
-        lastError: null,
-        lastPeriodKey: period.key,
-        lastSentAt: now.toISOString(),
-      });
-    } catch (cause: unknown) {
-      // Keep the period unsent so the next tick retries; surface the reason.
-      const latest = await getSubscription(email);
-      await writeSubscription(email, {
-        ...latest,
-        lastError:
-          cause instanceof Error
-            ? cause.message
-            : translate(locale, "email.sendFailed"),
-      });
-    }
+  const schedulerLease = lease;
+  async function assertReadyToSend(): Promise<void> {
+    if (Date.now() >= deadline) throw new Error("Scheduler deadline reached");
+    await schedulerLease.assertValid();
   }
+  try {
+    const state = await getSchedulerState();
+    state.lastRunAt = now.toISOString();
+    await saveSchedulerState(state, lease);
+    const subscribers = (await getSubscribers()).sort();
+    const cursor = state.cursor;
+    const start = cursor ? subscribers.findIndex((email) => email > cursor) : 0;
+    const offset = start < 0 ? 0 : start;
+    const ordered = [
+      ...subscribers.slice(offset),
+      ...subscribers.slice(0, offset),
+    ];
+    const me = await getMe();
+    const { timezone } = toDisplayPreferences(me.user.settings);
+    const localNow = wallClockNow(timezone, now);
+    let failed = false;
+    for (const email of ordered) {
+      if (Date.now() >= deadline) break;
+      await lease.assertValid();
+      // Advance before work: even a crash or a slow first recipient cannot starve
+      // later recipients. Unfinished attempts are revisited on the next rotation.
+      state.cursor = email;
+      await saveSchedulerState(state, lease);
+      let subscription = await getSubscription(email);
+      try {
+        subscription = await checkTrafficAlert(
+          email,
+          subscription,
+          me.user.settings,
+          localNow,
+          now,
+          assertReadyToSend
+        );
+      } catch {
+        failed = true;
+        const locale = await recipientLocale(email, me.user.settings);
+        await updateDurableJson(subscriptionKey(email), (value) => {
+          const latest = parseSubscription(value);
+          if (
+            JSON.stringify(latest.trafficAlert) !==
+            JSON.stringify(subscription.trafficAlert)
+          )
+            return latest;
+          return {
+            ...latest,
+            trafficAlert: latest.trafficAlert
+              ? {
+                  ...latest.trafficAlert,
+                  lastError: translate(locale, "email.trafficFailed"),
+                }
+              : null,
+          };
+        });
+        subscription = await getSubscription(email);
+      }
+      if (subscription.frequency === "never") continue;
+      if (
+        !isReportDue(
+          subscription.frequency,
+          localNow,
+          subscription.lastPeriodKey
+        )
+      ) {
+        continue;
+      }
+
+      const frequency = subscription.frequency;
+      const configuration = [
+        subscription.siteId ?? me.user.site,
+        frequency,
+        subscription.revision,
+      ];
+      const period = await selectDeliveryPeriod(
+        email,
+        "summary",
+        configuration,
+        frequency,
+        localNow
+      );
+      let locale: Locale = "en";
+      const expected = JSON.stringify(subscription);
+      try {
+        const identity = deliveryIdentity([
+          email,
+          "summary",
+          configuration,
+          period.key,
+        ]);
+        const outcome = await runDeliveryJob(
+          email,
+          identity,
+          async (assertJobValid) => {
+            locale = await recipientLocale(email, me.user.settings);
+            const site = await resolveSite(
+              subscription.siteId,
+              me.user.site,
+              locale
+            );
+            const report = await buildReport(
+              frequency,
+              period,
+              site,
+              me.user.settings,
+              locale
+            );
+            if (JSON.stringify(await getSubscription(email)) !== expected)
+              throw new Error("Subscription changed");
+            await assertReadyToSend();
+            await assertJobValid();
+            await sendMail({ ...report, to: email });
+          }
+        );
+        if (outcome === "deferred") continue;
+        await updateDurableJson(subscriptionKey(email), (value) => {
+          const latest = parseSubscription(value);
+          if (JSON.stringify(latest) !== expected) return latest;
+          return {
+            ...latest,
+            lastError: null,
+            lastPeriodKey: period.key,
+            lastSentAt: now.toISOString(),
+          };
+        });
+      } catch {
+        failed = true;
+        await updateDurableJson(subscriptionKey(email), (value) => {
+          const latest = parseSubscription(value);
+          if (JSON.stringify(latest) !== expected) return latest;
+          return {
+            ...latest,
+            lastError: translate(locale, "email.sendFailed"),
+          };
+        });
+      }
+    }
+    if (!failed) state.lastSuccessAt = now.toISOString();
+    await lease.assertValid();
+    await saveSchedulerState(state, lease);
+  } finally {
+    await lease.release();
+  }
+}
+
+export async function getSchedulerDiagnostics() {
+  return deliveryDiagnostics(await getSubscribers());
 }
 
 let running = false;

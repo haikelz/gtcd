@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { createServer as createSmtpServer } from "node:net";
 import { expect, test } from "@playwright/test";
 import { createServer } from "vite";
@@ -76,7 +77,7 @@ test("saved views retain their site and traffic alerts validate and persist", as
 
   const actionHeaders = {
     accept: "application/json",
-    origin: "http://127.0.0.1:4173",
+    origin: new URL(page.url()).origin,
     "x-sveltekit-action": "true",
   };
   for (const fields of [
@@ -154,6 +155,7 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
   test.setTimeout(60_000);
   const messages: string[] = [];
   let rejectMail = false;
+  let beforeAcceptance: (() => Promise<void>) | undefined;
   const smtp = createSmtpServer((socket) => {
     let buffer = "";
     let body = "";
@@ -170,7 +172,14 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
             messages.push(body);
             body = "";
             inData = false;
-            socket.write("250 accepted\r\n");
+            const callback = beforeAcceptance;
+            beforeAcceptance = undefined;
+            if (callback) {
+              callback().then(
+                () => socket.write("250 accepted\r\n"),
+                () => socket.destroy()
+              );
+            } else socket.write("250 accepted\r\n");
           } else body += `${line}\n`;
         } else if (line.startsWith("EHLO")) socket.write("250 localhost\r\n");
         else if (line.startsWith("MAIL") && rejectMail)
@@ -189,8 +198,8 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
     throw new Error("SMTP sink did not bind");
   const settings = {
     GOATCOUNTER_API_KEY: "e2e",
-    GOATCOUNTER_URL: "http://127.0.0.1:5187",
-    REDIS_URL: "redis://127.0.0.1:1",
+    GOATCOUNTER_URL: `http://127.0.0.1:${process.env.TEST_MOCK_PORT ?? 5187}`,
+    REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379",
     SMTP_HOST: "127.0.0.1",
     SMTP_PORT: String(address.port),
     SMTP_SECURE: "false",
@@ -203,11 +212,15 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
   );
   Object.assign(process.env, settings);
   const vite = await createServer({ server: { middlewareMode: true } });
+  const worker = await createServer({ server: { middlewareMode: true } });
+  const email = `delivery-${randomUUID()}@example.invalid`;
   try {
     const reports = await vite.ssrLoadModule(
       "/src/lib/server/email-reports.ts"
     );
-    const email = "delivery@example.invalid";
+    const otherReports = await worker.ssrLoadModule(
+      "/src/lib/server/email-reports.ts"
+    );
     await reports.updateTrafficAlert(
       email,
       { direction: "either", minimum: 100, threshold: 50 },
@@ -219,7 +232,7 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
     const now = new Date("2040-04-03T09:00:00Z");
     await Promise.all([
       reports.sendDueReports(now),
-      reports.sendDueReports(now),
+      otherReports.sendDueReports(now),
     ]);
     expect(messages).toHaveLength(1);
     expect(messages[0]).toContain("Traffic alert");
@@ -234,6 +247,12 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
     await reports.sendDueReports(now);
     expect(messages).toHaveLength(2);
     expect(messages[1]).toContain("Daily report");
+    // Simulate SMTP success with a lost subscription checkpoint.
+    const state = await vite.ssrLoadModule("/src/lib/server/durable-state.ts");
+    await state.updateDurableJson(
+      `email-report:${email}`,
+      (value: Record<string, unknown>) => ({ ...value, lastPeriodKey: null })
+    );
     await reports.sendDueReports(now);
     expect(messages).toHaveLength(2);
     await reports.updateSubscription(email, "never", 1);
@@ -245,6 +264,20 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
     ).toContain("Could not check or deliver");
     expect(messages).toHaveLength(2);
     rejectMail = false;
+    // Immediate scheduler ticks respect the durable retry timestamp.
+    await reports.sendDueReports(new Date("2040-04-02T09:00:00Z"));
+    expect(messages).toHaveLength(2);
+    const jobs = await vite.ssrLoadModule("/src/lib/server/delivery-jobs.ts");
+    await state.updateDurableJson(
+      `email-report:jobs:${jobs.deliveryIdentity(email)}`,
+      (value: Record<string, { status: string; retryAt: number }>) =>
+        Object.fromEntries(
+          Object.entries(value).map(([key, entry]) => [
+            key,
+            { ...entry, retryAt: 0 },
+          ])
+        )
+    );
     await reports.sendDueReports(new Date("2040-04-02T09:00:00Z"));
     expect(messages).toHaveLength(3);
     expect(
@@ -255,7 +288,39 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
     await reports.sendDueReports(new Date("2040-04-04T09:00:00Z"));
     expect(messages).toHaveLength(3);
     expect((await reports.getSubscription(email)).trafficAlert).toBeNull();
+
+    await reports.updateSubscription(email, "daily", 1);
+    beforeAcceptance = () => reports.updateSubscription(email, "never", 1);
+    await reports.sendDueReports(new Date("2040-04-05T09:00:00Z"));
+    expect(messages).toHaveLength(4);
+    expect((await reports.getSubscription(email)).frequency).toBe("never");
+    await reports.sendDueReports(new Date("2040-04-06T09:00:00Z"));
+    expect(messages).toHaveLength(4);
   } finally {
+    const state = await vite.ssrLoadModule("/src/lib/server/durable-state.ts");
+    await state.updateDurableJson(
+      "email-report:subscribers",
+      (value: string[]) => value.filter((entry) => entry !== email)
+    );
+    for (const server of [vite, worker]) {
+      const sessions = await server.ssrLoadModule(
+        "/src/lib/server/auth/session-store.ts"
+      );
+      const jobs = await server.ssrLoadModule(
+        "/src/lib/server/delivery-jobs.ts"
+      );
+      const hash = jobs.deliveryIdentity(email);
+      await sessions
+        .getRedis()
+        .del(
+          `email-report:${email}`,
+          `email-report:jobs:${hash}`,
+          `email-report:active:summary:${hash}`,
+          `email-report:active:alert:${hash}`
+        );
+      sessions.getRedis().disconnect();
+    }
+    await worker.close();
     await vite.close();
     await new Promise<void>((resolve) => smtp.close(() => resolve()));
     for (const [key, value] of Object.entries(previous)) {
