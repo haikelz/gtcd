@@ -129,11 +129,28 @@
         icon: FolderCog,
         label: t("shell.navExports"),
       },
+      {
+        href: "/dashboard/admin/users",
+        icon: Settings,
+        label: "Administration",
+      },
     ],
   } as const);
+  const ACCOUNT_GROUP = {
+    key: "account",
+    label: "Account",
+    items: [
+      {
+        href: "/dashboard/admin/security",
+        icon: Settings,
+        label: "Account security",
+      },
+    ],
+  } as const;
   type NavItem =
     | (typeof NAV_GROUPS)[number]["items"][number]
-    | (typeof ADMIN_GROUP)["items"][number];
+    | (typeof ADMIN_GROUP)["items"][number]
+    | (typeof ACCOUNT_GROUP)["items"][number];
   type NavGroup = {
     readonly items: readonly NavItem[];
     readonly key: string;
@@ -141,7 +158,7 @@
   };
 
   const navGroups: readonly NavGroup[] = $derived(
-    data.isAdmin ? [...NAV_GROUPS, ADMIN_GROUP] : NAV_GROUPS
+    data.isAdmin ? [...NAV_GROUPS, ADMIN_GROUP] : [...NAV_GROUPS, ACCOUNT_GROUP]
   );
   const activeLabel = $derived(
     page.url.pathname.startsWith("/dashboard/reports/")
@@ -155,6 +172,9 @@
   );
 
   function isActive(href: string): boolean {
+    if (href.startsWith("/dashboard/admin/")) {
+      return page.url.pathname.startsWith("/dashboard/admin/");
+    }
     return href === "/dashboard"
       ? page.url.pathname === href
       : page.url.pathname.startsWith(href);

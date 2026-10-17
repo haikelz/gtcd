@@ -379,7 +379,7 @@ Configure these in your `.env` file or container environment:
 | `NODE_ENV`              |    No    | `production`                | Environment mode                                                                                                                                                                                               |
 | `COOKIE_SECURE`         |    No    | auto                        | Force the session cookie's `Secure` flag (`true`/`false`). By default it is set automatically from the request protocol, including `X-Forwarded-Proto` behind reverse proxies.                                 |
 | `GTCD_ADMIN_EMAILS`     |    No    | —                           | Comma-separated emails permitted to manage sites and exports in gtcd.                                                                                                                                          |
-| `GOATCOUNTER_ADMIN_URL` |    No    | —                           | Public HTTPS GoatCounter administration URL for users, API tokens, TOTP, imports, page management, dashboard preferences, and email reports. HTTP is allowed only on localhost.                                |
+| `GOATCOUNTER_ADMIN_URL` |    No    | —                           | Public HTTPS GoatCounter URL for password-reset and secret-site share links; also a fallback Host for native sessions. HTTP is allowed only on localhost.                                                      |
 | `SMTP_HOST`             |    No    | —                           | SMTP server for email reports. Reports stay off until `SMTP_HOST` and `SMTP_FROM` are set.                                                                                                                     |
 | `SMTP_PORT`             |    No    | `587` (`465` if secure)     | SMTP port.                                                                                                                                                                                                     |
 | `SMTP_SECURE`           |    No    | `false`                     | `true` for implicit TLS (port 465); otherwise STARTTLS is used when offered.                                                                                                                                   |
@@ -426,10 +426,40 @@ the update to GoatCounter, it serializes `ignore_ips`, `collect_regions`, and
 `Strings` settings type. This avoids the `cannot unmarshal array into ...
 goatcounter.Strings` API error.
 
-Set `GOATCOUNTER_ADMIN_URL` to a public HTTPS GoatCounter administration URL to
-show the **Open GoatCounter** handoff on this page. It opens in a separate tab;
-the dashboard never forwards the API token to the browser. The same URL is the
-base of the share link for sites set to **Secret link**.
+Open **Administration** for custom GTCD screens for users and roles, API tokens,
+passwords and TOTP, CSV and Google Analytics imports, pageview deletion/merging,
+and native preferences and email reports. GoatCounter runs unchanged. These
+screens use the signed-in user's native session, not the shared API token:
+GoatCounter enforces that user's permissions on every request. Users, tokens,
+imports and page data additionally require `GTCD_ADMIN_EMAILS`; account security
+and personal preferences are available to every signed-in user.
+
+Sign out and sign back in after upgrading to establish this session. Native
+cookies and CSRF values stay server-side in Redis (or the existing in-memory
+fallback); secure Redis access and backups as credentials. Expired native
+sessions require a fresh login. Signing out also attempts GoatCounter logout,
+which can invalidate other native browser sessions for the same user. Token
+secrets appear only after **Reveal token**; authenticator setup keys appear only
+on the account-security screen. Personal email is read-only here to keep the
+dashboard login identity consistent; administrators can edit users separately.
+
+The bridge is verified with stock GoatCounter 2.7. It extracts only allowlisted
+forms into Svelte components, never embeds native HTML. Recheck compatibility
+after an upstream upgrade; unknown forms fail closed. Destructive changes require
+explicit confirmation, and search-result intents bind page mutations to the
+paths that were displayed. Background-job acceptance is not completion; check
+GoatCounter's logs for import, merge and purge failures.
+
+Import files are capped at 8 MiB uploaded and 32 MiB decompressed. To permit
+uploads above adapter-node's default 512 KiB limit, configure `BODY_SIZE_LIMIT=10M`
+for GTCD and allow the same request size at the reverse proxy; this change does
+not modify existing infrastructure limits. GTCD preferences and scheduled reports
+remain independent of GoatCounter preferences and native email reports, which
+require GoatCounter's own SMTP configuration.
+
+`GOATCOUNTER_ADMIN_URL` remains the public base for native password-reset and
+secret-site share links. Set `GOATCOUNTER_VHOST` when the internal GoatCounter URL
+differs from its configured public hostname; native requests preserve this Host.
 
 The visitor counter is served by GoatCounter at `/counter/*`. The generated
 Caddyfile and the Kubernetes Ingress route that path to GoatCounter; existing

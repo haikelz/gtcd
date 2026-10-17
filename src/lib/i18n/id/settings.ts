@@ -58,8 +58,6 @@ export default {
     "Atur data yang disimpan GoatCounter dan tempat analitik Anda bisa ditampilkan.",
   "settings.embedSnippet": "Snippet embed",
   "settings.generate": "Buat",
-  "settings.handoffNeedsAdminUrl": "Atur {envVar} untuk mengaktifkannya.",
-  "settings.handoffUnavailable": "Pengalihan tidak tersedia",
   "settings.hostname": "Hostname",
   "settings.identityDescription":
     "Hubungkan situs analitik ini dengan website yang dikunjungi orang.",
@@ -74,12 +72,11 @@ export default {
   "settings.linkDomainHelp":
     "Gunakan URL kanonis website yang diukur oleh situs ini.",
   "settings.linkedWebsiteUrl": "URL website tertaut",
-  "settings.nativeAdmin": "Administrasi bawaan",
+  "settings.nativeAdmin": "Administrasi",
   "settings.nativeAdminDescription":
-    "Kelola pengguna, token API, TOTP, impor, halaman, preferensi, dan laporan email di GoatCounter.",
+    "Kelola pengguna, token API, keamanan, impor, dan data halaman tanpa meninggalkan GTCD.",
   "settings.newLink": "Tautan baru",
   "settings.notSaved": "Pengaturan tidak tersimpan",
-  "settings.openGoatCounter": "Buka GoatCounter",
   "settings.optional": "(opsional)",
   "settings.publicDashboard": "Dasbor publik",
   "settings.publicDashboardDescription":

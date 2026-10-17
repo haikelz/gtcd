@@ -55,8 +55,6 @@ export default {
     "Control the data GoatCounter keeps and where your analytics can appear.",
   "settings.embedSnippet": "Embed snippet",
   "settings.generate": "Generate",
-  "settings.handoffNeedsAdminUrl": "Set {envVar} to enable it.",
-  "settings.handoffUnavailable": "Handoff unavailable",
   "settings.hostname": "Hostname",
   "settings.identityDescription":
     "Connect this analytics site to the website people visit.",
@@ -71,12 +69,11 @@ export default {
   "settings.linkDomainHelp":
     "Use the canonical URL for the website this site measures.",
   "settings.linkedWebsiteUrl": "Linked website URL",
-  "settings.nativeAdmin": "Native administration",
+  "settings.nativeAdmin": "Administration",
   "settings.nativeAdminDescription":
-    "Manage users, API tokens, TOTP, imports, pages, preferences, and email reports in GoatCounter.",
+    "Manage users, API tokens, security, imports and page data without leaving GTCD.",
   "settings.newLink": "New link",
   "settings.notSaved": "Settings not saved",
-  "settings.openGoatCounter": "Open GoatCounter",
   "settings.optional": "(optional)",
   "settings.publicDashboard": "Public dashboard",
   "settings.publicDashboardDescription":

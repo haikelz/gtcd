@@ -14,7 +14,11 @@ manage multiple GoatCounter sites in a self-hosted analytics workspace.
 Overview, reports and drill-downs, path directory, site settings, and exports
 use actual GoatCounter data. Authentication, server-side API mediation,
 permissions, sessions, and multi-site context must remain intact.
-Unsupported administrative operations retain the native GoatCounter handoff.
+Administration uses each signed-in user's server-side GoatCounter session to
+render custom users, tokens, security, imports, page data and preferences screens.
+Keep the stock GoatCounter build unchanged; never elevate these actions through
+the dashboard's shared API token. GTCD display settings and scheduled reports
+remain separate from native GoatCounter preferences and email reports.
 Do not fabricate statistics or add decorative operational claims.
 
 ## Design commitments

@@ -28,14 +28,7 @@
   import { RadioGroup, RadioGroupItem } from "$lib/components/ui/radio-group";
   import { Switch } from "$lib/components/ui/switch";
   import { Textarea } from "$lib/components/ui/textarea";
-  import {
-    ExternalLink,
-    Link2,
-    RefreshCw,
-    Save,
-    Send,
-    TriangleAlert,
-  } from "@lucide/svelte";
+  import { Link2, RefreshCw, Save, Send, TriangleAlert } from "@lucide/svelte";
 
   const collectionOptions = [
     {
@@ -766,31 +759,11 @@
         </FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="native-admin-heading" role="region">
-        {#if adminUrl}
-          <Button
-            class="w-full"
-            href={adminUrl}
-            rel="noreferrer"
-            target="_blank"
-            variant="outline"
-          >
-            <ExternalLink />
-            {t("settings.openGoatCounter")}
-          </Button>
-        {:else}
-          <Alert role="status" variant="warning">
-            <TriangleAlert />
-            <AlertTitle>{t("settings.handoffUnavailable")}</AlertTitle>
-            <AlertDescription class="min-w-0">
-              {@const parts = messageParts("settings.handoffNeedsAdminUrl")}
-              <p>
-                {parts[0]}<code class="font-mono text-xs break-all"
-                  >GOATCOUNTER_ADMIN_URL</code
-                >{parts[1]}
-              </p>
-            </AlertDescription>
-          </Alert>
-        {/if}
+        <Button
+          class="w-full"
+          href={`${resolve("/dashboard/admin/[section]", { section: "users" })}?site=${data.site.id}`}
+          variant="outline">Open administration</Button
+        >
       </FramePanel>
     </Frame>
     {#if data.sites.length > 1}
