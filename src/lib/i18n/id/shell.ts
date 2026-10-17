@@ -28,8 +28,8 @@ export default {
   "shell.filterHelpAt": "cocokkan hanya di awal atau akhir path atau judul.",
   "shell.filterHelpIn": "cocokkan hanya path atau hanya judul.",
   "shell.filterHelpIntro":
-    "Filter daftar path; pencocokan pada path dan judul tidak membedakan huruf besar-kecil.",
-  "shell.filterHelpIs": "tampilkan hanya event atau tampilan halaman.",
+    "Cocokkan path dan judul tanpa membedakan huruf besar-kecil.",
+  "shell.filterHelpIs": "tampilkan hanya event atau tayangan halaman.",
   "shell.filterHelpNot": "balikkan pencocokan.",
   "shell.filterPaths": "Filter path",
   "shell.filterSyntaxHelp": "Bantuan sintaks filter",
@@ -58,8 +58,7 @@ export default {
   "shell.navWorkspace": "Ruang kerja",
   "shell.next": "Berikutnya",
   "shell.notFound": "Halaman tidak ditemukan",
-  "shell.notFoundDescription":
-    "Halaman yang Anda cari tidak ada atau sudah dipindahkan.",
+  "shell.notFoundDescription": "Halaman ini tidak ada atau sudah dipindahkan.",
   "shell.openSidebar": "Buka sidebar navigasi",
   "shell.previous": "Sebelumnya",
   "shell.previousPage": "Halaman sebelumnya",

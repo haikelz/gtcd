@@ -25,8 +25,7 @@ export default {
   "shell.filter": "Filter",
   "shell.filterHelpAt": "match only at the start or end of path or title.",
   "shell.filterHelpIn": "match only the path or only the title.",
-  "shell.filterHelpIntro":
-    "Filter the list of paths; matched case-insensitive on path and title.",
+  "shell.filterHelpIntro": "Match paths and titles without case sensitivity.",
   "shell.filterHelpIs": "show only events or pageviews.",
   "shell.filterHelpNot": "negate the match.",
   "shell.filterPaths": "Filter paths",
@@ -56,8 +55,7 @@ export default {
   "shell.navWorkspace": "Workspace",
   "shell.next": "Next",
   "shell.notFound": "Page not found",
-  "shell.notFoundDescription":
-    "The page you're looking for doesn't exist or has been moved.",
+  "shell.notFoundDescription": "This page does not exist or has moved.",
   "shell.openSidebar": "Open navigation sidebar",
   "shell.previous": "Previous",
   "shell.previousPage": "Previous page",
@@ -82,7 +80,7 @@ export default {
   "shell.to": "to",
   "shell.toggleSidebar": "Toggle sidebar (Ctrl+B / Cmd+B)",
   "shell.unauthorized": "Unauthorized",
-  "shell.unauthorizedDescription": "Please sign in to continue.",
+  "shell.unauthorizedDescription": "Sign in to continue.",
   "shell.unitDay": "day",
   "shell.unitHalfYear": "half year",
   "shell.unitHour": "hour",

@@ -15,21 +15,23 @@
     $props();
 </script>
 
-<header class="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-  <div class="min-w-0">
+<header class="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+  <div class="min-w-0 max-w-prose">
     {#if eyebrow}
       <div class="mb-2">{@render eyebrow()}</div>
     {/if}
     <h1
       class={cn(
-        "text-xl font-semibold tracking-tight break-words text-foreground",
+        "text-2xl font-semibold tracking-tight break-words text-foreground",
         titleClass
       )}
     >
       {title}
     </h1>
     {#if description}
-      <p class="mt-1 text-sm text-muted-foreground">{description}</p>
+      <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        {description}
+      </p>
     {/if}
   </div>
   {#if actions}

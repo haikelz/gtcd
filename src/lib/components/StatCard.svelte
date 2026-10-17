@@ -12,7 +12,7 @@
 
   type StatCardProps = {
     readonly class?: string;
-    /** Truncate long text values (names) to one line instead of wrapping. */
+    /** Use a smaller type size for names while keeping the full value visible. */
     readonly compact?: boolean;
     readonly icon?: typeof ChartNoAxesCombined;
     readonly label: string;
@@ -35,13 +35,13 @@
   }: StatCardProps = $props();
 </script>
 
-<Frame class={className} spacing="sm">
+<Frame class={className} dense spacing="default">
   <FramePanel
     aria-busy={loading}
     aria-label={loading
       ? t("charts.loadingLabel", { label })
       : `${label}: ${value}${subtext ? `, ${subtext}` : ""}`}
-    class="flex flex-col gap-2"
+    class="flex flex-col gap-3"
     role="group"
   >
     <div class="flex items-center justify-between gap-2">
@@ -60,8 +60,8 @@
       <div class="flex min-w-0 flex-wrap items-center gap-2">
         <p
           class={cn(
-            "min-w-0 text-2xl font-semibold tracking-tight text-foreground tabular-nums",
-            compact ? "truncate" : "break-words"
+            "min-w-0 font-semibold tracking-tight break-words text-foreground tabular-nums",
+            compact ? "text-xl" : "text-2xl"
           )}
           title={compact ? String(value) : undefined}
         >
@@ -69,7 +69,6 @@
         </p>
         {#if trend}
           <Badge
-            size="sm"
             variant={trend.direction === "up"
               ? "success-light"
               : "destructive-light"}

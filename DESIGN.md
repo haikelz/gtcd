@@ -65,11 +65,15 @@ ReUI documents no `--focus` token.
 ## Frame composition
 
 Report surfaces, KPI tiles, forms, the toolbar and login use `Frame` +
-`FramePanel`. The Frame is the muted, bordered surround; FrameHeader and
+`FramePanel`. Overview panels, KPI tiles and report controls use the installed
+`dense` option to avoid double-border insets. Settings retain the default
+surround for grouping form sections. Do not flatten panels with custom CSS or
+change the upstream primitive recipes. The Frame is the muted, bordered surround; FrameHeader and
 FrameFooter sit in that surround as chrome; FramePanel is the content surface.
 FramePanel pads itself from the Frame's `spacing` (default 16px), so content
-goes straight inside it with no padding wrapper. Use `class="p-0"` or `dense`
-only when rows carry their own padding to the edge. Panel radii stay concentric
+goes straight inside it with no padding wrapper. Use `class="p-0"` only when
+rows carry their own padding to the edge; `dense` removes the outer inset,
+not the content padding. Panel radii stay concentric
 through `--frame-radius`, `--frame-px` and `--frame-panel-radius`.
 
 ## Layout and typography
@@ -80,11 +84,22 @@ through `--frame-radius`, `--frame-px` and `--frame-panel-radius`.
 - Topbar 48px: sidebar trigger, separator, breadcrumb, site switcher.
 - Content max width 96rem; 24px padding on desktop, 16px plus safe-area insets
   on mobile. Frames sit on a `gap-4` grid.
-- `PageHeader` owns every page's h1 (text-xl semibold), description, optional
+- `PageHeader` owns every page's h1 (text-2xl semibold), description, optional
   eyebrow (back link) and actions. Section titles are `FrameTitle` (text-sm
   semibold). Body text-sm, meta text-xs muted.
 - Self-hosted Inter for the interface; JetBrains Mono for paths and code.
   Numbers use tabular numerals.
+- Overview sections use 24px gaps; tighter 16px gaps group related KPI tiles.
+  Headline metrics precede their period comparison. Comparison values emphasize
+  the change, not a second copy of the headline count.
+
+## Interface voice
+
+Use short, factual analytics terms in English and Indonesian: “Top pages”,
+“Browsers”, “Visits by country”. Avoid conversational filler (“Your most-read
+pages”), slogans, and descriptions that only restate a heading. Labels describe
+the data or action; help text explains a constraint. Preserve event/pageview
+distinctions, baseline limitations and delivery consequences when shortening.
 
 ## Components
 
@@ -115,8 +130,10 @@ through `--frame-radius`, `--frame-px` and `--frame-panel-radius`.
 
 ## Accessibility and motion
 
+Native browser controls follow the selected theme through `color-scheme`.
 Keep skip navigation, visible focus, form labels, chart text equivalents,
 `role="meter"` bars and drawer focus trapping. Target WCAG 2.1 AA. Motion is
-limited to route entry, popovers and toasts, and `prefers-reduced-motion`
+limited to control feedback, popovers and toasts; report pages do not animate
+on entry. `prefers-reduced-motion`
 disables it. Verify filled, empty and error states in both themes at desktop
 and mobile widths; visual QA uses the local synthetic upstream only.

@@ -4,7 +4,7 @@ export default {
   "reports.backTo": "Back to {parent}",
   "reports.backToPages": "Back to Pages",
   "reports.browserLabel": "Browser",
-  "reports.browsersDescription": "Which browsers your visitors use.",
+  "reports.browsersDescription": "Visitors by browser.",
   "reports.browsersEmptyDescription":
     "No visits recorded for this time period.",
   "reports.browsersEmptyTitle": "No browser data",
@@ -14,7 +14,7 @@ export default {
   "reports.browsersSeoTitle": "Browsers — gtcd",
   "reports.browsersTitle": "Browsers",
   "reports.campaignLabel": "Campaign",
-  "reports.campaignsDescription": "Which campaigns drive traffic.",
+  "reports.campaignsDescription": "Traffic by campaign.",
   "reports.campaignsEmptyDescription":
     "No campaigns recorded for this time period.",
   "reports.campaignsEmptyTitle": "No campaign data",
@@ -27,7 +27,7 @@ export default {
   "reports.detailCampaigns": "Campaign detail",
   "reports.detailDescription": "{label} in the selected period.",
   "reports.detailEmptyDescription":
-    "No detailed entries were recorded for this item in this time period.",
+    "No details recorded for this item in the selected period.",
   "reports.detailEmptyTitle": "No detailed data",
   "reports.detailLoadFailed": "Failed to load detail.",
   "reports.detailLocations": "Regional detail",
@@ -37,7 +37,7 @@ export default {
   "reports.detailSizes": "Screen-size detail",
   "reports.detailSystems": "System versions",
   "reports.detailToprefs": "Referrer detail",
-  "reports.devicesDescription": "Which screen sizes your visitors use.",
+  "reports.devicesDescription": "Visitors by screen size.",
   "reports.devicesEmptyDescription":
     "No device measurements recorded for this period.",
   "reports.devicesEmptyTitle": "No screen size data",
@@ -45,11 +45,11 @@ export default {
   "reports.devicesSeoDescription":
     "Screen size breakdown for your GoatCounter site.",
   "reports.devicesSeoTitle": "Devices — gtcd",
-  "reports.devicesTitle": "Screen Sizes",
+  "reports.devicesTitle": "Screen sizes",
   "reports.entries": "{count} entries in this period",
   "reports.event": "Event",
   "reports.languageLabel": "Language",
-  "reports.languagesDescription": "Which languages your visitors use.",
+  "reports.languagesDescription": "Visitors by language.",
   "reports.languagesEmptyDescription":
     "No language preferences recorded for this period.",
   "reports.languagesEmptyTitle": "No language data",
@@ -60,7 +60,7 @@ export default {
   "reports.languagesTitle": "Languages",
   "reports.loadFailed": "Failed to load this report.",
   "reports.locationLabel": "Country",
-  "reports.locationsDescription": "Where your visitors are located.",
+  "reports.locationsDescription": "Visitors by country.",
   "reports.locationsEmptyDescription":
     "No visitor countries recorded for this period.",
   "reports.locationsEmptyTitle": "No location data",
@@ -72,13 +72,13 @@ export default {
   "reports.pageColumn": "Page",
   "reports.pageDetailDescription": "Referrers driving traffic to this page.",
   "reports.pageDetailEmptyDescription":
-    "No incoming referrers recorded for this page in this time window.",
+    "No referrers recorded for this page in the selected period.",
   "reports.pageDetailEmptyTitle": "No referrers",
   "reports.pageDetailFallbackTitle": "Page {id}",
   "reports.pageDetailGoTo": "Go to {url}",
   "reports.pageDetailReferrers": "Referrers",
   "reports.pageDetailSeoDescription": "Referrer breakdown for {title}.",
-  "reports.pagesDescription": "Which pages your visitors view.",
+  "reports.pagesDescription": "Visits by page.",
   "reports.pagesEmptyDescription": "No pages tracked for this time period.",
   "reports.pagesEmptyTitle": "No page data",
   "reports.pagesInvalidList": "Choose a valid page list.",
@@ -108,7 +108,7 @@ export default {
   "reports.pathsSeoTitle": "Path directory — gtcd",
   "reports.pathsTitle": "Path directory",
   "reports.referrerLabel": "Referrer",
-  "reports.referrersDescription": "Where visitors find your website.",
+  "reports.referrersDescription": "Traffic by referrer.",
   "reports.referrersEmptyDescription":
     "No incoming referrers were recorded for this period.",
   "reports.referrersEmptyTitle": "No referrer data",
@@ -120,13 +120,13 @@ export default {
   "reports.referrersTitle": "Top referrers",
   "reports.screenSizeLabel": "Screen size",
   "reports.systemLabel": "Operating system",
-  "reports.systemsDescription": "Which operating systems your visitors use.",
+  "reports.systemsDescription": "Visitors by operating system.",
   "reports.systemsEmptyDescription":
     "No OS statistics recorded for this period.",
   "reports.systemsEmptyTitle": "No operating system data",
   "reports.systemsReport": "Operating system report",
   "reports.systemsSeoDescription": "OS breakdown for your GoatCounter site.",
-  "reports.systemsSeoTitle": "Operating Systems — gtcd",
-  "reports.systemsTitle": "Operating Systems",
+  "reports.systemsSeoTitle": "Operating systems — gtcd",
+  "reports.systemsTitle": "Operating systems",
   "reports.visits": "Visits",
 } as const satisfies Record<`reports.${string}`, string>;

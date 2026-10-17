@@ -6,7 +6,7 @@ export default {
   "reports.backTo": "Kembali ke {parent}",
   "reports.backToPages": "Kembali ke Halaman",
   "reports.browserLabel": "Browser",
-  "reports.browsersDescription": "Browser yang dipakai pengunjung.",
+  "reports.browsersDescription": "Pengunjung menurut browser.",
   "reports.browsersEmptyDescription":
     "Belum ada kunjungan tercatat pada periode ini.",
   "reports.browsersEmptyTitle": "Belum ada data browser",
@@ -16,7 +16,7 @@ export default {
   "reports.browsersSeoTitle": "Browser — gtcd",
   "reports.browsersTitle": "Browser",
   "reports.campaignLabel": "Kampanye",
-  "reports.campaignsDescription": "Kampanye yang mendatangkan trafik.",
+  "reports.campaignsDescription": "Trafik menurut kampanye.",
   "reports.campaignsEmptyDescription":
     "Belum ada kampanye tercatat pada periode ini.",
   "reports.campaignsEmptyTitle": "Belum ada data kampanye",
@@ -29,7 +29,7 @@ export default {
   "reports.detailCampaigns": "Rincian kampanye",
   "reports.detailDescription": "{label} dalam periode terpilih.",
   "reports.detailEmptyDescription":
-    "Belum ada entri rinci tercatat untuk item ini pada periode ini.",
+    "Belum ada rincian tercatat untuk item ini pada periode terpilih.",
   "reports.detailEmptyTitle": "Belum ada data rinci",
   "reports.detailLoadFailed": "Rincian gagal dimuat.",
   "reports.detailLocations": "Rincian wilayah",
@@ -39,7 +39,7 @@ export default {
   "reports.detailSizes": "Rincian ukuran layar",
   "reports.detailSystems": "Versi sistem",
   "reports.detailToprefs": "Rincian perujuk",
-  "reports.devicesDescription": "Ukuran layar yang dipakai pengunjung.",
+  "reports.devicesDescription": "Pengunjung menurut ukuran layar.",
   "reports.devicesEmptyDescription":
     "Belum ada data perangkat tercatat pada periode ini.",
   "reports.devicesEmptyTitle": "Belum ada data ukuran layar",
@@ -47,11 +47,11 @@ export default {
   "reports.devicesSeoDescription":
     "Rincian ukuran layar untuk situs GoatCounter Anda.",
   "reports.devicesSeoTitle": "Perangkat — gtcd",
-  "reports.devicesTitle": "Ukuran Layar",
+  "reports.devicesTitle": "Ukuran layar",
   "reports.entries": "{count} entri dalam periode ini",
   "reports.event": "Event",
   "reports.languageLabel": "Bahasa",
-  "reports.languagesDescription": "Bahasa yang dipakai pengunjung.",
+  "reports.languagesDescription": "Pengunjung menurut bahasa.",
   "reports.languagesEmptyDescription":
     "Belum ada preferensi bahasa tercatat pada periode ini.",
   "reports.languagesEmptyTitle": "Belum ada data bahasa",
@@ -62,7 +62,7 @@ export default {
   "reports.languagesTitle": "Bahasa",
   "reports.loadFailed": "Laporan ini gagal dimuat.",
   "reports.locationLabel": "Negara",
-  "reports.locationsDescription": "Lokasi asal pengunjung.",
+  "reports.locationsDescription": "Pengunjung menurut negara.",
   "reports.locationsEmptyDescription":
     "Belum ada negara pengunjung tercatat pada periode ini.",
   "reports.locationsEmptyTitle": "Belum ada data lokasi",
@@ -75,13 +75,13 @@ export default {
   "reports.pageDetailDescription":
     "Perujuk yang mendatangkan trafik ke halaman ini.",
   "reports.pageDetailEmptyDescription":
-    "Belum ada perujuk tercatat untuk halaman ini pada rentang waktu ini.",
+    "Belum ada perujuk tercatat untuk halaman ini pada periode terpilih.",
   "reports.pageDetailEmptyTitle": "Belum ada perujuk",
   "reports.pageDetailFallbackTitle": "Halaman {id}",
   "reports.pageDetailGoTo": "Buka {url}",
   "reports.pageDetailReferrers": "Perujuk",
   "reports.pageDetailSeoDescription": "Rincian perujuk untuk {title}.",
-  "reports.pagesDescription": "Halaman yang dilihat pengunjung.",
+  "reports.pagesDescription": "Kunjungan menurut halaman.",
   "reports.pagesEmptyDescription":
     "Belum ada halaman terlacak pada periode ini.",
   "reports.pagesEmptyTitle": "Belum ada data halaman",
@@ -103,7 +103,7 @@ export default {
   "reports.pathsDescription":
     "Semua path terlacak, termasuk path tanpa trafik terbaru.",
   "reports.pathsEmptyDescription":
-    "Path muncul setelah GoatCounter menerima tampilan halaman atau event.",
+    "Path muncul setelah GoatCounter menerima tayangan halaman atau event.",
   "reports.pathsEmptyTitle": "Belum ada path terlacak",
   "reports.pathsInvalidPage": "Pilih halaman path yang valid.",
   "reports.pathsList": "Path terlacak",
@@ -114,7 +114,7 @@ export default {
   "reports.pathsSeoTitle": "Direktori path — gtcd",
   "reports.pathsTitle": "Direktori path",
   "reports.referrerLabel": "Perujuk",
-  "reports.referrersDescription": "Dari mana pengunjung menemukan situs Anda.",
+  "reports.referrersDescription": "Trafik menurut perujuk.",
   "reports.referrersEmptyDescription":
     "Belum ada perujuk tercatat pada periode ini.",
   "reports.referrersEmptyTitle": "Belum ada data perujuk",
@@ -127,14 +127,14 @@ export default {
   "reports.referrersTitle": "Perujuk teratas",
   "reports.screenSizeLabel": "Ukuran layar",
   "reports.systemLabel": "Sistem operasi",
-  "reports.systemsDescription": "Sistem operasi yang dipakai pengunjung.",
+  "reports.systemsDescription": "Pengunjung menurut sistem operasi.",
   "reports.systemsEmptyDescription":
     "Belum ada statistik sistem operasi tercatat pada periode ini.",
   "reports.systemsEmptyTitle": "Belum ada data sistem operasi",
   "reports.systemsReport": "Laporan sistem operasi",
   "reports.systemsSeoDescription":
     "Rincian sistem operasi untuk situs GoatCounter Anda.",
-  "reports.systemsSeoTitle": "Sistem Operasi — gtcd",
-  "reports.systemsTitle": "Sistem Operasi",
+  "reports.systemsSeoTitle": "Sistem operasi — gtcd",
+  "reports.systemsTitle": "Sistem operasi",
   "reports.visits": "Kunjungan",
 } satisfies Record<keyof typeof en, string>;

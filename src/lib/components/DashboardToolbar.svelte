@@ -233,7 +233,7 @@
   <p class="mb-3 hidden text-sm text-muted-foreground print:block">
     {t("shell.reportFor", { range: rangeLabel })}
   </p>
-  <Frame spacing="sm">
+  <Frame dense spacing="sm">
     <FramePanel
       class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
     >
