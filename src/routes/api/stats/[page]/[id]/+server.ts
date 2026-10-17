@@ -1,4 +1,3 @@
-import { getDashboardSession } from "$lib/server/auth/session.js";
 import { toDisplayPreferences } from "$lib/preferences.js";
 import {
   getMe,
@@ -9,10 +8,9 @@ import { getDateRangeFromUrl } from "$lib/server/helpers.js";
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
-export const GET: RequestHandler = async ({ params, cookies, url }) => {
+export const GET: RequestHandler = async ({ params, locals, url }) => {
   try {
-    const session = await getDashboardSession(cookies);
-    if (!session) {
+    if (!locals.user) {
       return json({ error: "Not authenticated" }, { status: 401 });
     }
 

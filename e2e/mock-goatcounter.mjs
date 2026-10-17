@@ -70,9 +70,15 @@ function json(res, value) {
   res.end(JSON.stringify(value));
 }
 
+const requestCounts = new Map();
+
 http
   .createServer(async (req, res) => {
     const path = new URL(req.url, "http://localhost").pathname;
+    if (path === "/__metrics") {
+      return json(res, Object.fromEntries(requestCounts));
+    }
+    requestCounts.set(path, (requestCounts.get(path) ?? 0) + 1);
     if (STATS_DELAY_MS && path.includes("/stats/")) {
       await new Promise((resolve) => setTimeout(resolve, STATS_DELAY_MS));
     }

@@ -1,11 +1,12 @@
 <script lang="ts">
   /* eslint-disable svelte/no-navigation-without-resolve -- links are resolved from generated route IDs before preserving selected-site query state. */
-  import { goto, invalidateAll } from "$app/navigation";
+  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { navigating, page } from "$app/state";
   import Brand from "$lib/components/Brand.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
   import ToastStack from "$lib/components/ToastStack.svelte";
+  import { showToast } from "$lib/components/toast.js";
   import { Button } from "$lib/components/ui/button";
   import {
     NativeSelect,
@@ -36,6 +37,7 @@
   import "../app.css";
 
   let { children, data } = $props();
+  let signingOut = $state(false);
   let sidebarOpen = $state(false);
   let desktopSidebarOpen = $state(true);
   let wideViewport = $state(false);
@@ -221,6 +223,18 @@
   }
 
   onMount(() => {
+    if ("serviceWorker" in navigator) {
+      void import("virtual:pwa-register")
+        .then(({ registerSW }) => {
+          registerSW({ immediate: true });
+        })
+        .catch(() => {
+          // Offline asset caching is optional; never block the dashboard.
+        });
+    }
+  });
+
+  onMount(() => {
     desktopSidebarOpen =
       localStorage.getItem("gtcd_desktop_sidebar") !== "false";
     const media = window.matchMedia("(min-width: 1024px)");
@@ -247,9 +261,20 @@
   });
 
   async function handleLogout() {
-    await fetch("/logout", { method: "POST" });
-    await invalidateAll();
-    goto(resolve("/login"));
+    if (signingOut) return;
+    signingOut = true;
+    try {
+      const response = await fetch("/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Logout request failed");
+      await goto(resolve("/login"), {
+        invalidateAll: true,
+        replaceState: true,
+      });
+    } catch {
+      showToast(t("shell.signOutFailed"), "error");
+    } finally {
+      signingOut = false;
+    }
   }
 </script>
 
@@ -343,6 +368,7 @@
         </div>
         <Button
           aria-label={t("shell.signOut")}
+          disabled={signingOut}
           onclick={handleLogout}
           size="icon-sm"
           title={t("shell.signOut")}

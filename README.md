@@ -476,6 +476,9 @@ emails cannot be recalled.
 
 ## GoatCounter performance and operations
 
+See [SvelteKit performance checks](docs/PERFORMANCE.md) for the authenticated
+browser benchmark, delivery probe, budgets, and navigation tradeoffs.
+
 See [the operations runbook](docs/GOATCOUNTER_OPERATIONS.md) for API demand,
 database/storage checks, tracking freshness, container sizing, and retention.
 It separates locally tested improvements from changes that need live measurements

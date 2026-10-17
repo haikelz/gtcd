@@ -69,6 +69,8 @@ export default {
   "shell.serverError": "Server error",
   "shell.serverErrorDescription": "An unexpected error occurred on the server.",
   "shell.signOut": "Sign out",
+  "shell.signOutFailed":
+    "Unable to sign out. Check your connection and try again.",
   "shell.siteName": "gtcd — Custom GoatCounter Dashboard",
   "shell.skipToContent": "Skip to main content",
   "shell.somethingWentWrong": "Something went wrong",

@@ -48,6 +48,7 @@ jobs:
       # Smoke tests: the built app against e2e/mock-goatcounter.mjs.
       - run: pnpm exec playwright install --with-deps --only-shell chromium
       - run: pnpm test:e2e
+      - run: pnpm test:perf
 
   image:
     name: Build and publish image

@@ -72,6 +72,7 @@ export default {
   "shell.serverError": "Kesalahan server",
   "shell.serverErrorDescription": "Terjadi kesalahan tak terduga di server.",
   "shell.signOut": "Keluar",
+  "shell.signOutFailed": "Tidak dapat keluar. Periksa koneksi lalu coba lagi.",
   "shell.siteName": "gtcd — Dasbor GoatCounter Kustom",
   "shell.skipToContent": "Lewati ke konten utama",
   "shell.somethingWentWrong": "Terjadi kesalahan",

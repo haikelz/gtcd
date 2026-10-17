@@ -14,7 +14,8 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "test:checks": "for f in $(find src -name '*.check.ts'); do node --experimental-strip-types \"$f\" || exit 1; done",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:perf": "playwright test --config playwright.perf.config.ts"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",

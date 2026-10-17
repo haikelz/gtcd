@@ -8,8 +8,10 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     SvelteKitPWA({
+      base: "/",
+      scope: "/",
       registerType: "autoUpdate",
-      injectRegister: "script-defer",
+      injectRegister: null,
       manifest: {
         name: "gtcd — GoatCounter analytics dashboard",
         short_name: "gtcd",
@@ -31,19 +33,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,svg,png,woff2,ico}"],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url, request }) =>
-              url.origin === self.location.origin &&
-              url.pathname.startsWith("/api/stats/") &&
-              request.method === "GET",
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "gtcd-api",
-              expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-        ],
+        // Cache app assets only, never authenticated reports. Retire the old
+        // runtime API cache when this worker replaces an earlier version.
+        importScripts: ["/retire-api-cache.js"],
       },
     }),
     sveltekit({
