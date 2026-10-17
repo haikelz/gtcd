@@ -77,7 +77,7 @@ let lastUpstreamFailureAt = 0;
 let lastUpstreamRefreshAt = -Infinity;
 let upstreamRefreshPending = false;
 
-class UpstreamHttpError extends Error {
+export class UpstreamHttpError extends Error {
   constructor(
     message: string,
     readonly status: number

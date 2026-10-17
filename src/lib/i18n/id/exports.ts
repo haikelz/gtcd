@@ -3,7 +3,7 @@ import type en from "../en/exports";
 // Bahasa Indonesia: exports. Must define every key of the English catalog.
 export default {
   "exports.createDescription":
-    "GoatCounter menyiapkan file terkompresi gzip di latar belakang.",
+    "GoatCounter menyiapkan arsip terkompresi di latar belakang.",
   "exports.createExport": "Buat ekspor",
   "exports.csvCursorHelp":
     "Tempel ID hit terakhir dari ekspor CSV sebelumnya agar hanya tampilan halaman yang lebih baru yang diunduh.",
@@ -23,6 +23,10 @@ export default {
     "Kosongkan untuk menyertakan semua data agregat, atau pilih tanggal agar hanya data yang lebih baru yang diekspor.",
   "exports.jsonDescription":
     "Data agregat untuk cadangan analitik yang portabel.",
+  "exports.jsonUnsupported":
+    "Rilis GoatCounter ini belum mendukung ekspor JSON. Gunakan CSV, atau perbarui GoatCounter ke versi yang mendukung ekspor JSON.",
+  "exports.requestFailed":
+    "GoatCounter tidak dapat membuat ekspor. Periksa izin ekspor dan batas ekspor per jam, lalu coba lagi.",
   "exports.limitsHelp":
     "Satu permintaan ekspor per jam. File yang selesai tersedia selama 24 jam.",
   "exports.notFound": "Ekspor tidak ditemukan.",
@@ -49,6 +53,8 @@ export default {
   "exports.statusTitle": "Status ekspor",
   "exports.stepCreateDescription":
     "Pilih CSV untuk tampilan halaman individual atau JSON untuk data agregat.",
+  "exports.stepCreateCsvDescription":
+    "Ekspor tampilan halaman individual yang tersimpan sebagai CSV.",
   "exports.stepCreateTitle": "Buat ekspor",
   "exports.stepDownloadDescription":
     "File yang selesai tersedia melalui dasbor terlindungi ini.",

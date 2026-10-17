@@ -119,6 +119,7 @@
               >
                 <RadioGroupItem
                   class="mt-0.5"
+                  disabled={option.value === "json" && data.legacyExports}
                   id="export-format-{option.value}"
                   value={option.value}
                 />
@@ -131,6 +132,11 @@
               </Label>
             {/each}
           </RadioGroup>
+          {#if data.legacyExports}
+            <p class="text-xs text-muted-foreground">
+              {t("exports.jsonUnsupported")}
+            </p>
+          {/if}
         </fieldset>
         {#if format === "csv"}
           <div class="grid gap-2">
@@ -225,7 +231,7 @@
                 {t("exports.fileSize")}
               </dt>
               <dd class="text-xl font-semibold tabular-nums">
-                {job.size ?? "—"}
+                {job.size ? `${job.size} MB` : "—"}
               </dd>
             </div>
           </dl>
@@ -242,6 +248,7 @@
       {#if isReady}
         <FrameFooter class="flex-row justify-end gap-2">
           <Button
+            data-sveltekit-reload
             href={resolve(
               `/api/admin/exports/${job.id}?site=${page.data.site.id}`
             )}
@@ -253,6 +260,7 @@
       {:else if !job.error}
         <FrameFooter class="flex-row justify-end gap-2">
           <Button
+            data-sveltekit-reload
             href={resolve(
               `/dashboard/exports?site=${page.data.site.id}&export=${job.id}`
             )}
@@ -285,7 +293,11 @@
               <div class="grid gap-0.5">
                 <p class="text-sm font-medium">{t(step.title)}</p>
                 <p class="text-xs text-muted-foreground">
-                  {t(step.description)}
+                  {t(
+                    data.legacyExports && index === 0
+                      ? "exports.stepCreateCsvDescription"
+                      : step.description
+                  )}
                 </p>
               </div>
             </li>

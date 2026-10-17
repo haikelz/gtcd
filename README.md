@@ -83,7 +83,10 @@ flowchart TD
   retention, ignored IP/CIDR ranges, regional reporting countries, embedding
   origins, and public-counter settings without exposing the API token.
 - **Data Exports**: Administrators can create and download gzip-compressed CSV
-  exports through the GoatCounter API.
+  exports through the GoatCounter API. JSON backups download as ZIP archives on
+  supporting GoatCounter builds. GoatCounter 2.7 and older support CSV only;
+  gtcd disables JSON for those releases. Use **Refresh status** to check a
+  pending job without creating another export.
 - **Saved Views & Overview Layout**: Save a period, filter, grouping, and chart scale under a name, pick a default view, and choose which overview widgets show, in what order, with how many rows and which chart style (GoatCounter's own widgets and default view are imported on first use). Stored per user in Redis (in-memory fallback); hidden widgets skip their GoatCounter requests.
 - **Email Reports**: Daily, weekly, two-weekly, or monthly summaries (visits with change, top pages, referrers, countries) over your SMTP server, sent after 07:00 in your GoatCounter timezone, with a test-email button. A Redis lock keeps replicas from sending twice.
 - **Public Dashboard**: A read-only gtcd overview behind a revocable share link, for people without a login.

@@ -132,22 +132,91 @@ export async function createSite(input: {
   return normalizeSite(site);
 }
 
+// Released GoatCounter <=2.7 predates the format parameter and JSON archives.
+export async function usesLegacyExports(
+  options?: GoatCounterRequestOptions
+): Promise<boolean> {
+  const status = await gcFetch<unknown>("/status", {}, undefined, options);
+  if (!status || typeof status !== "object" || !("version" in status))
+    return false;
+  const version =
+    typeof status.version === "string"
+      ? status.version.match(/^v?(\d+)\.(\d+)(?:\.|$)/)
+      : null;
+  return (
+    !!version &&
+    (Number(version[1]) < 2 ||
+      (Number(version[1]) === 2 && Number(version[2]) <= 7))
+  );
+}
+
+function normalizeExport(value: unknown): ExportJob {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("id" in value) ||
+    typeof value.id !== "number" ||
+    !Number.isSafeInteger(value.id) ||
+    value.id < 1 ||
+    !("site_id" in value) ||
+    typeof value.site_id !== "number" ||
+    !Number.isSafeInteger(value.site_id) ||
+    value.site_id < 1 ||
+    !("created_at" in value) ||
+    typeof value.created_at !== "string"
+  ) {
+    throw new Error("Invalid GoatCounter export response");
+  }
+  const format = "format" in value ? value.format : "csv";
+  if (format !== "csv" && format !== "json")
+    throw new Error("Invalid GoatCounter export format");
+  const finishedAt = "finished_at" in value ? value.finished_at : null;
+  const exportError = "error" in value ? value.error : null;
+  const size = "size" in value ? value.size : null;
+  const rows = "num_rows" in value ? value.num_rows : null;
+  if (
+    (finishedAt != null && typeof finishedAt !== "string") ||
+    (exportError != null && typeof exportError !== "string") ||
+    (size != null && typeof size !== "string") ||
+    (rows != null &&
+      (typeof rows !== "number" || !Number.isSafeInteger(rows) || rows < 0))
+  ) {
+    throw new Error("Invalid GoatCounter export status");
+  }
+  return {
+    id: value.id,
+    site_id: value.site_id,
+    format,
+    created_at: value.created_at,
+    finished_at: finishedAt ?? undefined,
+    error: exportError ?? undefined,
+    size: size ?? undefined,
+    num_rows: rows ?? undefined,
+  };
+}
+
 export async function createExport(
   input: ExportRequest,
   options?: GoatCounterRequestOptions
 ): Promise<ExportJob> {
-  return gcFetch<ExportJob>(
-    "/api/v0/export",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        format: input.format,
-        start_from_hit_id: input.startFromHitId,
-        start_from_day: input.startFromDay,
-      }),
-    },
-    undefined,
-    { ...options, bypassCache: true }
+  const legacy = await usesLegacyExports(options);
+  if (legacy && input.format === "json")
+    throw new Error("JSON exports require a newer GoatCounter build");
+
+  return normalizeExport(
+    await gcFetch<unknown>(
+      "/api/v0/export",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          ...(!legacy ? { format: input.format } : {}),
+          start_from_hit_id: input.startFromHitId,
+          start_from_day: input.startFromDay,
+        }),
+      },
+      undefined,
+      { ...options, bypassCache: true }
+    )
   );
 }
 
@@ -155,10 +224,12 @@ export async function getExport(
   exportId: number,
   options?: GoatCounterRequestOptions
 ): Promise<ExportJob> {
-  return gcFetch<ExportJob>(`/api/v0/export/${exportId}`, {}, undefined, {
-    ...options,
-    bypassCache: true,
-  });
+  return normalizeExport(
+    await gcFetch<unknown>(`/api/v0/export/${exportId}`, {}, undefined, {
+      ...options,
+      bypassCache: true,
+    })
+  );
 }
 
 export async function downloadExport(

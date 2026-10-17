@@ -37,8 +37,9 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
   }
 
   const contentType =
-    upstream.headers.get("content-type") ?? "application/gzip";
-  const disposition = `attachment; filename=goatcounter-export-${exportId}.${job.format}.gz`;
+    job.format === "json" ? "application/zip" : "application/gzip";
+  const extension = job.format === "json" ? "json.zip" : "csv.gz";
+  const disposition = `attachment; filename=goatcounter-export-${exportId}.${extension}`;
 
   return new Response(upstream.body, {
     headers: {

@@ -1,6 +1,7 @@
 // Minimal GoatCounter stand-in for the e2e smoke tests: the login form, the
 // TOTP step, and the API shapes the dashboard reads.
 import http from "node:http";
+import { gzipSync } from "node:zlib";
 
 const PORT = Number(process.env.MOCK_PORT ?? 5187);
 const PASSWORD = "correct-horse";
@@ -71,6 +72,8 @@ function json(res, value) {
 }
 
 const requestCounts = new Map();
+const exportJobs = new Map();
+const modernExports = process.env.MOCK_MODERN_EXPORTS === "true";
 
 http
   .createServer(async (req, res) => {
@@ -79,6 +82,8 @@ http
       return json(res, Object.fromEntries(requestCounts));
     }
     requestCounts.set(path, (requestCounts.get(path) ?? 0) + 1);
+    if (path === "/status")
+      return json(res, { version: modernExports ? "dev" : "v2.7.0" });
     if (STATS_DELAY_MS && path.includes("/stats/")) {
       await new Promise((resolve) => setTimeout(resolve, STATS_DELAY_MS));
     }
@@ -145,7 +150,59 @@ http
         paths: hits.map((h) => ({ id: h.path_id, ...h })),
       });
     }
-    if (path.includes("/export")) return json(res, { exports: [] });
+    if (path === "/api/v0/export" && req.method === "POST") {
+      let body = "";
+      for await (const chunk of req) body += chunk;
+      const input = JSON.parse(body);
+      if (!modernExports && "format" in input) {
+        res.writeHead(400, { "content-type": "application/json" });
+        return res.end(
+          JSON.stringify({ error: 'unknown parameter: "format"' })
+        );
+      }
+      const id = exportJobs.size + 1;
+      const job = {
+        id,
+        site_id: 1,
+        ...(modernExports ? { format: input.format } : {}),
+        created_at: new Date().toISOString(),
+        finished_at: null,
+        num_rows: null,
+        size: null,
+        error: input.start_from_hit_id === 999 ? "Fixture export failed" : null,
+      };
+      exportJobs.set(id, { job, reads: 0 });
+      res.writeHead(202, { "content-type": "application/json" });
+      return res.end(JSON.stringify(job));
+    }
+    const exportMatch = path.match(/^\/api\/v0\/export\/(\d+)(\/download)?$/);
+    if (exportMatch) {
+      const record = exportJobs.get(Number(exportMatch[1]));
+      if (!record) {
+        res.writeHead(404);
+        return res.end();
+      }
+      if (!exportMatch[2]) {
+        record.reads++;
+        if (record.reads >= 2 && !record.job.error) {
+          record.job.finished_at = new Date().toISOString();
+          record.job.num_rows = record.job.format === "json" ? null : 2;
+          record.job.size = "0.01";
+        }
+        return json(res, record.job);
+      }
+      if (!record.job.finished_at) {
+        res.writeHead(202, { "content-type": "application/json" });
+        return res.end(JSON.stringify({ error: "still being generated" }));
+      }
+      // JSON uses ZIP even though upstream advertises application/gzip.
+      res.writeHead(200, { "content-type": "application/gzip" });
+      return res.end(
+        record.job.format === "json"
+          ? Buffer.from("504b0506000000000000000000000000000000000000", "hex")
+          : gzipSync("Path,Title\n/,Home\n/blog,Journal\n")
+      );
+    }
 
     const categories = {
       locations: ["United States", "Indonesia", "Germany"],

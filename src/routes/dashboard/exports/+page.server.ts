@@ -2,8 +2,12 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
+import { UpstreamHttpError } from "$lib/server/goatcounter/client.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
-import type { ExportRequest } from "$lib/server/goatcounter/types.js";
+import type {
+  ExportJob,
+  ExportRequest,
+} from "$lib/server/goatcounter/types.js";
 import type { Locale } from "$lib/dashboard-layout";
 import { translate } from "$lib/i18n";
 
@@ -109,7 +113,10 @@ export async function load({ locals, url }) {
     throw error(404, translate(locals.locale, "exports.notFound"));
   }
 
-  return { job };
+  const legacyExports = await admin.usesLegacyExports({
+    vhost: siteContext.vhost,
+  });
+  return { job, legacyExports };
 }
 
 export const actions = {
@@ -130,9 +137,34 @@ export const actions = {
       });
     }
 
-    const job = await admin.createExport(parsed.input, {
-      vhost: siteContext.vhost,
-    });
+    let job: ExportJob;
+    try {
+      if (
+        parsed.input.format === "json" &&
+        (await admin.usesLegacyExports({ vhost: siteContext.vhost }))
+      ) {
+        return fail(400, {
+          error: translate(locals.locale, "exports.jsonUnsupported"),
+          values: parsed.values,
+        });
+      }
+
+      job = await admin.createExport(parsed.input, {
+        vhost: siteContext.vhost,
+      });
+    } catch (cause) {
+      return fail(
+        cause instanceof UpstreamHttpError &&
+          cause.status >= 400 &&
+          cause.status < 500
+          ? cause.status
+          : 503,
+        {
+          error: translate(locals.locale, "exports.requestFailed"),
+          values: parsed.values,
+        }
+      );
+    }
     throw redirect(
       303,
       `/dashboard/exports?site=${siteContext.site.id}&export=${job.id}`
