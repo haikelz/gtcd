@@ -472,6 +472,16 @@ emails cannot be recalled.
 
 ---
 
+## GoatCounter performance and operations
+
+See [the operations runbook](docs/GOATCOUNTER_OPERATIONS.md) for API demand,
+database/storage checks, tracking freshness, container sizing, and retention.
+It separates locally tested improvements from changes that need live measurements
+or approval to delete historical data. Audit the active database location before
+recreating an existing Compose installation.
+
+---
+
 ## 🤝 Contributing
 
 Contributions, bug reports, and suggestions are welcome!
