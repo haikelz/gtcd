@@ -9,6 +9,8 @@
   import ReportPagination from "$lib/components/ReportPagination.svelte";
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import { Button } from "$lib/components/ui/button";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     Frame,
     FrameDescription,
@@ -30,10 +32,11 @@
       : undefined
   );
 
-  function pagesHref(exclude: string): string {
+  function pagesHref(cursor: string): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
-    if (exclude) params.set("exclude", exclude);
-    else params.delete("exclude");
+    params.delete("exclude");
+    if (cursor) params.set("cursor", cursor);
+    else params.delete("cursor");
     const query = params.toString();
     return query ? `${page.url.pathname}?${query}` : page.url.pathname;
   }
@@ -54,6 +57,12 @@
 
 {#if data.error}
   <ErrorAlert message={data.error} />
+  {#if data.cursorError}
+    <Button
+      href={resolve(pagesHref("") as "/dashboard/pages")}
+      variant="outline">{t("reports.resetPagination")}</Button
+    >
+  {/if}
 {:else if data.hits?.hits && data.hits.hits.length > 0}
   <Frame class="animate-fade-in">
     <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
@@ -72,27 +81,63 @@
       >
         <span>{t("reports.pageColumn")}</span><span>{t("reports.visits")}</span>
       </div>
-      <ul
-        aria-label={t("reports.pagesList")}
-        class="m-0 list-none border-t border-border p-0"
-      >
-        {#each data.hits.hits as hit, i (hit.path_id)}
-          <PageRow
-            diff={data.diffs?.[hit.path_id]}
-            {hit}
-            href={resolve(`/dashboard/pages/${hit.path_id}`)}
-            {linkDomain}
-            rank={i + 1}
-            scaleMax={sharedScaleMax}
-          />
-        {/each}
-      </ul>
+      <div>
+        {#snippet rows(diffs?: Record<number, number | null>)}
+          <ul
+            aria-label={t("reports.pagesList")}
+            class="m-0 list-none border-t border-border p-0"
+          >
+            {#each data.hits.hits as hit, i (hit.path_id)}
+              <PageRow
+                diff={diffs?.[hit.path_id]}
+                {hit}
+                href={resolve(`/dashboard/pages/${hit.path_id}`)}
+                {linkDomain}
+                rank={i + 1}
+                scaleMax={sharedScaleMax}
+              />
+            {/each}
+          </ul>
+        {/snippet}
+        {#await data.comparison}
+          <div
+            role="status"
+            class="flex items-center gap-2 text-sm text-muted-foreground"
+          >
+            <Skeleton class="size-4" />
+            {t("reports.comparisonLoading")}
+          </div>
+          {@render rows()}
+        {:then comparison}
+          {#if comparison?.status === "error"}
+            <div role="status">
+              <ErrorAlert message={t("reports.comparisonFailed")} />
+            </div>
+            {@render rows()}
+          {:else}
+            <p role="status" class="sr-only">
+              {t("reports.comparisonLoaded")}
+            </p>
+            {@render rows(comparison?.diffs)}
+          {/if}
+        {/await}
+      </div>
+      {#if data.paginationNotice}
+        <p role="status" class="text-sm text-muted-foreground">
+          {data.paginationNotice}
+        </p>
+        <Button
+          href={resolve(pagesHref("") as "/dashboard/pages")}
+          variant="outline">{t("reports.resetPagination")}</Button
+        >
+        <Button onclick={() => location.reload()} size="sm" variant="outline"
+          >{t("common.retry")}</Button
+        >
+      {/if}
       <ReportPagination
-        nextHref={data.hits.more
-          ? pagesHref(data.nextExcludedPathIds)
-          : undefined}
-        previousHref={data.excludedPathIds
-          ? pagesHref(data.previousExcludedPathIds)
+        nextHref={data.nextCursor ? pagesHref(data.nextCursor) : undefined}
+        previousHref={data.hasPrevious
+          ? pagesHref(data.previousCursor)
           : undefined}
       />
     </FramePanel>

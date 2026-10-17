@@ -82,6 +82,18 @@ export default {
   "reports.pagesEmptyDescription": "No pages tracked for this time period.",
   "reports.pagesEmptyTitle": "No page data",
   "reports.pagesInvalidList": "Choose a valid page list.",
+  "reports.paginationExpired":
+    "This page link has expired or belongs to another report. Reset pagination to continue.",
+  "reports.paginationLimit":
+    "Pagination limit reached. Reset pagination to browse from the start.",
+  "reports.paginationUnavailable":
+    "Pagination storage is unavailable. Retry or reset pagination.",
+  "reports.resetPagination": "Reset pagination",
+  "reports.comparisonLoading": "Loading previous-period comparisons…",
+  "reports.comparisonFailed":
+    "Previous-period comparisons could not be loaded. Current visits are still available.",
+  "reports.comparisonLoaded":
+    "Previous-period comparisons loaded. New means no previous-period visits.",
   "reports.pagesList": "Pages list",
   "reports.pagesReport": "Page report",
   "reports.pagesSeoDescription": "Top pages for your GoatCounter site.",

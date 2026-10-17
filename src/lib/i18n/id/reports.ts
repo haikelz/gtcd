@@ -86,6 +86,18 @@ export default {
     "Belum ada halaman terlacak pada periode ini.",
   "reports.pagesEmptyTitle": "Belum ada data halaman",
   "reports.pagesInvalidList": "Pilih daftar halaman yang valid.",
+  "reports.paginationExpired":
+    "Tautan halaman ini sudah kedaluwarsa atau milik laporan lain. Atur ulang paginasi untuk melanjutkan.",
+  "reports.paginationLimit":
+    "Batas paginasi tercapai. Atur ulang paginasi untuk kembali ke awal.",
+  "reports.paginationUnavailable":
+    "Penyimpanan paginasi tidak tersedia. Coba lagi atau atur ulang paginasi.",
+  "reports.resetPagination": "Atur ulang paginasi",
+  "reports.comparisonLoading": "Memuat perbandingan periode sebelumnya…",
+  "reports.comparisonFailed":
+    "Perbandingan periode sebelumnya tidak dapat dimuat. Kunjungan saat ini tetap tersedia.",
+  "reports.comparisonLoaded":
+    "Perbandingan periode sebelumnya dimuat. Baru berarti belum ada kunjungan pada periode sebelumnya.",
   "reports.pagesList": "Daftar halaman",
   "reports.pagesReport": "Laporan halaman",
   "reports.pagesSeoDescription":

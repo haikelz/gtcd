@@ -160,6 +160,7 @@
     if (resetPaging) {
       params.delete("offset");
       params.delete("exclude");
+      params.delete("cursor");
     }
     const query = params.toString();
     const target = query ? `${page.url.pathname}?${query}` : page.url.pathname;
