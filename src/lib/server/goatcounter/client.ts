@@ -71,8 +71,21 @@ let pacerQueue: Promise<void> = Promise.resolve();
 
 // Last observed upstream health, used by /api/health without issuing blocking requests.
 const UPSTREAM_STATUS_WINDOW_MS = 5 * 60_000;
+const UPSTREAM_REFRESH_INTERVAL_MS = 60_000;
 let lastUpstreamSuccessAt = 0;
 let lastUpstreamFailureAt = 0;
+let lastUpstreamRefreshAt = -Infinity;
+let upstreamRefreshPending = false;
+
+class UpstreamHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = "UpstreamHttpError";
+  }
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -229,10 +242,25 @@ export function getUpstreamStatus(): "up" | "down" | "unknown" {
 
 /**
  * Trigger a background refresh of the upstream status. Never await this from a
- * liveness path: it must not block health probes when GoatCounter is slow.
+ * liveness path. Share overlapping probes and sample at most once per minute
+ * per process, including failures, so monitoring cannot exhaust the API budget.
  */
 export function refreshUpstreamStatus(): void {
-  gcFetch("/api/v0/me", {}, undefined, { bypassCache: true }).catch(() => {});
+  const now = Date.now();
+  if (
+    upstreamRefreshPending ||
+    now - lastUpstreamRefreshAt < UPSTREAM_REFRESH_INTERVAL_MS
+  ) {
+    return;
+  }
+
+  lastUpstreamRefreshAt = now;
+  upstreamRefreshPending = true;
+  void gcFetch("/api/v0/me", {}, undefined, { bypassCache: true })
+    .catch(() => {})
+    .finally(() => {
+      upstreamRefreshPending = false;
+    });
 }
 
 export interface GoatCounterRequestOptions {
@@ -336,9 +364,13 @@ async function requestWithRetry<T>(
           Math.max(1000, parsedSeconds * 1000, exponentialDelay) + jitter;
 
         lastError = new Error(
-          `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`
+          attempt === MAX_RETRIES
+            ? "Rate limit exceeded (429). Retry budget exhausted."
+            : `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`
         );
 
+        lastUpstreamFailureAt = Date.now();
+        if (attempt === MAX_RETRIES) break;
         await sleep(waitMs);
         continue;
       }
@@ -349,8 +381,9 @@ async function requestWithRetry<T>(
           .catch(() => ({ error: response.statusText }));
         const hint = hostRoutingHint(response, url);
 
-        throw new Error(
-          hint || errorData.error || `API error: ${response.status}`
+        throw new UpstreamHttpError(
+          hint || errorData.error || `API error: ${response.status}`,
+          response.status
         );
       }
 
@@ -375,8 +408,10 @@ async function requestWithRetry<T>(
       if (error instanceof Error) {
         lastError = error;
         if (
-          error.message.includes("401") ||
-          error.message.includes("Not authenticated")
+          error instanceof UpstreamHttpError &&
+          error.status >= 400 &&
+          error.status < 500 &&
+          error.status !== 408
         ) {
           throw error;
         }
