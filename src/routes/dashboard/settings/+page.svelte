@@ -658,6 +658,14 @@
         </FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="public-link-heading" class="grid gap-3">
+        {#if data.shareUnavailable || form?.field === "share"}
+          <p role="alert" class="text-sm">
+            {data.shareUnavailable ? t("share.unavailable") : form?.message}
+          </p>
+          <Button href="?site={data.site.id}" size="sm" variant="outline"
+            >{t("share.retry")}</Button
+          >
+        {/if}
         <fieldset class="grid gap-2">
           <legend class="mb-2 text-sm font-medium">{t("share.expiry")}</legend>
           <div class="flex flex-wrap gap-4">
@@ -716,7 +724,7 @@
           <div class="flex flex-wrap gap-2">
             <form
               id="share-create"
-              action="?/createShareLink"
+              action="?/createShareLink&site={data.site.id}"
               method="POST"
               use:enhance
             >
@@ -725,7 +733,11 @@
                 {t("settings.newLink")}
               </Button>
             </form>
-            <form action="?/revokeShareLink" method="POST" use:enhance>
+            <form
+              action="?/revokeShareLink&site={data.site.id}"
+              method="POST"
+              use:enhance
+            >
               <Button size="sm" type="submit" variant="destructive">
                 {t("settings.revoke")}
               </Button>
@@ -737,16 +749,162 @@
         {:else}
           <form
             id="share-create"
-            action="?/createShareLink"
+            action="?/createShareLink&site={data.site.id}"
             method="POST"
             use:enhance
           >
-            <Button class="w-full" type="submit" variant="outline">
+            <Button
+              disabled={data.shareUnavailable}
+              class="w-full"
+              type="submit"
+              variant="outline"
+            >
               <Link2 />
               {t("settings.createPublicLink")}
             </Button>
           </form>
         {/if}
+      </FramePanel>
+    </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="audience-heading">{t("share.audiences")}</FrameTitle>
+        <FrameDescription>{t("share.audienceHelp")}</FrameDescription>
+      </FrameHeader>
+      <FramePanel aria-labelledby="audience-heading" class="grid gap-4">
+        <form
+          action="?/createShareLink&site={data.site.id}"
+          method="POST"
+          use:enhance
+          class="grid gap-3"
+        >
+          <Label for="audience-label">{t("share.name")}</Label>
+          <Input id="audience-label" name="label" maxlength={80} required />
+          <fieldset class="grid gap-2" disabled={data.shareUnavailable}>
+            <legend class="text-sm font-medium">{t("share.maxRange")}</legend>
+            <RadioGroup
+              name="maxRange"
+              value="week"
+              class="flex flex-wrap gap-4"
+            >
+              {#each ["week", "month", "quarter", "year"] as range (range)}
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem
+                    id="audience-range-{range}"
+                    value={range}
+                  /><Label for="audience-range-{range}"
+                    >{t(
+                      range === "week"
+                        ? "share.rangeWeek"
+                        : range === "month"
+                          ? "share.rangeMonth"
+                          : range === "quarter"
+                            ? "share.rangeQuarter"
+                            : "share.rangeYear"
+                    )}</Label
+                  >
+                </div>
+              {/each}
+            </RadioGroup>
+          </fieldset>
+          <fieldset class="grid gap-2" disabled={data.shareUnavailable}>
+            <legend class="text-sm font-medium">{t("share.categories")}</legend>
+            <div class="flex flex-wrap gap-4">
+              {#each [{ value: "total", key: "share.visits" }, { value: "hits", key: "share.pages" }, { value: "browsers", key: "share.browsers" }, { value: "referrers", key: "share.referrers" }, { value: "locations", key: "share.locations" }] as metric (metric.value)}
+                <div class="flex items-center gap-2">
+                  <Checkbox
+                    id="audience-metric-{metric.value}"
+                    name="metrics"
+                    value={metric.value}
+                    checked={metric.value === "total"}
+                  /><Label for="audience-metric-{metric.value}"
+                    >{t(metric.key as MessageKey)}</Label
+                  >
+                </div>
+              {/each}
+            </div>
+          </fieldset>
+          <fieldset class="grid gap-2" disabled={data.shareUnavailable}>
+            <legend class="text-sm font-medium">{t("share.expiry")}</legend>
+            <RadioGroup
+              name="expiryDays"
+              value="7"
+              class="flex flex-wrap gap-4"
+            >
+              {#each [{ value: "1", key: "share.oneDay" }, { value: "7", key: "share.sevenDays" }, { value: "30", key: "share.thirtyDays" }, { value: "never", key: "share.neverExpires" }] as expiry (expiry.value)}
+                <div class="flex items-center gap-2">
+                  <RadioGroupItem
+                    id="audience-expiry-{expiry.value}"
+                    value={expiry.value}
+                  /><Label for="audience-expiry-{expiry.value}"
+                    >{t(expiry.key as MessageKey)}</Label
+                  >
+                </div>
+              {/each}
+            </RadioGroup>
+          </fieldset>
+          <Button
+            size="sm"
+            type="submit"
+            disabled={data.shareUnavailable || data.shareLinks.length >= 20}
+            >{t("share.createAudience")}</Button
+          >
+        </form>
+        {#each data.shareLinks as link (link.id)}
+          <div class="grid min-w-0 gap-3 border-t pt-4" aria-label={link.label}>
+            <p class="text-sm font-medium break-words">{link.label}</p>
+            <p class="text-xs text-muted-foreground">
+              {t("share.maxRange")}: {t(
+                link.maxRange === "week"
+                  ? "share.rangeWeek"
+                  : link.maxRange === "month"
+                    ? "share.rangeMonth"
+                    : link.maxRange === "quarter"
+                      ? "share.rangeQuarter"
+                      : "share.rangeYear"
+              )} · {link.expiresAt
+                ? t("share.expiresAt", {
+                    date: link.expiresAt
+                      .replace("T", " ")
+                      .replace(/\.\d+Z$/, " UTC"),
+                  })
+                : t("share.neverExpires")}
+            </p>
+            <CopyField
+              id="audience-{link.id}"
+              label={link.label}
+              value={link.url}
+            />
+            <div class="flex flex-wrap gap-2">
+              <form
+                action="?/createShareLink&site={data.site.id}"
+                method="POST"
+                use:enhance
+              >
+                <input type="hidden" name="id" value={link.id} /><Button
+                  size="sm"
+                  variant="outline"
+                  type="submit">{t("share.rotate")}</Button
+                >
+              </form>
+              <form
+                action="?/revokeShareLink&site={data.site.id}"
+                method="POST"
+                use:enhance
+              >
+                <input type="hidden" name="id" value={link.id} /><Button
+                  size="sm"
+                  variant="destructive"
+                  type="submit">{t("share.revokeAudience")}</Button
+                >
+              </form>
+            </div>
+          </div>
+        {:else}
+          <p class="text-sm text-muted-foreground">
+            {t("share.emptyAudiences")}
+          </p>
+        {/each}
       </FramePanel>
     </Frame>
     <Frame>

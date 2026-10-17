@@ -2,6 +2,22 @@ import type en from "../en/share";
 
 // Bahasa Indonesia: share. Must define every key of the English catalog.
 export default {
+  "share.audiences": "Tautan audiens",
+  "share.audienceHelp":
+    "Buat hingga 20 tautan per situs. Setiap tautan memiliki batas akses sendiri.",
+  "share.name": "Nama audiens",
+  "share.maxRange": "Rentang tanggal maksimum",
+  "share.categories": "Metrik yang dibagikan",
+  "share.createAudience": "Buat tautan audiens",
+  "share.rotate": "Ganti tautan audiens",
+  "share.revokeAudience": "Cabut tautan audiens",
+  "share.emptyAudiences":
+    "Belum ada tautan audiens. Buat melalui formulir di atas.",
+  "share.invalidGrant":
+    "Pilih nama audiens, rentang tanggal, dan minimal satu metrik yang valid. Tautan harus milik situs ini; maksimum 20 tautan.",
+  "share.unavailable":
+    "Penyimpanan tautan tidak tersedia. Perubahan belum dikonfirmasi. Coba lagi sebelum membagikan tautan.",
+  "share.retry": "Coba lagi",
   "share.browsers": "Browser",
   "share.country": "Negara",
   "share.expiry": "Masa berlaku tautan",

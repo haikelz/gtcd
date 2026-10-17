@@ -4,12 +4,15 @@ import { createServer } from "vite";
 
 test("share tokens expire, rotate, revoke, and reject malformed stored links", async () => {
   const previousRedisUrl = process.env.REDIS_URL;
-  process.env.REDIS_URL = "redis://127.0.0.1:1";
+  process.env.REDIS_URL =
+    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379";
   const server = await createServer({ server: { middlewareMode: true } });
   const originalNow = Date.now;
   try {
     const store = await server.ssrLoadModule("/src/lib/server/share-store.ts");
-    const kv = await server.ssrLoadModule("/src/lib/server/kv.ts");
+    const durable = await server.ssrLoadModule(
+      "/src/lib/server/durable-state.ts"
+    );
     const now = originalNow();
     Date.now = () => now;
 
@@ -40,11 +43,13 @@ test("share tokens expire, rotate, revoke, and reject malformed stored links", a
 
     // Existing durable records receive seven days from their original creation.
     const token = "L".repeat(32);
-    await kv.setJson(`share-link:token:${token}`, { siteId: 992 });
-    await kv.setJson("share-link:site:992", {
+    await durable.updateDurableJson(`share-link:token:${token}`, () => ({
+      siteId: 992,
+    }));
+    await durable.updateDurableJson("share-link:site:992", () => ({
       createdAt: new Date(now).toISOString(),
       token,
-    });
+    }));
     expect(await store.resolveShareToken(token)).toBe(992);
     Date.now = () => now + 7 * 86_400_000;
     expect(await store.resolveShareToken(token)).toBeNull();
@@ -56,11 +61,11 @@ test("share tokens expire, rotate, revoke, and reject malformed stored links", a
       "",
       new Date(now).toISOString(),
     ]) {
-      await kv.setJson("share-link:site:992", {
+      await durable.updateDurableJson("share-link:site:992", () => ({
         createdAt: new Date(now).toISOString(),
         expiresAt,
         token,
-      });
+      }));
       expect(await store.resolveShareToken(token)).toBeNull();
     }
 
@@ -85,6 +90,10 @@ test("share tokens expire, rotate, revoke, and reject malformed stored links", a
     expect(await store.resolveShareToken(expiring.token)).toBeNull();
   } finally {
     Date.now = originalNow;
+    const sessions = await server.ssrLoadModule(
+      "/src/lib/server/auth/session-store.ts"
+    );
+    sessions.getRedis().disconnect();
     await server.close();
     if (previousRedisUrl === undefined) delete process.env.REDIS_URL;
     else process.env.REDIS_URL = previousRedisUrl;
@@ -106,21 +115,28 @@ test("sharing controls default to seven days and preserve rotation and revocatio
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
   await page.goto("/dashboard/settings");
+  const publicControls = page.locator(
+    '[aria-labelledby="public-link-heading"]'
+  );
   await expect(
-    page.getByRole("radio", { name: "7 days", exact: true })
+    publicControls.getByRole("radio", { name: "7 days", exact: true })
   ).toBeChecked();
   await expect(
-    page.getByRole("radio", { name: "Never expires", exact: true })
+    publicControls.getByRole("radio", { name: "Never expires", exact: true })
   ).not.toBeChecked();
   await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
     path: ".amp/in/artifacts/share-default-desktop.png",
   });
-  await page.getByRole("radio", { name: "30 days", exact: true }).focus();
+  await publicControls
+    .getByRole("radio", { name: "30 days", exact: true })
+    .focus();
   await page.keyboard.press("ArrowRight");
   await expect(
-    page.getByRole("radio", { name: "Never expires", exact: true })
+    publicControls.getByRole("radio", { name: "Never expires", exact: true })
   ).toBeChecked();
-  await page.getByRole("radio", { name: "1 day", exact: true }).check();
+  await publicControls
+    .getByRole("radio", { name: "1 day", exact: true })
+    .check();
   await page.getByRole("button", { name: "Create public link" }).click();
   const field = page.locator("#public-link");
   await expect(field).toBeVisible();
@@ -153,7 +169,7 @@ test("sharing controls default to seven days and preserve rotation and revocatio
       status: 400,
     });
     expect((await publicClient.get(url)).status()).toBe(200);
-    await page
+    await publicControls
       .getByRole("radio", { name: "Never expires", exact: true })
       .check();
     await page.getByRole("button", { name: "New link", exact: true }).click();
@@ -169,7 +185,7 @@ test("sharing controls default to seven days and preserve rotation and revocatio
     expect((await publicClient.get(rotated)).status()).toBe(200);
     await page.reload();
     await expect(field).toHaveValue(rotated);
-    await page
+    await publicControls
       .getByRole("radio", { name: "Never expires", exact: true })
       .check();
     await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
@@ -178,7 +194,7 @@ test("sharing controls default to seven days and preserve rotation and revocatio
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
     await expect(field).toHaveValue(rotated);
-    await page
+    await publicControls
       .getByRole("radio", { name: "Never expires", exact: true })
       .check();
     await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
@@ -193,7 +209,7 @@ test("sharing controls default to seven days and preserve rotation and revocatio
     expect(missing.headers()["referrer-policy"]).toBe("no-referrer");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
-    await expect(page.getByText("Link expires after")).toBeVisible();
+    await expect(publicControls.getByText("Link expires after")).toBeVisible();
     await page.locator('[aria-labelledby="public-link-heading"]').screenshot({
       path: ".amp/in/artifacts/share-expiry-settings-mobile.png",
     });

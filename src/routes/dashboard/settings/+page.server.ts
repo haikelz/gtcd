@@ -9,7 +9,10 @@ import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import {
   createShareLink,
-  getShareLink,
+  getShareLinks,
+  SHARE_RANGES,
+  SHARE_METRICS,
+  type ShareLink,
   isShareExpiryDays,
   revokeShareLink,
 } from "$lib/server/share-store.js";
@@ -243,10 +246,15 @@ export async function load({ locals, url }) {
   const currentUser = await stats.getMe();
   requireSiteReadPermission(currentUser.token.permissions, locals.locale);
   const siteContext = await getDashboardSiteContext(url);
-  const [site, shareLink] = await Promise.all([
-    admin.getSite(siteContext.site.id),
-    getShareLink(siteContext.site.id),
-  ]);
+  const site = await admin.getSite(siteContext.site.id);
+  let shareLinks: ShareLink[] = [];
+  let shareUnavailable = false;
+  try {
+    shareLinks = await getShareLinks(siteContext.site.id);
+  } catch {
+    shareUnavailable = true;
+  }
+  const shareLink = shareLinks.find((link) => link.id === "default");
 
   // The access token only grants read access and is shown to admins, the
   // same audience GoatCounter's own settings page shows it to.
@@ -256,6 +264,10 @@ export async function load({ locals, url }) {
       : null;
 
   return {
+    shareUnavailable,
+    shareLinks: shareLinks
+      .filter((link) => link.id !== "default")
+      .map((link) => ({ ...link, url: `${url.origin}/share/${link.token}` })),
     publicLink: shareLink ? `${url.origin}/share/${shareLink.token}` : null,
     publicLinkExpiresAt: shareLink?.expiresAt ?? null,
     sharing: {
@@ -263,7 +275,7 @@ export async function load({ locals, url }) {
       secret,
       shareUrl: secret ? shareUrl(secret) : null,
     },
-    site: toDashboardSite(site),
+    site: toDashboardSite({ ...site, id: siteContext.site.id }),
     sites: siteContext.sites,
     canCreateSite: hasPermission(
       currentUser.token.permissions,
@@ -294,14 +306,74 @@ export const actions = {
     }
 
     const siteContext = await getDashboardSiteContext(new URL(request.url));
-    await createShareLink(siteContext.site.id, { expiryDays });
+    const label = form.get("label");
+    const id = form.get("id");
+    const rangeValue = form.get("maxRange");
+    const maxRange = SHARE_RANGES.find((range) => range === rangeValue);
+    const metricValues = form.getAll("metrics");
+    const metrics = SHARE_METRICS.filter((metric) =>
+      metricValues.includes(metric)
+    );
+    if (
+      (label === null && (rangeValue !== null || metricValues.length > 0)) ||
+      (label !== null &&
+        (typeof label !== "string" ||
+          !label.trim() ||
+          label.trim().length > 80 ||
+          !maxRange ||
+          !metrics.length ||
+          metrics.length !== metricValues.length)) ||
+      (id !== null &&
+        (typeof id !== "string" || !/^(default|[A-Za-z0-9]{32})$/.test(id)))
+    ) {
+      return fail(400, {
+        field: "share",
+        message: translate(locals.locale, "share.invalidGrant"),
+      });
+    }
+    try {
+      await createShareLink(siteContext.site.id, {
+        expiryDays,
+        ...(typeof label === "string" ? { label, maxRange, metrics } : {}),
+        ...(typeof id === "string" ? { id } : {}),
+      });
+    } catch (cause) {
+      return fail(cause instanceof RangeError ? 400 : 503, {
+        field: "share",
+        message: translate(
+          locals.locale,
+          cause instanceof RangeError
+            ? "share.invalidGrant"
+            : "share.unavailable"
+        ),
+      });
+    }
     return { shareLink: "created" };
   },
   revokeShareLink: async ({ locals, request }) => {
     requireDashboardAdmin(locals.user);
 
     const siteContext = await getDashboardSiteContext(new URL(request.url));
-    await revokeShareLink(siteContext.site.id);
+    const form = await request.formData();
+    const id = form.get("id") ?? "default";
+    if (typeof id !== "string" || !/^(default|[A-Za-z0-9]{32})$/.test(id))
+      return fail(400, {
+        field: "share",
+        message: translate(locals.locale, "share.invalidGrant"),
+      });
+    try {
+      await revokeShareLink(siteContext.site.id, id);
+    } catch (cause) {
+      return fail(cause instanceof RangeError ? 400 : 503, {
+        field: "share",
+        message: translate(
+          locals.locale,
+          cause instanceof RangeError
+            ? "share.invalidGrant"
+            : "share.unavailable"
+        ),
+      });
+    }
     return { shareLink: "revoked" };
   },
   sendTestVisit: async ({ locals, request }) => {

@@ -1,5 +1,21 @@
 // English messages: share. Keys are "share.<name>"; {param} placeholders.
 export default {
+  "share.audiences": "Audience links",
+  "share.audienceHelp":
+    "Create up to 20 links per site. Each link has its own access limits.",
+  "share.name": "Audience name",
+  "share.maxRange": "Maximum date range",
+  "share.categories": "Shared metrics",
+  "share.createAudience": "Create audience link",
+  "share.rotate": "Rotate audience link",
+  "share.revokeAudience": "Revoke audience link",
+  "share.emptyAudiences":
+    "No audience links yet. Create one using the form above.",
+  "share.invalidGrant":
+    "Choose a valid audience name, date range and at least one metric. Links must belong to this site; maximum 20 links.",
+  "share.unavailable":
+    "Share storage is unavailable. No changes were confirmed. Retry before sharing a link.",
+  "share.retry": "Retry",
   "share.browsers": "Browsers",
   "share.country": "Country",
   "share.expiry": "Link expires after",
