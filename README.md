@@ -444,6 +444,34 @@ block added to their Caddyfile) before the counter embeds work.
 
 ---
 
+## Report workflows
+
+- **Saved views:** use **Views → Save current view…** to retain the selected site,
+  period, filters, grouping and scale. Manage views and the default in Customize.
+- **Period comparison:** the overview compares pageviews and events with the
+  preceding equal-length period, plus the current browser/country leader's
+  audience-share shift. Missing or incomplete baselines show unavailable.
+- **Read-only sharing:** administrators can create links in Settings with a
+  1-, 7- or 30-day expiry (7 by default). Replacing or revoking a link stops
+  access through the old URL. Anyone holding an active URL can read the report;
+  shared responses disable caching, indexing and referrer transmission.
+- **Email summaries and traffic alerts:** configure SMTP, then opt in separately
+  in Customize. Alerts compare the last completed day's pageviews with the day
+  before, after 07:00 in the GoatCounter timezone. Choose a site, direction,
+  percentage threshold and minimum baseline. Saving a rule starts checks the
+  next day; zero or insufficient baselines do not trigger alerts. Delivery goes
+  only to the signed-in account's email. Failed checks retry on a later tick.
+
+The Node server checks schedules every 15 minutes while running; it is not an
+external cron service. Redis stores subscriptions and delivery state. The
+in-memory fallback is process-local and loses state on restart. Redis locking
+and a local overlap guard reduce duplicate deliveries, but SMTP delivery is not
+exactly-once: a crash after acceptance or a Redis outage across replicas can
+produce duplicates. Turn subscriptions off to stop future sends; delivered
+emails cannot be recalled.
+
+---
+
 ## 🤝 Contributing
 
 Contributions, bug reports, and suggestions are welcome!
