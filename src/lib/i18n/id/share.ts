@@ -18,6 +18,7 @@ export default {
   "share.footer": "Dibagikan lewat gtcd · Analitik oleh GoatCounter",
   "share.kpis": "Metrik utama",
   "share.loading": "Memuat",
+  "share.metaTitle": "Analitik bersama",
   "share.locations": "Lokasi pengunjung",
   "share.mostVisits": "Kunjungan terbanyak",
   "share.mostVisitedPath": "Path paling banyak dikunjungi",

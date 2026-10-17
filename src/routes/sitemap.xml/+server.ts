@@ -1,20 +1,7 @@
-export const GET = async ({ url }) => {
-  // The app is a private dashboard: home redirects to login or the
-  // dashboard, so only the sign-in page is publicly listed.
-  const pages = [{ url: "/login", priority: "0.5", changefreq: "monthly" }];
-
+export const GET = async () => {
+  // No indexable public pages. Keep the existing endpoint valid but empty.
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${pages
-  .map(
-    (p) => `  <url>
-    <loc>${url.origin}${p.url}</loc>
-    <changefreq>${p.changefreq}</changefreq>
-    <priority>${p.priority}</priority>
-  </url>`
-  )
-  .join("\n")}
-</urlset>`;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>`;
 
   return new Response(xml, {
     headers: {

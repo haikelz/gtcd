@@ -1,16 +1,10 @@
 import type { RequestHandler } from "./$types";
 
-// Served dynamically so the sitemap URL matches the self-hosted origin
-// instead of a hard-coded domain. Private areas stay out of crawlers.
-export const GET: RequestHandler = async ({ url }) => {
+// Crawlers must be able to read noindex headers, including on shared links.
+// robots.txt is not access control; authentication still protects private data.
+export const GET: RequestHandler = async () => {
   const body = `User-agent: *
 Allow: /
-Disallow: /dashboard/
-Disallow: /setup
-Disallow: /api/
-Disallow: /logout
-
-Sitemap: ${url.origin}/sitemap.xml
 `;
 
   return new Response(body, {

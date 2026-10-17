@@ -468,6 +468,24 @@ block added to their Caddyfile) before the counter embeds work.
 
 ---
 
+## Search indexing and shared-link metadata
+
+GTCD is a private application, not a public product site. Server responses use
+`X-Robots-Tag: noindex, nofollow`, including login, redirects, APIs and errors.
+Page metadata defaults to the same policy. The sitemap contains no URLs and is
+not advertised in robots.txt. Crawling remains allowed so compliant search
+engines can discover the noindex directive; robots.txt is not access control.
+
+Shared reports use generic preview metadata without the site's name, analytics
+details or access token. They emit neither canonical nor Open Graph page URLs.
+The report itself remains accessible to anyone holding a valid share link.
+Structured data is opt-in and suppressed on noindex pages and shared reports.
+Any future public landing page needs an explicit server indexing policy as well
+as factual, explicitly supplied metadata. Previously indexed URLs may take time
+to disappear after deployment and recrawling; noindex is not authentication.
+
+---
+
 ## ♿ Accessibility (WCAG 2.1 AA)
 
 - **Keyboard Navigation**: Full keyboard tab order, skip link (`<a href="#main-content">`), and `Cmd+B` / `Ctrl+B` sidebar toggle.

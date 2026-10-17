@@ -16,6 +16,7 @@ export default {
   "share.footer": "Shared with gtcd · Analytics by GoatCounter",
   "share.kpis": "Key metrics",
   "share.loading": "Loading",
+  "share.metaTitle": "Shared analytics",
   "share.locations": "Visitor locations",
   "share.mostVisits": "Most visits",
   "share.mostVisitedPath": "Most visited path",

@@ -7,6 +7,7 @@
   import PageRow from "$lib/components/PageRow.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
+  import SEO from "$lib/components/SEO.svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Frame,
@@ -29,10 +30,7 @@
   });
 </script>
 
-<svelte:head>
-  <title>{t("share.title", { site: data.siteName })}</title>
-  <meta content="noindex, nofollow" name="robots" />
-</svelte:head>
+<SEO title={t("share.metaTitle")} description={t("share.readOnly")} noindex />
 
 <main
   class="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-6 px-4 py-4 sm:px-6"

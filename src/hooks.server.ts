@@ -15,6 +15,8 @@ const securityHeaders: Record<string, string> = {
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  // This installation has no public product pages, including its login page.
+  "X-Robots-Tag": "noindex, nofollow",
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -63,7 +65,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   if (sharedReport) {
     response.headers.set("Referrer-Policy", "no-referrer");
-    response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 
   if (event.url.protocol === "https:") {
