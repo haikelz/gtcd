@@ -165,6 +165,7 @@ export type GoatCounterAuthResult =
       user: {
         email: string;
       };
+      nativeCookies: Record<string, string>;
     }
   | {
       success: false;
@@ -177,5 +178,5 @@ export type GoatCounterAuthResult =
     };
 
 export type GoatCounterTotpResult =
-  | { success: true }
+  | { success: true; nativeCookies: Record<string, string> }
   | { success: false; reason: "invalid_code" | "expired" | "unavailable" };

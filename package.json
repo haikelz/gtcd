@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "ioredis": "^6.0.0",
-    "nodemailer": "^10.1.0"
+    "nodemailer": "^10.1.0",
+    "parse5": "^8.0.1"
   }
 }

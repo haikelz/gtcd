@@ -18,6 +18,7 @@ import {
   verifyTotpWithGoatCounter,
 } from "$lib/server/goatcounter/auth.js";
 import { getTurnstileSiteKey, verifyTurnstile } from "$lib/server/turnstile";
+import { saveNativeSession } from "$lib/server/goatcounter/native-session.js";
 import { translate } from "$lib/i18n";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
@@ -106,6 +107,10 @@ export const actions: Actions = {
     // Authentication successful — create dashboard session
     await clearLoginFailures(email);
     await createDashboardSession(cookies, result.user.email, secure);
+    await saveNativeSession(cookies, {
+      email: result.user.email,
+      cookies: result.nativeCookies,
+    });
 
     throw redirect(302, "/dashboard");
   },
@@ -161,6 +166,10 @@ export const actions: Actions = {
       mfa.pending.email,
       shouldUseSecureCookies(request.headers, url)
     );
+    await saveNativeSession(cookies, {
+      email: mfa.pending.email,
+      cookies: result.nativeCookies,
+    });
 
     throw redirect(302, "/dashboard");
   },

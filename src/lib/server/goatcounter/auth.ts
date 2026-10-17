@@ -1,4 +1,5 @@
-import { gcFetchRaw, getBaseUrl } from "./client.js";
+import { getBaseUrl } from "./client.js";
+import { captureNativeCookies, nativeRequest } from "./native-session.js";
 import { parseTotpForm, type TotpChallenge } from "./totp-form.js";
 import type { GoatCounterAuthResult, GoatCounterTotpResult } from "./types.js";
 
@@ -22,17 +23,15 @@ export async function authenticateWithGoatCounter(
   let response: Response;
 
   try {
-    response = await gcFetchRaw("/user/requestlogin", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
+    response = await nativeRequest(
+      "/user/requestlogin",
+      { email, cookies: {} },
+      undefined,
+      new URLSearchParams({
         email,
         password,
-      }).toString(),
-      redirect: "manual",
-    });
+      })
+    );
   } catch {
     // Network error or GoatCounter unavailable
     return {
@@ -49,6 +48,7 @@ export async function authenticateWithGoatCounter(
       return {
         success: true,
         user: { email },
+        nativeCookies: captureNativeCookies(response.headers),
       };
     }
 
@@ -87,18 +87,16 @@ export async function verifyTotpWithGoatCounter(
   let response: Response;
 
   try {
-    response = await gcFetchRaw("/user/totplogin", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
+    response = await nativeRequest(
+      "/user/totplogin",
+      { email: "", cookies: {} },
+      undefined,
+      new URLSearchParams({
         loginmac: challenge.loginMac,
         totp_token: code,
         user_logintoken: challenge.loginToken,
-      }).toString(),
-      redirect: "manual",
-    });
+      })
+    );
   } catch {
     return { success: false, reason: "unavailable" };
   }
@@ -106,7 +104,7 @@ export async function verifyTotpWithGoatCounter(
   if (response.status >= 300 && response.status < 400) {
     const location = response.headers.get("location") ?? "";
     return new URL(location, getBaseUrl()).pathname === "/"
-      ? { success: true }
+      ? { success: true, nativeCookies: captureNativeCookies(response.headers) }
       : { success: false, reason: "expired" };
   }
 
