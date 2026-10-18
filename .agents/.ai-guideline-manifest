@@ -1,7 +1,7 @@
 # ai-guideline installer manifest v2
 # workspace .: javascript-typescript design-system docker
 # workspace .amp/in/goatcounter-v2.7.0: go docker
-general.md f7a16552ff812e843b3521de8af91cebf45bbd5ade49f4341f3fba91bf988ecf
+general.md 49ae4d63a98ebb3cff186e10ae29fd65c848985ce82032f56f385b073bd39be4
 preferences.md 4cde13acecabe2040856aa7ef47f12dde5134e61aba94c8b15604d8c8604a1fb
 harness.md 5f003edf4a8a16632150346fbe3bb8a5d60e2092f9a26e10d9e6175bd3ba6d26
 guidelines/javascript-typescript.md ed2855655b927b5910de153750f27839e869eed96cd9e3a8e1e6abb2034d4f6a
