@@ -2,12 +2,11 @@
 
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-2.x-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Svelte](https://img.shields.io/badge/Svelte-5_Runes-FF3E00?style=flat-square&logo=svelte&logoColor=white)](https://svelte.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![shadcn-svelte](https://img.shields.io/badge/shadcn--svelte-components-111111?style=flat-square)](https://shadcn-svelte.com/)
 [![ReUI](https://img.shields.io/badge/ReUI-base--nova-111111?style=flat-square)](https://reui.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
 A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter](https://www.goatcounter.com/) analytics. Built with **Svelte 5 Runes**, **Tailwind CSS v4**, and a **shadcn-svelte** component layer ported from the **[ReUI](https://reui.io/)** design system (`base-nova` style).
 
@@ -19,13 +18,13 @@ A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter]
 
 **`gtcd` is a custom frontend dashboard for your GoatCounter instance.** It connects to your GoatCounter server via its REST API and provides an alternative, modern web UI with:
 
-- **Svelte 5 Runes**: Fast, reactive client-side navigation with zero bundle bloat.
+- **Svelte 5 Runes**: Server-rendered reports with reactive client-side navigation and streamed widgets.
 - **Curated Dark & Light Modes**: Clean UI built on ReUI/shadcn CSS design tokens (`.dark` class on the document root, applied before first paint to avoid flashing).
 - **Power-User Ergonomics**: Collapsible desktop sidebar with `Cmd+B` / `Ctrl+B` toggle, mobile drawer, GoatCounter's period presets (day, week, month, quarter, half year, year) with back/forward stepping, saved report views, and a customizable overview.
 - **Your GoatCounter Preferences**: Dates, hours, and numbers follow the timezone, date format, 24-hour clock, and thousands separator set in GoatCounter, so report ranges match GoatCounter's own dashboard even when the server runs in UTC.
 - **Safe Server-Side API Mediation**: The browser never sees your `GOATCOUNTER_API_KEY`. Authentication uses HTTP-only session cookies validated against your GoatCounter login. Accounts with GoatCounter two-factor authentication (TOTP) finish login with their code. Failed logins are rate limited per email (5 per 15 minutes) and per client IP (20) when `ADDRESS_HEADER` names the proxy header. An optional Cloudflare Turnstile check on the login form (`TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`) stops bots before they reach GoatCounter. The Content Security Policy allows only nonced inline scripts. Docker Compose passes `PROTOCOL_HEADER`/`HOST_HEADER`, so CSRF origin checks and cookie flags derive from the reverse proxy's request headers.
-- **Zero Third-Party Requests**: Fonts are self-hosted; apart from the optional Turnstile widget on the login page, the dashboard makes no calls to external CDNs, so visitor IPs never leak to third parties and it works fully offline.
-- **Upstream Rate-Limit Protection**: An outbound queue pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache (shared across replicas through Redis) prevent `429 Too Many Requests` errors from GoatCounter's 4 req/sec limit.
+- **Self-Hosted Assets**: Fonts and interface assets are served locally. Optional Turnstile contacts Cloudflare. Live reports and authentication still require the server; offline asset caching does not provide offline analytics.
+- **Upstream Rate-Limit Protection**: A process-local outbound pacer (280ms spacing), exponential backoff with jitter, and a 30s query cache (shared across replicas through Redis) reduce upstream demand. Other clients and replicas can still cause GoatCounter to return HTTP 429.
 - **Resilient Session Store**: Distributed Redis session layer with automatic fallback to an in-memory store if Redis is unavailable.
 - **Accessible Visualizations (WCAG 2.1 AA)**: Interactive charts with SVG `<title>`, `<desc>`, semantic `role="meter"`, high-contrast focus rings, and screen-reader accessible data tables.
 - **Installable PWA**: Web app manifest, service worker with auto-update, and offline-cached app assets — installable from the browser address bar.
@@ -37,32 +36,27 @@ A fast, responsive, and customizable self-hosted web dashboard for [GoatCounter]
 
 `gtcd` acts as a secure presentation and caching layer in front of your GoatCounter instance:
 
-```mermaid
-flowchart TD
-    subgraph Client["Client Browser"]
-        UI["gtcd UI (Svelte 5 + Tailwind v4)<br/>Accessible Charts & Ergonomic Nav"]
-    end
-
-    subgraph Backend["gtcd Backend (SvelteKit / Node 26)"]
-        direction TB
-        Auth["Session Gate<br/>(HTTP-only Cookie)"]
-        Cache["In-Memory Query Cache<br/>(30s Read Deduplication)"]
-        Pacer["Outbound Request Pacer<br/>(280ms Spacing Queue)"]
-        Backoff["429 Backoff & Jitter Handler"]
-    end
-
-    subgraph Storage["External Services"]
-        Redis[("Redis 7<br/>(Sessions & Fallback)")]
-        GC[("GoatCounter Instance<br/>(Tracking Engine & SQLite/Postgres)")]
-    end
-
-    UI <-->|HTTP / Session Cookie| Auth
-    Auth <-->|Session Store| Redis
-    Auth --> Cache
-    Cache --> Pacer
-    Pacer --> Backoff
-    Backoff <-->|Authorized REST API| GC
+```diagram
+┌──────────────────────────────┐
+│ Browser: Svelte 5 dashboard   │
+└──────────────┬───────────────┘
+               │ HTTP-only session cookie
+┌──────────────▼───────────────┐       ┌─────────────────────────────┐
+│ SvelteKit / Node 26          │◄─────►│ Redis 7                     │
+│ Session and permission gates│       │ Sessions, shared cache,     │
+│ Cached API reads + pacing   │       │ preferences, grants, jobs   │
+│ Personal native-admin bridge│       └─────────────────────────────┘
+└──────────────┬───────────────┘
+               │ Server-only API token / personal native session
+┌──────────────▼───────────────┐
+│ Stock GoatCounter           │
+│ Tracking, reports, database  │
+└──────────────────────────────┘
 ```
+
+Sessions and query caching have process-local fallback. Saved preferences,
+share mutations and scheduled delivery require Redis; public reports fail closed
+when their grants cannot be verified. See [Redis state](docs/REDIS_STATE.md).
 
 ---
 
@@ -210,7 +204,11 @@ The setup script will:
 6. Save all credentials to `.env`
 7. Start the full stack
 
-**Or manually:**
+**Manual configuration for an already bootstrapped GoatCounter instance:**
+
+The commands below do not create the GoatCounter site, user or API token.
+For a new installation use `scripts/setup.sh`, or perform the CLI bootstrap
+documented in [the Kubernetes example](k8s/gtcd/.env.example) against your instance.
 
 ```bash
 cp .env.example .env
@@ -228,7 +226,7 @@ Services will be accessible at:
 - **gtcd Dashboard**: `https://localhost` (Caddy redirects HTTP and uses a locally-issued certificate — trust it once in your browser; or `https://analytics.example.com` for production)
 - **Tracking Endpoint**: `https://localhost/count` (or `https://analytics.example.com/count`)
 - **GoatCounter**: internal only — reachable from the other containers at `http://goatcounter:8080`, not exposed on the host
-- **Health Check**: `http://localhost/api/health`
+- **Health Check**: `https://localhost/api/health` (HTTP redirects to HTTPS)
 
 #### Custom Domain Setup
 
@@ -254,7 +252,12 @@ Add the tracking snippet to your website:
 
 ### 2. Local Bare-Metal Development
 
-Requirements: Node.js 22+ and [pnpm](https://pnpm.io/) 9+ (the Docker image runs `node:26-alpine`).
+Requirements: Node.js 26 and [pnpm](https://pnpm.io/) 9.15.9, matching CI,
+`package.json`, and the production Docker image.
+
+For bare-metal development, set `GOATCOUNTER_URL` and `REDIS_URL` to addresses
+reachable from the host; Compose service names such as `goatcounter` and `redis`
+resolve only inside the Compose network.
 
 ```bash
 # Install dependencies
@@ -282,25 +285,24 @@ pnpm build
 
 ---
 
-### 3. CI/CD: Docker Hub image and VPS rollout
+### 3. CI: verify and publish Docker images
 
 [`.github/workflows/deploy.yaml`](.github/workflows/deploy.yaml) runs on every push
 and pull request to `master` and on `v*.*.*` tags:
 
 1. **Verify**: `pnpm lint`, `pnpm check`, `pnpm test:checks`, `pnpm build`,
-   and the Playwright smoke tests (`pnpm test:e2e`), which log in to the built
-   app against [`e2e/mock-goatcounter.mjs`](e2e/mock-goatcounter.mjs).
+   Playwright end-to-end tests (`pnpm test:e2e`), a separate modern-export
+   compatibility run, and `pnpm test:perf`. Tests use mock GoatCounter and
+   isolated Redis, not production services.
 2. **Smoke test**: builds the amd64 image and runs
    [`scripts/smoke-image.sh`](scripts/smoke-image.sh), which starts it with a
    read-only root filesystem and no capabilities, waits for `/login`, checks
    `/api/health`, and confirms a clean exit on `SIGTERM`.
 3. **Publish** (not on pull requests): pushes a `linux/amd64` + `linux/arm64`
    image with SBOM and provenance, then smoke-tests the published arm64 image.
-4. **Deploy** (only pushes to `master`, or a manual run on `master`): after
-   publishing and smoke tests succeed, connects to the VPS as `root` over SSH,
-   runs `kubectl rollout restart deployment gtcd`, and waits up to 180 seconds
-   for rollout completion. A failed SSH connection or rollout fails the job.
-   Pull requests, version tags, and manual runs on other branches do not deploy.
+
+There is no SSH or Kubernetes deployment job in the current workflow. Publishing
+an image does not update the running application.
 
 Add these repository secrets under **Settings → Secrets and variables →
 Actions**:
@@ -310,41 +312,26 @@ Actions**:
 | `DOCKER_USERNAME` | Docker Hub user or organization                     |
 | `DOCKER_PASSWORD` | Docker Hub access token with **Read & Write** scope |
 
-For VPS deployment, create the **production** GitHub environment and add these
-secrets there (repository secrets also work). The SSH names match Ahsanxpress's
-deployment configuration:
-
-- `IP`: the server hostname or IP address, without `root@` or a port.
-- `USERNAME`: `root`, required for this Kubernetes rollout.
-- `SSH_PRIVATE_KEY`: a dedicated, non-interactive SSH private key. Install its public
-  key in root's `authorized_keys` on the VPS. Never paste the private key into
-  an issue, source file, or chat.
-- `VPS_KNOWN_HOSTS`: the VPS OpenSSH host-key entry, verified through a trusted
-  channel. For a nonstandard port, use the `[hostname]:port` entry format.
-  Verify its fingerprint against the server before saving it; the workflow
-  requires strict host-key checking and does not trust an unverified scan.
-
-Unlike the reference configuration, GTCD does not disable host-key checking.
-Deployments on the same branch are serialized by workflow concurrency; configure
-required reviewers on the production environment if deployment approval is needed.
-
-Optionally set the **repository variable** `VPS_SSH_PORT` (default `22`). Root's
-SSH session must find `kubectl` on its PATH and have a working kubeconfig whose
-current context and namespace contain the `gtcd` Deployment. This workflow uses
-that existing context and namespace; it does not create or reconfigure a cluster.
-Root SSH grants broad server access: protect the deploy key and restrict who can
-change or manually run the workflow.
-
 Images are published as `<DOCKER_USERNAME>/gtcd` (override with a
 `DOCKER_IMAGE` repository variable), tagged `sha-<commit>` on every publish,
 `latest` on `master`, and `<major>.<minor>.<patch>` plus `<major>.<minor>` on
-version tags. For this restart-only deployment flow, configure the existing
-Deployment to use the matching `:latest` image and `imagePullPolicy: Always`
-(the repository manifest already sets that pull policy). Restarting does not
-change the Deployment's image: a pinned tag or digest will restart the old
-version. Immutable `sha-` tags or digests remain available for operator-controlled
-deployments and rollback. This workflow does not apply manifests, migrate Redis,
-or automatically roll back a failed rollout.
+version tags. Prefer the published digest or immutable `sha-` tag for controlled
+rollout and rollback. A manual run publishes too; `latest` is enabled only for
+the repository's default branch.
+
+For an existing deployment using the matching mutable `:latest` image with
+`imagePullPolicy: Always`, an operator can run the following after verifying
+the kubeconfig context and namespace on the VPS:
+
+```bash
+kubectl rollout restart deployment gtcd
+kubectl rollout status deployment gtcd --timeout=180s
+```
+
+Restarting does not change the configured image: a pinned tag or digest restarts
+the same version. Use the Kubernetes deployment script below to apply a changed
+`IMAGE`. Neither publishing nor restart commands migrate Redis or automatically
+roll back a failed rollout.
 
 The Dockerfile's build stage runs on the builder's native platform and only the
 runtime stage targets amd64/arm64, so cross-building on Apple Silicon also
@@ -358,9 +345,12 @@ Production manifests live in [`k8s/`](k8s/) as envsubst-templated YAML applied b
 # 1. Create the deploy configuration from the example
 cp k8s/gtcd/.env.example k8s/.env
 # Edit k8s/.env with DOMAIN, EMAIL, IMAGE, GOATCOUNTER_URL, GOATCOUNTER_API_KEY,
-# and optional GTCD_ADMIN_EMAILS / GOATCOUNTER_ADMIN_URL values.
+# REDIS_PASSWORD, and optional GTCD_ADMIN_EMAILS / GOATCOUNTER_ADMIN_URL values.
 
-# 2. Deploy (requires kubectl and envsubst)
+# 2. For a new in-cluster GoatCounter, first bootstrap its site/token as
+# documented in k8s/gtcd/.env.example. The full helper requires a nonempty key.
+
+# 3. Deploy (requires kubectl and envsubst)
 k8s/deploy-k8s.sh
 ```
 
@@ -375,7 +365,7 @@ The Kubernetes setup features:
 - Non-root hardened containers (numeric UID 1000, dropped capabilities, read-only root filesystem, `RuntimeDefault` seccomp)
 - Health and readiness probes wired to `/api/health`
 - Traefik Ingress with automatic Let's Encrypt TLS; application security headers
-- PersistentVolumeClaim for GoatCounter data
+- PersistentVolumeClaims for GoatCounter data and durable Redis state (AOF)
 - Session credentials delivered through a kubectl-created Secret (`gtcd-env`)
 - Password-protected Redis: `deploy-k8s.sh` renders `requirepass` from
   `REDIS_PASSWORD` into a `redis-config` Secret mounted as
@@ -385,9 +375,11 @@ If cert-manager is absent, the ClusterIssuer step is skipped with a warning. The
 Ingress does not reference optional Traefik Middleware, so an unavailable
 Middleware CRD cannot make Traefik return 404 for every GTCD route.
 
-After the first deploy, bootstrap GoatCounter (site + API token) and put the
-token in `k8s/.env` as `GOATCOUNTER_API_KEY`, then re-run `k8s/deploy-k8s.sh` —
-the exact commands are documented in [`k8s/gtcd/.env.example`](k8s/gtcd/.env.example).
+For a new in-cluster GoatCounter, apply its standalone manifest first and create
+the site/token before running the full helper; see
+[`k8s/gtcd/.env.example`](k8s/gtcd/.env.example). The helper rejects an empty
+`GOATCOUNTER_API_KEY`. Existing Redis installations must also pass the
+[migration preflight](docs/REDIS_STATE.md#before-upgrading-an-existing-installation).
 
 Add the tracking snippet to your website:
 
@@ -431,6 +423,17 @@ Configure these in your `.env` file or container environment:
 The login session cookie is `HttpOnly`, `SameSite=Lax`, and its `Secure` flag
 follows the protocol the client actually used, so both `http://localhost`
 development stacks and TLS production domains work without configuration.
+
+`GOATCOUNTER_VHOST` is an optional server setting when the internal upstream
+address differs from the site's configured hostname. Keep request Host routing
+consistent, especially for multiple sites. `BODY_SIZE_LIMIT=10M` permits the
+documented native import size through adapter-node; the reverse proxy must also
+allow it. These settings are not automatically wired into every deployment
+template—review the container environment before relying on them.
+
+Only trust forwarded protocol, host and client-IP headers from your own proxy.
+For bare-metal serving configure a correct `ORIGIN`, or adapter-node's trusted
+proxy headers, rather than disabling CSRF checks.
 
 ---
 
@@ -587,7 +590,9 @@ recreating an existing Compose installation.
 Contributions, bug reports, and suggestions are welcome!
 
 1. Fork the repo and create your branch: `git checkout -b feature/cool-idea`.
-2. Ensure types and checks pass: `pnpm check && pnpm test:checks && pnpm build && pnpm test:e2e`.
+2. Run `pnpm lint && pnpm check && pnpm test:checks && pnpm build && pnpm test:e2e`
+   with isolated test Redis and the Playwright browser installed. See
+   [the workflow](docs/WORKFLOW.md) for CI parity and performance checks.
 3. Commit your changes and open a Pull Request.
 
 ---
@@ -599,6 +604,8 @@ Contributions, bug reports, and suggestions are welcome!
 
 ---
 
-## 📄 License
+## License status
 
-[MIT](LICENSE) © 2026 Haikel
+This checkout does not contain a root `LICENSE` file. Do not infer an MIT grant
+from older README text; confirm licensing with the repository owner before
+redistribution. Bundled font license notices remain in `static/fonts/`.

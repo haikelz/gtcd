@@ -5,8 +5,9 @@ checkpoints as well as sessions and cache entries. Durable reads and writes
 fail closed during an outage. Sessions and query caches may still use memory;
 that fallback never confirms a durable mutation or authorizes a public share.
 
-New Compose and Kubernetes installs use Redis 7 AOF with `appendfsync always`
-and `/data` on a persistent volume. Kubernetes requires a default StorageClass
+The Compose setup and Kubernetes deployment scripts configure Redis 7 AOF with
+`appendfsync always`, disable periodic RDB snapshots (`save ""`), and use `/data`
+on a persistent volume. Kubernetes requires a default StorageClass
 capable of provisioning the `redis-data` 1Gi ReadWriteOnce claim. The Redis
 Deployment uses Recreate to avoid two writers on the same volume. Persistence
 does not replace backups, replication or disk monitoring. Do not enable an
@@ -15,13 +16,16 @@ eviction policy that can evict durable keys; use `noeviction` (Redis default).
 ## Before upgrading an existing installation
 
 Do not restart or replace an ephemeral Redis pod. The deployment helper refuses
-an existing Redis Deployment without a data PVC; Compose setup refuses a running
-Redis without AOF. These guards do not migrate data for you. Schedule a maintenance
+an existing Redis Deployment whose `data` volume has no PVC reference; it does not
+verify that the referenced claim contains a successful migration. Compose setup
+refuses a running Redis without AOF, but cannot inspect state in a stopped
+container. These guards do not migrate data for you. Schedule a maintenance
 window and select the correct environment and namespace before operator actions.
 
 1. Pause application writers and schedulers, but keep Redis running. Authenticate
-   using the existing secret, never a password in shell history or a checked-in
-   file. Inspect `INFO persistence`, `CONFIG GET dir`, `CONFIG GET appendonly`
+   using the existing secret (for example through a securely supplied
+   `REDISCLI_AUTH`), never a password in shell history or a checked-in file.
+   Inspect `INFO persistence`, `CONFIG GET dir`, `CONFIG GET appendonly`
    and the volume mounts. Record key counts and representative non-secret state.
 2. Take a Redis-native consistent backup (`BGSAVE`, wait for completion, copy the
    completed RDB to protected storage). Verify the backup with `redis-check-rdb`
@@ -60,7 +64,8 @@ grants; do not expose public sharing through an older application version.
 
 Renewable, ownership-checked Redis leases coordinate workers. Per-recipient jobs
 persist attempts and retry times, with up to five attempts and exponential
-backoff. A persisted scan cursor lets later runs resume work within their time
+backoff starting at 15 minutes plus jitter, capped at 24 hours plus jitter.
+A persisted scan cursor lets later runs resume work within their time
 budget. Failed or exhausted attempts are visible in administrator diagnostics.
 
 SMTP is **at-least-once**, not exactly-once: a process can stop after SMTP accepts
@@ -71,7 +76,14 @@ recent checkpoints. Back up regularly and review pending jobs after recovery.
 
 ## Local verification
 
-Point `TEST_REDIS_URL` at an isolated Redis 7 instance before `pnpm test:e2e`.
-Tests create synthetic records and must not target production. CI provides Redis
-as a service. `TEST_APP_PORT` and `TEST_MOCK_PORT` can isolate the browser fixture
-from an already running local stack.
+Build first (`pnpm build`) and install Playwright Chromium
+(`pnpm exec playwright install chromium`). Point `TEST_REDIS_URL` at an isolated
+Redis 7 instance before `pnpm test:e2e` or `pnpm test:perf`; both configurations
+default to `redis://127.0.0.1:6379` if it is unset. Tests create synthetic records
+and must not target production. CI provides Redis as a service.
+
+`TEST_APP_PORT` and `TEST_MOCK_PORT` configure the main smoke stack (defaults
+4173 and 5187). The pages-performance smoke test also starts a fixed-port stack
+on 4199 and 5199; these ports are not changed by those variables. The performance
+suite uses fixed ports 4193 and 5197. Keep the relevant ports free. These fixture tests
+do not rehearse the live backup/restore procedure above or prove disk durability.

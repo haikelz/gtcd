@@ -2,7 +2,8 @@
 
 ## Scope and current status
 
-Reviewed 2026-10-17 against GoatCounter v2.7.0 source. The deployed image version
+Upstream defaults reviewed against GoatCounter v2.7.0 source; repository
+configuration rechecked 2026-10-18. The deployed image version
 is unknown: both deployment recipes use a mutable `latest` tag. Verify the
 installed version and its `serve -help` before changing upstream flags.
 
@@ -18,7 +19,9 @@ and coalescing of overlapping identical GETs. Health refreshes now share one
 background operation and start at most once per minute per process, including
 after failures. Transient retries can still produce several upstream attempts.
 The health endpoint remains nonblocking with respect to GoatCounter and reports
-the last observed dependency status; it is not a fresh ingestion check.
+the last observed dependency status; it is not a fresh ingestion check. It returns
+HTTP 200 even when dependencies are degraded, so container probe success does not
+mean Redis-backed settings or upstream reports are available.
 
 Permanent 4xx errors fail immediately. HTTP 408, 429, network failures, and 5xx
 errors retain bounded retries. A final 429 no longer waits for a nonexistent
@@ -31,8 +34,11 @@ Measured with the same local regression scenario before and after the change:
 - Ten concurrent identical reads plus a cached read: 1 upstream request.
 - A first-attempt 503 or 429 followed by success: still retries successfully.
 
-These timings are synthetic, not production latency estimates. Run the regression
-with `pnpm build && pnpm test:e2e` (including the existing isolated smoke stack).
+These recorded timings are synthetic, not production latency estimates or new
+measurements from this documentation review. Run the client regression with
+`pnpm build && pnpm exec playwright test goatcounter-client.test.ts`. The complete
+`pnpm test:e2e` suite also needs an isolated Redis instance; see
+[local verification](REDIS_STATE.md#local-verification).
 
 The pacer and health cooldown are per process, not cluster-wide. GoatCounter
 v2.7.0 applies its API limiter by client address after real-IP handling, not by
@@ -122,11 +128,12 @@ service health, not successful tracking persistence. Do not expose that diagnost
 endpoint publicly just for monitoring.
 
 Redis is more than a disposable query cache: it also stores sessions, saved
-views, share links, report subscriptions, and delivery state. Kubernetes currently
-uses `emptyDir` with persistence disabled. Pod replacement loses that state; a
-rolling replacement can briefly expose independent Redis instances. Do not add
-`allkeys-lru` or reduce its memory ceiling as a cache optimization. Durable Redis
-storage and rollout changes need a separate backup/restore decision.
+views, share links, report subscriptions, and delivery state. Current setup
+scripts enable AOF with `appendfsync always`; Kubernetes mounts the `redis-data`
+PVC and uses `Recreate`. Existing ephemeral installations require an operator-led
+migration before the deployment helper will proceed. Follow
+[Redis state and safe upgrades](REDIS_STATE.md); persistence does not replace
+backups. Do not add `allkeys-lru` or reduce its memory ceiling as a cache optimization.
 
 ## 5. Retention
 
@@ -145,8 +152,9 @@ separate maintenance operation with sufficient spare disk and an outage plan.
 
 ## Rollout and recovery
 
-Run `pnpm check`, `pnpm test:checks`, `pnpm build`, and `pnpm test:e2e`, then
-review the owned diff. Do not run setup or deployment scripts just to validate:
+For application changes, use the checks in [Repository Workflow](WORKFLOW.md#verification),
+including an isolated Redis instance for the full browser suite, then review the
+owned diff. Do not run setup or deployment scripts just to validate:
 they rewrite configuration or change shared infrastructure.
 
 Before a live rollout, record the image digest, DB path/mounts, site settings,

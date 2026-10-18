@@ -4,21 +4,28 @@
 
 ```sh
 pnpm build
-pnpm test:perf
+TEST_REDIS_URL=redis://127.0.0.1:6379 pnpm test:perf
 ```
+
+Run from the repository root with Node.js 26, the pinned pnpm version, and
+Playwright Chromium installed (`pnpm exec playwright install chromium`). The
+Redis URL above must identify a disposable test instance, not production; see
+[Redis local verification](REDIS_STATE.md#local-verification).
 
 Playwright starts isolated production and mock-GoatCounter processes on ports
 4193 and 5197. It signs in, creates a fresh browser context with the session,
 and opens an uncached report period. The initial login's streaming requests are
-allowed to finish before measurements start. Redis uses an unreachable local
-port; no real analytics, credentials, SMTP service, or database is needed.
+allowed to finish before measurements start. The performance configuration inherits
+Redis from `TEST_REDIS_URL` (default `redis://127.0.0.1:6379`) in the smoke
+configuration. No real analytics, GoatCounter credentials, SMTP service, or
+GoatCounter database is needed.
 
 The benchmark records cold-browser TTFB, FCP, encoded JavaScript response bytes,
 script requests, CLS, long tasks, report navigation, period changes, repeat
 queries, and upstream calls caused by hovering. It writes JSON to
-`.amp/in/artifacts/dashboard-performance.json` and a Playwright attachment. The
-repository-local exclude keeps these artifacts out of Git. On a fresh clone,
-add `/.amp/in/` to `git rev-parse --git-path info/exclude` before running.
+`.amp/in/artifacts/dashboard-performance.json` and a Playwright attachment. Before
+running, ensure `/.amp/in/` is present in the file reported by
+`git rev-parse --git-path info/exclude`; preserve its existing rules.
 
 The measured ready time includes completion of streamed data and a 500 ms
 network-idle window. It is not LCP or the time the first widget becomes usable.
@@ -84,8 +91,9 @@ and a same-origin script's encoding/cache headers. For an authenticated dashboar
 probe, supply its session cookie through `GTCD_AUDIT_COOKIE` in your local
 environment, never in arguments, Git, shared logs, or chat. Use HTTPS remotely.
 Redirects are rejected so an expired session cannot silently measure login instead.
-The probe does not print cookies or HTML. Responses are limited to 5 MB and timed
-out. A login response cannot establish dashboard streaming behavior.
+The probe does not print cookies or HTML. HTML is limited to 5 MB decoded and a
+30-second timeout; the script request has a 15-second timeout but no explicit
+byte limit. A login response cannot establish dashboard streaming behavior.
 
 For the fixture's uncached streamed overview, one local run delivered its first
 chunk in 21 ms and finished in 3,710 ms. This verifies local incremental delivery,
@@ -94,6 +102,9 @@ that alone is not evidence of buffering. Real proxy compression/buffering remain
 unverified until the probe runs through the intended ingress with delayed data.
 
 ## Recorded baseline (2026-10-17)
+
+These historical samples were not rerun during the 2026-10-18 documentation
+review and are not measurements of the current bundle.
 
 With the same fixture, hover-triggered stats calls changed from 1 to 0. The
 uncached overview still required 13 stats calls, and the measured ready time
