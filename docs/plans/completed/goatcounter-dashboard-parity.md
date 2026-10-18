@@ -5,6 +5,15 @@
 > for current capabilities and the [reliability and sharing plan](reliability-and-sharing.md)
 > for follow-on work.
 
+## Current disposition
+
+The phase notes and test results below are historical. Native administration is
+now rendered in GTCD through a personal-session bridge rather than a mandatory
+native-UI handoff. Later work added durable Redis state, bounded page cursors,
+named/scoped share links and persisted delivery retries. Earlier statements about
+unbounded pagination, memory fallback or sending once are not current contracts.
+See [PRODUCT.md](../../../PRODUCT.md) and [Redis state](../../REDIS_STATE.md).
+
 ## Outcome
 
 Make GTCD the primary interface for every GoatCounter capability exposed by the

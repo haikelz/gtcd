@@ -1,5 +1,12 @@
 # Report workflows
 
+> Historical implementation record, superseded by
+> [reliability and sharing](reliability-and-sharing.md). Current durable writes
+> require Redis, share links also support no expiration and audience controls,
+> and delivery uses persisted retry jobs. The test counts, lint blockers and
+> memory-fallback notes below describe the original session, not today's state.
+> See [PRODUCT.md](../../../PRODUCT.md) and [workflow](../../WORKFLOW.md).
+
 ## Outcome
 
 Complete saved views, overview comparisons, expiring read-only sharing, and

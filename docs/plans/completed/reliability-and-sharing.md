@@ -1,5 +1,10 @@
 # Reliability, report performance and sharing
 
+> Completed implementation record. Test counts, timings and delivery status
+> below describe that work session, not the current Git or production state.
+> See [PRODUCT.md](../../../PRODUCT.md), [workflow](../../WORKFLOW.md) and
+> [Redis state](../../REDIS_STATE.md) for current behavior and operations.
+
 ## Outcome
 
 Implement the five accepted improvements in order: durable state, scheduled
