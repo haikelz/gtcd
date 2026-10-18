@@ -1,8 +1,12 @@
 # ai-guideline installer manifest v2
-# workspace .: javascript-typescript docker
+# workspace .: javascript-typescript design-system docker
+# workspace .amp/in/goatcounter-v2.7.0: go docker
 general.md f7a16552ff812e843b3521de8af91cebf45bbd5ade49f4341f3fba91bf988ecf
 preferences.md 4cde13acecabe2040856aa7ef47f12dde5134e61aba94c8b15604d8c8604a1fb
 harness.md 5f003edf4a8a16632150346fbe3bb8a5d60e2092f9a26e10d9e6175bd3ba6d26
 guidelines/javascript-typescript.md ed2855655b927b5910de153750f27839e869eed96cd9e3a8e1e6abb2034d4f6a
 guidelines/haikel-javascript-typescript.md 81d462148134e12aaf89c2a964b200ec99a1aa018c2483494e4a1721eb01f07b
+guidelines/go.md bd8b7ffa9efd97cf471418f8075c8893c9b74ca1426654f25301711c81152b7d
+guidelines/haikel-go.md a1870bc36e71b33a821892c8d70e406a1eb866ae5c100b2c44553a6c7d9869c7
 guidelines/docker.md 34b211b5c06981db09794be451ecf8614323ac1f1076eb51e3cf8edf30562fca
+guidelines/design-system.md 13ba42c4d8e46ead2758ab6a5986133ae933cdf68cd360825ff5c9a700469dbf
