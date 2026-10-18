@@ -119,27 +119,3 @@ export async function readCounter(key: string): Promise<number> {
   }
   return Number(readMemory(key) ?? 0);
 }
-
-/**
- * Take a short-lived lock so only one replica runs a job; false when another
- * process holds it. Without Redis every process runs the job.
- */
-export async function acquireLock(
-  key: string,
-  ttlSeconds: number
-): Promise<boolean> {
-  if (!(await pingRedis())) return true;
-
-  try {
-    const result = await getRedis().set(
-      key,
-      String(process.pid),
-      "EX",
-      ttlSeconds,
-      "NX"
-    );
-    return result === "OK";
-  } catch {
-    return true;
-  }
-}
