@@ -109,25 +109,25 @@ are illustrative.
 
 <table>
   <tr>
-    <td><img src="static/screenshots/traffic.png" alt="Traffic overview in light mode with KPI tiles, hourly traffic chart, and browser mix"></td>
-    <td><img src="static/screenshots/traffic-dark.png" alt="Traffic overview in dark mode with KPI tiles, hourly traffic chart, and browser mix"></td>
+    <td><img src="docs/screenshots/traffic.png" alt="Traffic overview in light mode with KPI tiles, hourly traffic chart, and browser mix"></td>
+    <td><img src="docs/screenshots/traffic-dark.png" alt="Traffic overview in dark mode with KPI tiles, hourly traffic chart, and browser mix"></td>
   </tr>
 </table>
 
 <p align="center">
-  <img src="static/screenshots/traffic-mobile.png" alt="Traffic overview on a phone with the stacked toolbar and KPI tiles" width="320">
+  <img src="docs/screenshots/traffic-mobile.png" alt="Traffic overview on a phone with the stacked toolbar and KPI tiles" width="320">
 </p>
 
 ### Pages and paths
 
 <table>
   <tr>
-    <td><img src="static/screenshots/pages.png" alt="Pages report with sparklines, view counts, and the per-page or shared scale toggle"></td>
-    <td><img src="static/screenshots/page-detail.png" alt="Page detail for /blog showing the referrers sending traffic to it"></td>
+    <td><img src="docs/screenshots/pages.png" alt="Pages report with sparklines, view counts, and the per-page or shared scale toggle"></td>
+    <td><img src="docs/screenshots/page-detail.png" alt="Page detail for /blog showing the referrers sending traffic to it"></td>
   </tr>
   <tr>
-    <td><img src="static/screenshots/paths.png" alt="Path directory listing every tracked path with event markers"></td>
-    <td><img src="static/screenshots/report-detail.png" alt="Report detail showing browser versions for one browser"></td>
+    <td><img src="docs/screenshots/paths.png" alt="Path directory listing every tracked path with event markers"></td>
+    <td><img src="docs/screenshots/report-detail.png" alt="Report detail showing browser versions for one browser"></td>
   </tr>
 </table>
 
@@ -135,20 +135,20 @@ are illustrative.
 
 <table>
   <tr>
-    <td><img src="static/screenshots/browsers.png" alt="Browsers report with visitor counts and audience-share chart"></td>
-    <td><img src="static/screenshots/operating-systems.png" alt="Operating systems report with visitor share bars"></td>
+    <td><img src="docs/screenshots/browsers.png" alt="Browsers report with visitor counts and audience-share chart"></td>
+    <td><img src="docs/screenshots/operating-systems.png" alt="Operating systems report with visitor share bars"></td>
   </tr>
   <tr>
-    <td><img src="static/screenshots/locations.png" alt="Locations report showing visitor distribution by country"></td>
-    <td><img src="static/screenshots/languages.png" alt="Languages report showing visitor language distribution"></td>
+    <td><img src="docs/screenshots/locations.png" alt="Locations report showing visitor distribution by country"></td>
+    <td><img src="docs/screenshots/languages.png" alt="Languages report showing visitor language distribution"></td>
   </tr>
   <tr>
-    <td><img src="static/screenshots/screen-size.png" alt="Screen sizes report showing visitor device classes"></td>
-    <td><img src="static/screenshots/campaigns.png" alt="Campaigns report showing traffic by campaign"></td>
+    <td><img src="docs/screenshots/screen-size.png" alt="Screen sizes report showing visitor device classes"></td>
+    <td><img src="docs/screenshots/campaigns.png" alt="Campaigns report showing traffic by campaign"></td>
   </tr>
   <tr>
-    <td><img src="static/screenshots/referrers.png" alt="Referrers report showing top referring sites"></td>
-    <td><img src="static/screenshots/customize.png" alt="Customize page with saved views and overview widget order"></td>
+    <td><img src="docs/screenshots/referrers.png" alt="Referrers report showing top referring sites"></td>
+    <td><img src="docs/screenshots/customize.png" alt="Customize page with saved views and overview widget order"></td>
   </tr>
 </table>
 
@@ -156,8 +156,8 @@ are illustrative.
 
 <table>
   <tr>
-    <td><img src="static/screenshots/settings.png" alt="Site settings with retention, data collection, visibility, and visitor counter options"></td>
-    <td><img src="static/screenshots/exports.png" alt="Data exports page with CSV and JSON format choice and export status"></td>
+    <td><img src="docs/screenshots/settings.png" alt="Site settings with retention, data collection, visibility, and visitor counter options"></td>
+    <td><img src="docs/screenshots/exports.png" alt="Data exports page with CSV and JSON format choice and export status"></td>
   </tr>
 </table>
 
@@ -165,8 +165,8 @@ are illustrative.
 
 <table>
   <tr>
-    <td><img src="static/screenshots/share.png" alt="Read-only public dashboard opened from a share link, with period buttons and key metrics"></td>
-    <td><img src="static/screenshots/traffic-id.png" alt="Traffic overview in Bahasa Indonesia"></td>
+    <td><img src="docs/screenshots/share.png" alt="Read-only public dashboard opened from a share link, with period buttons and key metrics"></td>
+    <td><img src="docs/screenshots/traffic-id.png" alt="Traffic overview in Bahasa Indonesia"></td>
   </tr>
 </table>
 
@@ -174,11 +174,11 @@ are illustrative.
 
 <table>
   <tr>
-    <td><img src="static/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form and a passed Cloudflare Turnstile check"></td>
-    <td><img src="static/screenshots/login-mfa.png" alt="Two-factor step asking for the 6-digit code from an authenticator app"></td>
+    <td><img src="docs/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form and a passed Cloudflare Turnstile check"></td>
+    <td><img src="docs/screenshots/login-mfa.png" alt="Two-factor step asking for the 6-digit code from an authenticator app"></td>
   </tr>
   <tr>
-    <td><img src="static/screenshots/not-found.png" alt="Not found error page with Continue and Previous page actions"></td>
+    <td><img src="docs/screenshots/not-found.png" alt="Not found error page with Continue and Previous page actions"></td>
     <td></td>
   </tr>
 </table>
