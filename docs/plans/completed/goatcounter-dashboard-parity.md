@@ -1,5 +1,10 @@
 # GoatCounter Dashboard Parity
 
+> Historical plan, archived after completion. Its implementation boundaries
+> describe the original scope, not current policy. See the [README](../../../README.md)
+> for current capabilities and the [reliability and sharing plan](reliability-and-sharing.md)
+> for follow-on work.
+
 ## Outcome
 
 Make GTCD the primary interface for every GoatCounter capability exposed by the
