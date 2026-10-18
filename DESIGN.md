@@ -8,7 +8,9 @@ the main surfaces. ReUI ships React; gtcd ports its tokens and class recipes to
 Svelte 5 with Bits UI, Tailwind v4, `tailwind-variants` and `cn`. No React
 runtime is involved.
 
-Sources of truth, in order:
+For existing screens, the installed [primitives](src/lib/components/ui/),
+[theme](src/app.css) and this document define the current implementation.
+For new ports, consult these upstream references:
 
 1. ReUI registry items, fetched as `https://reui.io/r/base-nova/<name>.json`
    (the same payload the ReUI MCP server installs).
@@ -48,18 +50,19 @@ Never hardcode hex values or raw Tailwind palette classes in components.
 
 `src/lib/components/ui/` holds the ported primitives:
 
-| Primitive                 | Upstream                   | Notes                                                 |
-| ------------------------- | -------------------------- | ----------------------------------------------------- |
-| Frame + parts             | ReUI `frame`               | `variant`, `spacing` xs–lg, `stacked`, `dense`, `fit` |
-| Alert + parts             | ReUI `alert`               | default, destructive, info, success, warning, invert  |
-| Badge                     | ReUI `badge`               | solid, `-light`, `-outline` variants; sizes; radius   |
-| Button, Input, Textarea … | shadcn `base-nova`         | Bits UI where behavior is needed                      |
-| Empty + parts             | shadcn `base-nova` `empty` | composed by `EmptyState`                              |
-| NativeSelect              | shadcn `base-nova`         | site switcher                                         |
-| ToggleGroup               | shadcn `base-nova`         | segmented period and grouping controls                |
+| Primitive                 | Upstream                   | Notes                                                                           |
+| ------------------------- | -------------------------- | ------------------------------------------------------------------------------- |
+| Frame + parts             | ReUI `frame`               | `variant` default/inverse/ghost; `spacing` xs/sm/default/lg; `stacked`, `dense` |
+| Alert + parts             | ReUI `alert`               | default, destructive, info, success, warning, invert                            |
+| Badge                     | ReUI `badge`               | solid, `-light`, `-outline` variants; sizes; radius                             |
+| Button, Input, Textarea … | shadcn `base-nova`         | Bits UI where behavior is needed                                                |
+| Empty + parts             | shadcn `base-nova` `empty` | composed by `EmptyState`                                                        |
+| NativeSelect              | shadcn `base-nova`         | site switcher                                                                   |
+| ToggleGroup               | shadcn `base-nova`         | segmented period and grouping controls                                          |
 
-Deviations: `FrameTitle` renders an `h2` (ReUI uses a div) to keep report
-sections in the document outline. Badge omits ReUI's `focus` variants because
+Deviations: `FrameTitle` renders an `h2` by default, with `level` 2/3/4 for nested
+sections (ReUI uses a div), to keep reports in the document outline.
+Badge omits ReUI's `focus` variants because
 ReUI documents no `--focus` token.
 
 ## Frame composition
@@ -114,7 +117,9 @@ distinctions, baseline limitations and delivery consequences when shortening.
   Retry). `EmptyState`: Empty primitive with icon, title and description.
 - Streaming: the overview loader returns each GoatCounter request as an
   unawaited promise; widgets `{#await}` it and show a shape-matched
-  `Skeleton` until data arrives. A top progress bar marks client navigation.
+  `Skeleton` until data arrives. Pages also streams optional comparisons;
+  unavailable comparison data must not replace usable current-period data with
+  an error page. A top progress bar marks client navigation.
 - `ScaleToggle`: ToggleGroup switching page sparklines between per-page and
   shared scale via `?scale=shared`.
 - `CopyField`: read-only Input with a copy Button, for share links and
@@ -127,6 +132,20 @@ distinctions, baseline limitations and delivery consequences when shortening.
   `toLocaleString()` for report numbers.
 - `ThemeToggle`: DropdownMenu radio items; persists light, dark or system.
 - `ToastStack`: Alert on an opaque popover surface with a semantic icon color.
+
+## Operational and privacy states
+
+- Saved preferences and sharing mutations show storage failures explicitly;
+  success feedback must follow a durable write, not a memory-only fallback.
+- Sharing distinguishes GTCD audience links from GoatCounter site visibility.
+  Explain expiry, allowed metrics, fixed ranges and revocation without promising
+  that a non-expiring link survives lost Redis state.
+- Diagnostics is admin-only. Dependency observations carry timestamps and
+  process-local counters are not cluster-wide totals.
+- Native administration renders allowlisted form models, not upstream HTML.
+  Preserve confirmations, expired-session states and upstream permission errors.
+- Reports, login and public-share pages remain noindex. Use generic share
+  previews without report names, tokens or canonical URLs.
 
 ## Accessibility and motion
 
