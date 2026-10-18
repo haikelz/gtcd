@@ -282,7 +282,7 @@ pnpm build
 
 ---
 
-### 3. CI/CD: Docker Hub image
+### 3. CI/CD: Docker Hub image and VPS rollout
 
 [`.github/workflows/docker.yml`](.github/workflows/docker.yml) runs on every push
 and pull request to `master` and on `v*.*.*` tags:
@@ -296,6 +296,11 @@ and pull request to `master` and on `v*.*.*` tags:
    `/api/health`, and confirms a clean exit on `SIGTERM`.
 3. **Publish** (not on pull requests): pushes a `linux/amd64` + `linux/arm64`
    image with SBOM and provenance, then smoke-tests the published arm64 image.
+4. **Deploy** (only pushes to `master`, or a manual run on `master`): after
+   publishing and smoke tests succeed, connects to the VPS as `root` over SSH,
+   runs `kubectl rollout restart deployment gtcd`, and waits up to 180 seconds
+   for rollout completion. A failed SSH connection or rollout fails the job.
+   Pull requests, version tags, and manual runs on other branches do not deploy.
 
 Add these repository secrets under **Settings → Secrets and variables →
 Actions**:
@@ -305,11 +310,34 @@ Actions**:
 | `DOCKER_USERNAME` | Docker Hub user or organization                     |
 | `DOCKER_PASSWORD` | Docker Hub access token with **Read & Write** scope |
 
+For VPS deployment, also add these **repository secrets**:
+
+- `VPS_HOST`: the server hostname or IP address, without `root@` or a port.
+- `VPS_SSH_KEY`: a dedicated, non-interactive SSH private key. Install its public
+  key in root's `authorized_keys` on the VPS. Never paste the private key into
+  an issue, source file, or chat.
+- `VPS_KNOWN_HOSTS`: the VPS OpenSSH host-key entry, verified through a trusted
+  channel. For a nonstandard port, use the `[hostname]:port` entry format.
+  Verify its fingerprint against the server before saving it; the workflow
+  requires strict host-key checking and does not trust an unverified scan.
+
+Optionally set the **repository variable** `VPS_SSH_PORT` (default `22`). Root's
+SSH session must find `kubectl` on its PATH and have a working kubeconfig whose
+current context and namespace contain the `gtcd` Deployment. This workflow uses
+that existing context and namespace; it does not create or reconfigure a cluster.
+Root SSH grants broad server access: protect the deploy key and restrict who can
+change or manually run the workflow.
+
 Images are published as `<DOCKER_USERNAME>/gtcd` (override with a
 `DOCKER_IMAGE` repository variable), tagged `sha-<commit>` on every publish,
 `latest` on `master`, and `<major>.<minor>.<patch>` plus `<major>.<minor>` on
-version tags. Deploy the immutable `sha-` tag or the digest from the run
-summary.
+version tags. For this restart-only deployment flow, configure the existing
+Deployment to use the matching `:latest` image and `imagePullPolicy: Always`
+(the repository manifest already sets that pull policy). Restarting does not
+change the Deployment's image: a pinned tag or digest will restart the old
+version. Immutable `sha-` tags or digests remain available for operator-controlled
+deployments and rollback. This workflow does not apply manifests, migrate Redis,
+or automatically roll back a failed rollout.
 
 The Dockerfile's build stage runs on the builder's native platform and only the
 runtime stage targets amd64/arm64, so cross-building on Apple Silicon also

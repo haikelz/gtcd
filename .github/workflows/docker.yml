@@ -4,8 +4,12 @@
 # Repository secrets:
 #   DOCKER_USERNAME  Docker Hub user or organization
 #   DOCKER_PASSWORD  Docker Hub access token with Read & Write scope
+#   VPS_HOST         VPS hostname or IP address
+#   VPS_SSH_KEY      Root SSH private key dedicated to deployment
+#   VPS_KNOWN_HOSTS  Verified OpenSSH known_hosts entry for the VPS
 # Optional repository variable:
 #   DOCKER_IMAGE     Image name without tag (default: <DOCKER_USERNAME>/gtcd)
+#   VPS_SSH_PORT     SSH port (default: 22)
 #
 # Actions are pinned to commit SHAs; the comment names the release.
 name: docker
@@ -146,3 +150,50 @@ jobs:
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
           TAGS: ${{ steps.meta.outputs.tags }}
+
+  deploy:
+    name: Restart gtcd on VPS
+    needs: image
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
+    steps:
+      - name: Restart deployment over SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?Set the VPS_HOST repository secret}"
+          : "${VPS_SSH_KEY:?Set the VPS_SSH_KEY repository secret}"
+          : "${VPS_KNOWN_HOSTS:?Set the VPS_KNOWN_HOSTS repository secret}"
+          if [[ ! "$VPS_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9._:-]*$ ]]; then
+            echo "VPS_HOST must be a hostname or IP address." >&2
+            exit 1
+          fi
+          if [[ ! "$VPS_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || (( 10#$VPS_SSH_PORT < 1 || 10#$VPS_SSH_PORT > 65535 )); then
+            echo "VPS_SSH_PORT must be between 1 and 65535." >&2
+            exit 1
+          fi
+
+          umask 077
+          ssh_dir="$(mktemp -d "$RUNNER_TEMP/gtcd-ssh.XXXXXX")"
+          trap 'rm -rf "$ssh_dir"' EXIT
+          printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+
+          ssh -F /dev/null \
+            -i "$ssh_dir/key" \
+            -p "$VPS_SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=3 \
+            "root@$VPS_HOST" \
+            'kubectl rollout restart deployment gtcd && kubectl rollout status deployment gtcd --timeout=180s'
