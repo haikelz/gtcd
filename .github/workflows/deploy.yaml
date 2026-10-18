@@ -1,17 +1,3 @@
-# Verify the app, then build, smoke-test, and publish the gtcd image to
-# Docker Hub. Pull requests build and test only; nothing is pushed.
-#
-# Repository secrets:
-#   DOCKER_USERNAME  Docker Hub user or organization
-#   DOCKER_PASSWORD  Docker Hub access token with Read & Write scope
-#   VPS_HOST         VPS hostname or IP address
-#   VPS_SSH_KEY      Root SSH private key dedicated to deployment
-#   VPS_KNOWN_HOSTS  Verified OpenSSH known_hosts entry for the VPS
-# Optional repository variable:
-#   DOCKER_IMAGE     Image name without tag (default: <DOCKER_USERNAME>/gtcd)
-#   VPS_SSH_PORT     SSH port (default: 22)
-#
-# Actions are pinned to commit SHAs; the comment names the release.
 name: docker
 
 on:
@@ -157,9 +143,11 @@ jobs:
     if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    environment: production
     env:
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      IP: ${{ secrets.IP }}
+      USERNAME: ${{ secrets.USERNAME }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
       VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
     steps:
@@ -167,11 +155,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          : "${VPS_HOST:?Set the VPS_HOST repository secret}"
-          : "${VPS_SSH_KEY:?Set the VPS_SSH_KEY repository secret}"
+          : "${IP:?Set the IP deployment secret}"
+          : "${USERNAME:?Set the USERNAME deployment secret to root}"
+          : "${SSH_PRIVATE_KEY:?Set the SSH_PRIVATE_KEY deployment secret}"
           : "${VPS_KNOWN_HOSTS:?Set the VPS_KNOWN_HOSTS repository secret}"
-          if [[ ! "$VPS_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9._:-]*$ ]]; then
-            echo "VPS_HOST must be a hostname or IP address." >&2
+          if [[ "$USERNAME" != root ]]; then
+            echo "USERNAME must be root for the gtcd Kubernetes rollout." >&2
+            exit 1
+          fi
+          if [[ ! "$IP" =~ ^[a-zA-Z0-9][a-zA-Z0-9._:-]*$ ]]; then
+            echo "IP must be a hostname or IP address." >&2
             exit 1
           fi
           if [[ ! "$VPS_SSH_PORT" =~ ^[0-9]{1,5}$ ]] || (( 10#$VPS_SSH_PORT < 1 || 10#$VPS_SSH_PORT > 65535 )); then
@@ -182,7 +175,7 @@ jobs:
           umask 077
           ssh_dir="$(mktemp -d "$RUNNER_TEMP/gtcd-ssh.XXXXXX")"
           trap 'rm -rf "$ssh_dir"' EXIT
-          printf '%s\n' "$VPS_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$ssh_dir/key"
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
 
           ssh -F /dev/null \
@@ -195,5 +188,5 @@ jobs:
             -o ConnectTimeout=15 \
             -o ServerAliveInterval=15 \
             -o ServerAliveCountMax=3 \
-            "root@$VPS_HOST" \
+            "$USERNAME@$IP" \
             'kubectl rollout restart deployment gtcd && kubectl rollout status deployment gtcd --timeout=180s'

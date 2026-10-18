@@ -284,7 +284,7 @@ pnpm build
 
 ### 3. CI/CD: Docker Hub image and VPS rollout
 
-[`.github/workflows/docker.yml`](.github/workflows/docker.yml) runs on every push
+[`.github/workflows/deploy.yaml`](.github/workflows/deploy.yaml) runs on every push
 and pull request to `master` and on `v*.*.*` tags:
 
 1. **Verify**: `pnpm lint`, `pnpm check`, `pnpm test:checks`, `pnpm build`,
@@ -310,16 +310,23 @@ Actions**:
 | `DOCKER_USERNAME` | Docker Hub user or organization                     |
 | `DOCKER_PASSWORD` | Docker Hub access token with **Read & Write** scope |
 
-For VPS deployment, also add these **repository secrets**:
+For VPS deployment, create the **production** GitHub environment and add these
+secrets there (repository secrets also work). The SSH names match Ahsanxpress's
+deployment configuration:
 
-- `VPS_HOST`: the server hostname or IP address, without `root@` or a port.
-- `VPS_SSH_KEY`: a dedicated, non-interactive SSH private key. Install its public
+- `IP`: the server hostname or IP address, without `root@` or a port.
+- `USERNAME`: `root`, required for this Kubernetes rollout.
+- `SSH_PRIVATE_KEY`: a dedicated, non-interactive SSH private key. Install its public
   key in root's `authorized_keys` on the VPS. Never paste the private key into
   an issue, source file, or chat.
 - `VPS_KNOWN_HOSTS`: the VPS OpenSSH host-key entry, verified through a trusted
   channel. For a nonstandard port, use the `[hostname]:port` entry format.
   Verify its fingerprint against the server before saving it; the workflow
   requires strict host-key checking and does not trust an unverified scan.
+
+Unlike the reference configuration, GTCD does not disable host-key checking.
+Deployments on the same branch are serialized by workflow concurrency; configure
+required reviewers on the production environment if deployment approval is needed.
 
 Optionally set the **repository variable** `VPS_SSH_PORT` (default `22`). Root's
 SSH session must find `kubectl` on its PATH and have a working kubeconfig whose
