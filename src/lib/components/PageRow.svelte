@@ -1,7 +1,4 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve -- the row href is
-     resolved by the caller before it is passed in, and the "Go to path" href
-     is an external live-site URL, which resolve() must not touch. */
   import { page } from "$app/state";
   import { highlightSegments } from "$lib/filter.js";
   import { formatCount, numbersHidden, t } from "$lib/display";
@@ -110,7 +107,7 @@
                 >{:else}{seg.text}{/if}{/each}
           </span>
           {#if hit.event}
-            <Badge size="sm" variant="outline">{t("charts.event")}</Badge>
+            <Badge variant="outline">{t("charts.event")}</Badge>
           {/if}
         </span>
         {#if titleSegs}

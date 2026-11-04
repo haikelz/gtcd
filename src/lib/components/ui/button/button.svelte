@@ -1,5 +1,4 @@
 <script lang="ts" module>
-  /* eslint-disable svelte/no-navigation-without-resolve -- Button href passes through both internal and external URLs; resolve() throws on external URLs */
   import { type VariantProps, tv } from "tailwind-variants";
   import { cn, type WithElementRef } from "$lib/utils.js";
   import type {
