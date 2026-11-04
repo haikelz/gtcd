@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createServer as createSmtpServer } from "node:net";
 import { expect, test } from "@playwright/test";
 import { createServer } from "vite";
+import { testRedisUrl } from "./test-redis";
 
 test("saved views retain their site and traffic alerts validate and persist", async ({
   page,
@@ -199,7 +200,7 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
   const settings = {
     GOATCOUNTER_API_KEY: "e2e",
     GOATCOUNTER_URL: `http://127.0.0.1:${process.env.TEST_MOCK_PORT ?? 5187}`,
-    REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379",
+    REDIS_URL: testRedisUrl(),
     SMTP_HOST: "127.0.0.1",
     SMTP_PORT: String(address.port),
     SMTP_SECURE: "false",

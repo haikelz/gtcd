@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { createServer } from "vite";
+import { testRedisUrl } from "./test-redis";
 
 test("independent workers coordinate leases, cap retries and retain success without a checkpoint", async () => {
   const previous = process.env.REDIS_URL;
-  process.env.REDIS_URL =
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379";
+  process.env.REDIS_URL = testRedisUrl();
   const first = await createServer({ server: { middlewareMode: true } });
   const second = await createServer({ server: { middlewareMode: true } });
   const email = `scheduler-${randomUUID()}@example.invalid`;

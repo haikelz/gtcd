@@ -46,12 +46,14 @@ test("TOTP accounts finish login with a code", async ({ page }) => {
 });
 
 test("repeated wrong passwords hit the rate limit", async ({ page }) => {
+  // A fresh address per run: the lockout counter outlives the test in Redis.
+  const email = `limited-${Date.now()}@example.com`;
   for (let i = 0; i < 5; i++) {
-    await signIn(page, "limited@example.com", "wrong");
+    await signIn(page, email, "wrong");
     await expect(page.getByText("Invalid email or password")).toBeVisible();
   }
 
-  await signIn(page, "limited@example.com");
+  await signIn(page, email);
   await expect(page.getByText("Too many sign-in attempts.")).toBeVisible();
 });
 

@@ -1,11 +1,11 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { createServer } from "vite";
+import { testRedisUrl } from "./test-redis";
 
 test("share tokens expire, rotate, revoke, and reject malformed stored links", async () => {
   const previousRedisUrl = process.env.REDIS_URL;
-  process.env.REDIS_URL =
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379";
+  process.env.REDIS_URL = testRedisUrl();
   const server = await createServer({ server: { middlewareMode: true } });
   const originalNow = Date.now;
   try {

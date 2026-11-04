@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { expect, test } from "@playwright/test";
+import { testRedisUrl } from "./test-redis";
 
 test("pages stream comparisons and paginate with scoped bounded opaque links", async ({
   browser,
@@ -72,7 +73,7 @@ test("pages stream comparisons and paginate with scoped bounded opaque links", a
       GOATCOUNTER_URL: "http://127.0.0.1:5199",
       GOATCOUNTER_ADMIN_URL: "http://127.0.0.1:5199",
       GOATCOUNTER_API_KEY: "e2e",
-      REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379",
+      REDIS_URL: testRedisUrl(),
     },
     stdio: "ignore",
   });

@@ -2,12 +2,11 @@ import { randomInt, randomUUID } from "node:crypto";
 import { connect, createServer as createProxy, type Socket } from "node:net";
 import { expect, test } from "@playwright/test";
 import { createServer } from "vite";
+import { testRedisUrl } from "./test-redis";
 
 test("durable mutations fail during outages and revoked grants stay revoked after recovery", async () => {
   test.setTimeout(45_000);
-  const target = new URL(
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379"
-  );
+  const target = new URL(testRedisUrl());
   const previous = process.env.REDIS_URL;
   let available = true;
   const sockets = new Set<Socket>();

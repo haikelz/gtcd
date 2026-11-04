@@ -4,13 +4,13 @@ import { createServer as createHttpServer } from "node:http";
 import { expect, test } from "@playwright/test";
 import Redis from "ioredis";
 import { createServer } from "vite";
+import { testRedisUrl } from "./test-redis";
 
 test("diagnostics guards anonymous and non-admin loads before reading scheduler state", async () => {
   const previousAdmin = process.env.GTCD_ADMIN_EMAILS;
   const previousRedis = process.env.REDIS_URL;
   process.env.GTCD_ADMIN_EMAILS = "diagnostics-admin@example.invalid";
-  process.env.REDIS_URL =
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379";
+  process.env.REDIS_URL = testRedisUrl();
   const server = await createServer({ server: { middlewareMode: true } });
   try {
     const route = await server.ssrLoadModule(
@@ -69,9 +69,7 @@ test("client observations count memory/shared hits, deduplication, misses and 42
     "GOATCOUNTER_VHOST",
   ] as const;
   const previous = names.map((name) => process.env[name]);
-  const isolatedRedis = new Redis(
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379"
-  );
+  const isolatedRedis = new Redis(testRedisUrl());
   let attempts = 0;
   let finishProbe: (() => void) | undefined;
   const upstream = createHttpServer((request, response) => {
@@ -96,8 +94,7 @@ test("client observations count memory/shared hits, deduplication, misses and 42
   const address = upstream.address();
   if (!address || typeof address === "string")
     throw new Error("Missing test port");
-  process.env.REDIS_URL =
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379";
+  process.env.REDIS_URL = testRedisUrl();
   process.env.GOATCOUNTER_URL = `http://127.0.0.1:${address.port}`;
   process.env.GOATCOUNTER_API_KEY = "diagnostics-test-token";
   process.env.GOATCOUNTER_VHOST = "stats.example.invalid";
@@ -220,9 +217,7 @@ test("admin diagnostics renders translated operational sections and refreshes", 
     page.getByRole("button", { name: "Refresh observations" })
   ).toBeEnabled();
 
-  const isolatedRedis = new Redis(
-    process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379"
-  );
+  const isolatedRedis = new Redis(testRedisUrl());
   const sessionId = randomUUID();
   const viewer = await browser.newContext();
   try {

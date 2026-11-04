@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { testRedisUrl } from "./e2e/test-redis";
 
 // Smoke tests run the production build against e2e/mock-goatcounter.mjs.
 // Run `pnpm build` first. TEST_REDIS_URL must point at an isolated test Redis.
@@ -11,9 +12,11 @@ export default defineConfig({
   use: { baseURL: `http://127.0.0.1:${APP_PORT}` },
   webServer: [
     {
-      command: "node e2e/mock-goatcounter.mjs",
+      // No `port`: Playwright would reject a port held by a stale mock before
+      // the launcher could name it and say how to free it.
+      command: "node e2e/start-mock-goatcounter.mjs",
       env: { MOCK_PORT: String(MOCK_PORT), STATS_DELAY_MS: "300" },
-      port: MOCK_PORT,
+      wait: { stdout: /mock-goatcounter listening/ },
     },
     {
       command: "node build",
@@ -23,7 +26,7 @@ export default defineConfig({
         GOATCOUNTER_URL: `http://127.0.0.1:${MOCK_PORT}`,
         ORIGIN: `http://127.0.0.1:${APP_PORT}`,
         PORT: String(APP_PORT),
-        REDIS_URL: process.env.TEST_REDIS_URL ?? "redis://127.0.0.1:6379",
+        REDIS_URL: testRedisUrl(),
         SMTP_HOST: "127.0.0.1",
         SMTP_PORT: "1",
         SMTP_SECURE: "false",

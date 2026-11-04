@@ -20,6 +20,9 @@ jobs:
     name: Verify app
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      # The disposable Redis service below; the e2e suite refuses to guess one.
+      TEST_REDIS_URL: redis://127.0.0.1:6379/0
     services:
       redis:
         image: redis:7-alpine
