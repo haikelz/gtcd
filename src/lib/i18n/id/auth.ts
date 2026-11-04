@@ -11,7 +11,6 @@ export default {
   "auth.footnote":
     "Analitik tetap terhubung ke instance GoatCounter Anda, jadi tidak perlu akun terpisah.",
   "auth.forgotPassword": "Lupa kata sandi?",
-  "auth.hidePassword": "Sembunyikan kata sandi",
   "auth.intro": "Masuk dengan akun GoatCounter yang sudah ada.",
   "auth.invalidCredentials": "Email atau kata sandi salah",
   "auth.mfaBack": "Gunakan akun lain",

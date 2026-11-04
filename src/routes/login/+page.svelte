@@ -295,15 +295,14 @@
           required
           type={showPassword ? "text" : "password"}
         />
+        <!-- A toggle keeps one label; aria-pressed announces the state. -->
         <Button
-          aria-label={showPassword
-            ? t("auth.hidePassword")
-            : t("auth.showPassword")}
+          aria-label={t("auth.showPassword")}
           aria-pressed={showPassword}
           class="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
           onclick={() => (showPassword = !showPassword)}
           size="icon-xs"
-          title={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+          title={t("auth.showPassword")}
           variant="ghost"
         >
           {#if showPassword}

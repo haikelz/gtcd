@@ -9,7 +9,6 @@ export default {
   "auth.footnote":
     "Your analytics stay connected to your GoatCounter instance. No separate account needed.",
   "auth.forgotPassword": "Forgot password?",
-  "auth.hidePassword": "Hide password",
   "auth.intro": "Sign in with your existing GoatCounter account.",
   "auth.invalidCredentials": "Invalid email or password",
   "auth.mfaBack": "Use a different account",
