@@ -16,7 +16,7 @@
   import { Frame, FrameFooter, FramePanel } from "$lib/components/ui/frame";
   import { Input } from "$lib/components/ui/input";
   import { sanitizeViewQuery } from "$lib/dashboard-layout";
-  import { displayPreferences, t } from "$lib/display";
+  import { dashboardHref, displayPreferences, t } from "$lib/display";
   import type { MessageKey } from "$lib/i18n";
   import { wallClockNow } from "$lib/preferences";
   import {
@@ -101,9 +101,7 @@
   const savedViews = $derived(page.data.dashboardLayout?.views ?? []);
   const siteParam = $derived(page.url.searchParams.get("site"));
   const customizeHref = $derived(
-    siteParam
-      ? `${resolve("/dashboard/customize")}?site=${siteParam}`
-      : resolve("/dashboard/customize")
+    dashboardHref(resolve("/dashboard/customize"))
   );
   const saveViewHref = $derived.by(() => {
     const saved = new SvelteURLSearchParams(page.url.search);
@@ -327,9 +325,9 @@
                   <CircleHelp class="text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent class="max-w-72" side="bottom" sideOffset={6}>
-                  <div class="space-y-1.5 text-left">
+                  <div class="flex flex-col gap-1.5 text-left">
                     <p>{t("shell.filterHelpIntro")}</p>
-                    <ul class="list-disc space-y-0.5 pl-4">
+                    <ul class="flex list-disc flex-col gap-0.5 pl-4">
                       <li>
                         {@render code("at:start")}, {@render code("at:end")} —
                         {t("shell.filterHelpAt")}

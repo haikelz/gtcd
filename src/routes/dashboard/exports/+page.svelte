@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { formatCount, t } from "$lib/display";
+  import { dashboardHref, formatCount, t } from "$lib/display";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -89,7 +89,7 @@
 {/if}
 
 <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-  <form action="?/create" class="min-w-0" method="POST">
+  <form action={dashboardHref("?/create")} class="min-w-0" method="POST">
     <Frame>
       <FrameHeader>
         <FrameTitle id="export-create-heading"

@@ -5,7 +5,7 @@
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { showToast } from "$lib/components/toast.js";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import type { MessageKey } from "$lib/i18n";
   import {
     Alert,
@@ -203,8 +203,8 @@
 
 <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
   <form
-    action="?/update"
-    class="min-w-0 space-y-4"
+    action={dashboardHref("?/update")}
+    class="flex min-w-0 flex-col gap-4"
     id="site-settings"
     method="POST"
     use:enhance
@@ -598,7 +598,7 @@
       </FrameFooter>
     </Frame>
   </form>
-  <aside class="space-y-4 lg:sticky lg:top-24">
+  <aside class="flex flex-col gap-4 lg:sticky lg:top-24">
     <Frame>
       <FrameHeader class="flex-row items-center justify-between gap-3">
         <FrameTitle class="truncate" id="settings-site-heading">
@@ -624,7 +624,7 @@
       </FramePanel>
       <FrameFooter class="gap-2">
         <form
-          action="?/sendTestVisit"
+          action={dashboardHref("?/sendTestVisit")}
           method="POST"
           use:enhance={() =>
             async ({ result }) => {
@@ -919,8 +919,10 @@
       <FramePanel aria-labelledby="native-admin-heading" role="region">
         <Button
           class="w-full"
-          href={`${resolve("/dashboard/admin/[section]", { section: "users" })}?site=${data.site.id}`}
-          variant="outline">Open administration</Button
+          href={dashboardHref(
+            resolve("/dashboard/admin/[section]", { section: "users" })
+          )}
+          variant="outline">{t("admin.open")}</Button
         >
       </FramePanel>
     </Frame>
@@ -957,7 +959,7 @@
       </Frame>
     {/if}
     {#if data.canCreateSite}
-      <form action="?/createSite" method="POST">
+      <form action={dashboardHref("?/createSite")} method="POST">
         <Frame>
           <FrameHeader>
             <FrameTitle id="add-site-heading"

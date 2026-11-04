@@ -14,7 +14,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -197,7 +197,7 @@
             </p>
             <div>
               <Button
-                href={resolve("/dashboard/customize")}
+                href={dashboardHref(resolve("/dashboard/customize"))}
                 size="sm"
                 variant="outline">{t("diagnostics.configure")}</Button
               >

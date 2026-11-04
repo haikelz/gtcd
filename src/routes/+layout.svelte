@@ -13,7 +13,7 @@
     NativeSelectOption,
   } from "$lib/components/ui/native-select";
   import { Separator } from "$lib/components/ui/separator";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import { cn } from "$lib/utils";
   import {
     ChevronRight,
@@ -49,10 +49,13 @@
   const isDashboard = $derived(
     page.url.pathname.startsWith("/dashboard") && page.status <= 400
   );
+  // Report groups carry the period and filter to the next report, like
+  // GoatCounter's dashboard; management pages only need the site.
   const NAV_GROUPS = $derived([
     {
       key: "workspace",
       label: t("shell.navWorkspace"),
+      view: true,
       items: [
         { href: "/dashboard", icon: LayoutGrid, label: t("shell.navOverview") },
         {
@@ -70,6 +73,7 @@
     {
       key: "audience",
       label: t("shell.navAudience"),
+      view: true,
       items: [
         {
           href: "/dashboard/browsers",
@@ -101,6 +105,7 @@
     {
       key: "acquisition",
       label: t("shell.navAcquisition"),
+      view: true,
       items: [
         {
           href: "/dashboard/campaigns",
@@ -118,6 +123,7 @@
   const ADMIN_GROUP = $derived({
     key: "manage",
     label: t("shell.navManage"),
+    view: false,
     items: [
       {
         href: "/dashboard/settings",
@@ -137,21 +143,22 @@
       {
         href: "/dashboard/admin/users",
         icon: Settings,
-        label: "Administration",
+        label: t("admin.title"),
       },
     ],
   } as const);
-  const ACCOUNT_GROUP = {
+  const ACCOUNT_GROUP = $derived({
     key: "account",
-    label: "Account",
+    label: t("shell.navAccount"),
+    view: false,
     items: [
       {
         href: "/dashboard/admin/security",
         icon: Settings,
-        label: "Account security",
+        label: t("admin.sectionSecurity"),
       },
     ],
-  } as const;
+  } as const);
   type NavItem =
     | (typeof NAV_GROUPS)[number]["items"][number]
     | (typeof ADMIN_GROUP)["items"][number]
@@ -160,6 +167,7 @@
     readonly items: readonly NavItem[];
     readonly key: string;
     readonly label: string;
+    readonly view: boolean;
   };
 
   const navGroups: readonly NavGroup[] = $derived(
@@ -183,14 +191,6 @@
     return href === "/dashboard"
       ? page.url.pathname === href
       : page.url.pathname.startsWith(href);
-  }
-
-  function dashboardHref(href: string): string {
-    if (!isDashboard || !page.data.site) return href;
-
-    const url = new URL(href, page.url.origin);
-    url.searchParams.set("site", String(page.data.site.id));
-    return `${url.pathname}${url.search}`;
   }
 
   function switchSite(event: Event & { currentTarget: HTMLSelectElement }) {
@@ -376,7 +376,9 @@
                   <a
                     aria-current={isActive(item.href) ? "page" : undefined}
                     class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground max-lg:h-10 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate"
-                    href={dashboardHref(resolve(item.href))}
+                    href={dashboardHref(resolve(item.href), {
+                      view: group.view,
+                    })}
                     onclick={closeSidebar}
                   >
                     <item.icon />
