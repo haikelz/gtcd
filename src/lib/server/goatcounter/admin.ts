@@ -43,6 +43,8 @@ function normalizeList(value: unknown): readonly string[] {
     .filter(Boolean);
 }
 
+// GoatCounter's settings Strings type takes one comma-separated string; a JSON
+// array fails with "cannot unmarshal array into ... goatcounter.Strings".
 function serializeList(values: readonly string[]): string {
   return values.join(",");
 }
