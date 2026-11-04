@@ -30,6 +30,8 @@ export default {
     "Sign in with your GoatCounter account to access your analytics dashboard.",
   "auth.showPassword": "Show password",
   "auth.signIn": "Sign in",
+  "auth.signOutFailed":
+    "Sign-out could not be confirmed because session storage is unavailable. Go back and sign out again.",
   "auth.signingIn": "Signing in…",
   "auth.tooManyAttempts": "Too many sign-in attempts. Try again in 15 minutes.",
   "auth.unavailable":

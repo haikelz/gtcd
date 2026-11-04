@@ -109,10 +109,25 @@ export async function getDashboardSession(
   return { email: session.email };
 }
 
-export async function destroyDashboardSession(cookies: Cookies): Promise<void> {
+/**
+ * End the gtcd session. False when the session store could not confirm the
+ * delete; the cookie then stays so the user can retry instead of believing
+ * the server forgot the session.
+ */
+export async function destroyDashboardSession(
+  cookies: Cookies
+): Promise<boolean> {
   const sessionId = cookies.get(COOKIE_NAME);
   if (sessionId) {
-    await deleteSession(sessionId);
+    try {
+      // unknown: the store reports a failed delete as false or by throwing.
+      const deleted: unknown = await deleteSession(sessionId);
+      if (deleted === false) return false;
+    } catch {
+      return false;
+    }
   }
+
   cookies.delete(COOKIE_NAME, { path: "/" });
+  return true;
 }

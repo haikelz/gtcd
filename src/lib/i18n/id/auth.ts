@@ -32,6 +32,8 @@ export default {
     "Masuk dengan akun GoatCounter untuk membuka dasbor analitik.",
   "auth.showPassword": "Tampilkan kata sandi",
   "auth.signIn": "Masuk",
+  "auth.signOutFailed":
+    "Proses keluar belum bisa dipastikan karena penyimpanan sesi tidak tersedia. Kembali lalu keluar sekali lagi.",
   "auth.signingIn": "Sedang masuk…",
   "auth.tooManyAttempts":
     "Terlalu banyak percobaan masuk. Coba lagi dalam 15 menit.",
