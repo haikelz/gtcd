@@ -12,11 +12,13 @@
     aria-hidden="true"
     class="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground"
   >
-    <svg class="size-4" fill="none" viewBox="0 0 24 24">
+    <!-- The horn mark; static/favicon.svg and the PNG icons draw the same path. -->
+    <svg class="size-4" fill="none" viewBox="0 0 100 100">
       <path
-        d="M4 18V12M9.3 18V5M14.7 18V9M20 18V3"
+        d="M21.5 79C21.5 48 37.5 21 60.5 21C74.5 21 81.5 33 77.5 44C73.5 54 59.5 55 56.5 44"
         stroke="currentColor"
-        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-width="12"
       />
     </svg>
   </span>
