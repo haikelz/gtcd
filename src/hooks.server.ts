@@ -2,7 +2,11 @@ import { building } from "$app/environment";
 import { isLocale } from "$lib/dashboard-layout.js";
 import { LOCALE_COOKIE, localeFromAcceptLanguage } from "$lib/i18n/index.js";
 import { getDashboardSession } from "$lib/server/auth/session.js";
-import { startReportScheduler } from "$lib/server/email-reports.js";
+import { closeRedis } from "$lib/server/auth/session-store.js";
+import {
+  startReportScheduler,
+  stopReportScheduler,
+} from "$lib/server/email-reports.js";
 import { DurableStateUnavailable } from "$lib/server/durable-state.js";
 import { markScriptsForRocketLoader } from "$lib/server/rocket-loader.js";
 import type { Handle, HandleServerError, ServerInit } from "@sveltejs/kit";
@@ -15,7 +19,16 @@ export const handleError: HandleServerError = ({ error }) => ({
 });
 
 export const init: ServerInit = () => {
-  if (!building) startReportScheduler();
+  if (building) return;
+
+  startReportScheduler();
+  // adapter-node emits this after SIGTERM/SIGINT once in-flight requests have
+  // finished. scripts/start.mjs holds the hard timeout.
+  process.once("sveltekit:shutdown", async () => {
+    await stopReportScheduler();
+    await closeRedis();
+    process.exit(0);
+  });
 };
 
 const securityHeaders: Record<string, string> = {

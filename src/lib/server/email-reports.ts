@@ -615,7 +615,7 @@ async function runDueReports(now: Date): Promise<void> {
     const localNow = wallClockNow(timezone, now);
     let failed = false;
     for (const email of ordered) {
-      if (Date.now() >= deadline) break;
+      if (Date.now() >= deadline || stopping) break;
       await lease.assertValid();
       // Advance before work: even a crash or a slow first recipient cannot starve
       // later recipients. Unfinished attempts are revisited on the next rotation.
@@ -745,27 +745,39 @@ export async function getSchedulerDiagnostics() {
   return deliveryDiagnostics(await getSubscribers());
 }
 
-let running = false;
+let currentRun: Promise<void> | null = null;
+let stopping = false;
 
 /** Complete days only; prevent overlapping ticks even during Redis outages. */
 export async function sendDueReports(now: Date = new Date()): Promise<void> {
-  if (running) return;
+  if (currentRun || stopping) return;
 
-  running = true;
-  try {
-    await runDueReports(now);
-  } finally {
-    running = false;
-  }
+  currentRun = runDueReports(now).finally(() => {
+    currentRun = null;
+  });
+  return currentRun;
 }
 
 const SCHEDULER_KEY = Symbol.for("gtcd.emailReportScheduler");
+const holder = globalThis as typeof globalThis & {
+  [SCHEDULER_KEY]?: ReturnType<typeof setInterval>;
+};
+
+/**
+ * Stop ticking and wait for a run in progress. The run finishes its current
+ * recipient, so mail SMTP already accepted is recorded before shutdown.
+ */
+export async function stopReportScheduler(): Promise<void> {
+  stopping = true;
+  clearInterval(holder[SCHEDULER_KEY]);
+  delete holder[SCHEDULER_KEY];
+
+  // A failed run was already logged by its tick.
+  await currentRun?.catch(() => {});
+}
 
 /** Start the report tick once per process (dev reloads reuse the timer). */
 export function startReportScheduler(): void {
-  const holder = globalThis as typeof globalThis & {
-    [SCHEDULER_KEY]?: ReturnType<typeof setInterval>;
-  };
   if (holder[SCHEDULER_KEY]) return;
 
   const tick = () => {

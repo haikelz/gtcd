@@ -51,6 +51,6 @@ USER 1000:1000
 
 EXPOSE 3000
 
-# start.mjs registers SIGTERM/SIGINT handlers, which Node needs to shut down
-# cleanly when running as PID 1 in a container.
+# start.mjs handles SIGTERM/SIGINT as PID 1: adapter-node drains requests,
+# then the app stops the report scheduler and Redis, bounded by a 25s timeout.
 CMD ["node", "scripts/start.mjs"]
