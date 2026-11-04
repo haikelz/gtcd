@@ -29,6 +29,8 @@ export default {
   "auth.passwordPlaceholder": "Kata sandi GoatCounter",
   "auth.seoDescription":
     "Masuk dengan akun GoatCounter untuk membuka dasbor analitik.",
+  "auth.sharedTokenHidden":
+    "gtcd memakai token ini untuk terhubung ke GoatCounter, jadi token ini tetap disembunyikan di sini. Buat token terpisah untuk integrasi lain.",
   "auth.showPassword": "Tampilkan kata sandi",
   "auth.signIn": "Masuk",
   "auth.signOutFailed":

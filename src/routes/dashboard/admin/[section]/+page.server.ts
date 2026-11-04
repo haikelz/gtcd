@@ -38,7 +38,7 @@ function authorize(
 function feedback(cause: unknown, locale: Locale) {
   if (!(cause instanceof NativeAdminError)) throw cause;
   return {
-    message: translate(locale, PROBLEM_KEYS[cause.code]),
+    message: cause.detail ?? translate(locale, PROBLEM_KEYS[cause.code]),
     reconnect: cause.code === "reauthenticate",
     status: cause.status,
   };

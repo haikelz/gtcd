@@ -27,6 +27,8 @@ export default {
   "auth.passwordPlaceholder": "Your GoatCounter password",
   "auth.seoDescription":
     "Sign in with your GoatCounter account to access your analytics dashboard.",
+  "auth.sharedTokenHidden":
+    "gtcd uses this token to reach GoatCounter, so it stays hidden here. Create a separate token for other integrations.",
   "auth.showPassword": "Show password",
   "auth.signIn": "Sign in",
   "auth.signOutFailed":

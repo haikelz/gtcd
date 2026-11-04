@@ -13,7 +13,9 @@ export type NativeSession = { email: string; cookies: Record<string, string> };
 export class NativeAdminError extends Error {
   constructor(
     readonly status: number,
-    readonly code: "reauthenticate" | "denied" | "unavailable" | "invalid"
+    readonly code: "reauthenticate" | "denied" | "unavailable" | "invalid",
+    /** Translated text that explains this case better than the code does. */
+    readonly detail?: string
   ) {
     super(code);
   }

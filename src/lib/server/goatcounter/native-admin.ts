@@ -1,9 +1,11 @@
 import { gunzipSync } from "node:zlib";
 import { createHmac } from "node:crypto";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
+import { getRequestEvent } from "$app/server";
 import type { Cookies } from "@sveltejs/kit";
+import { translate } from "$lib/i18n/index.js";
 import type { NativePage, NativeSection } from "$lib/native-admin.js";
-import { getBaseUrl } from "./client.js";
+import { getApiKey, getBaseUrl } from "./client.js";
 import { parseNativeAdmin } from "./native-admin-html.js";
 import {
   getNativeSession,
@@ -293,7 +295,20 @@ export async function revealNativeToken(
           }
           if ("childNodes" in child) children.push(...child.childNodes);
         }
-        if (matches && token && token.length < 4096) return token;
+        if (matches && token && token.length < 4096) {
+          // An admin may list gtcd's own token; revealing it would hand the
+          // shared API key to a browser.
+          if (token === getApiKey())
+            throw new NativeAdminError(
+              403,
+              "denied",
+              translate(
+                getRequestEvent().locals.locale,
+                "auth.sharedTokenHidden"
+              )
+            );
+          return token;
+        }
       }
       if ("childNodes" in node) stack.push(...node.childNodes);
     }
