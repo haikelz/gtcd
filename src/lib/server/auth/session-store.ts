@@ -1,15 +1,16 @@
 import { building } from "$app/environment";
-import Redis from "ioredis";
+import Redis, { ReplyError } from "ioredis";
 
 let redis: Redis | null = null;
-let redisAvailable: boolean | null = null;
+// Set by a PONG, cleared by a failed command. A "ready" socket alone does not
+// prove Redis answers: a black-holed host keeps the connection open.
+let redisConfirmed = false;
 let lastRedisFailureAt = 0;
+let redisProbe: Promise<boolean> | null = null;
 
 const REDIS_RETRY_COOLDOWN_MS = 5_000;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// No command may hang a request; a timed-out command reports Redis down.
+const REDIS_COMMAND_TIMEOUT_MS = 2_000;
 
 const memorySessions = new Map<string, { email: string; expiresAt: number }>();
 
@@ -28,6 +29,7 @@ export function getRedis(): Redis {
     lazyConnect: true,
     maxRetriesPerRequest: 1,
     connectTimeout: 2000,
+    commandTimeout: REDIS_COMMAND_TIMEOUT_MS,
     enableOfflineQueue: false,
     // Keep retrying in the background with bounded backoff so a recovered
     // Redis is picked up again instead of being abandoned until process restart.
@@ -45,60 +47,94 @@ export function getRedis(): Redis {
 }
 
 /**
- * Probe Redis with a cooldown so callers (e.g. health checks and session
- * lookups) fail fast while Redis is down instead of paying a connect timeout
- * on every request. The cooldown also gives the client's background reconnect
- * attempts room to succeed before we probe again. `maxWaitMs` bounds how long
- * a single probe may block; a timed-out probe reports "down" while the
- * underlying attempt keeps running and converges the recorded state.
+ * Record a failed Redis command so later callers fail fast for the cooldown.
+ * Error replies (for example OOM under `noeviction`) prove Redis is reachable
+ * and fail only that command.
  */
-export async function pingRedis(maxWaitMs = 1_000): Promise<boolean> {
-  const now = Date.now();
+export function reportRedisFailure(cause: unknown): void {
+  if (cause instanceof ReplyError) return;
 
-  if (
-    redisAvailable === false &&
-    now - lastRedisFailureAt < REDIS_RETRY_COOLDOWN_MS
-  ) {
-    return false;
+  redisConfirmed = false;
+  lastRedisFailureAt = Date.now();
+}
+
+async function probeRedis(client: Redis): Promise<boolean> {
+  try {
+    // lazyConnect + no offline queue: a command before the first connect
+    // fails instantly, which would mark Redis down for the cooldown.
+    if (client.status === "wait") await client.connect();
+    if ((await client.ping()) === "PONG") {
+      redisConfirmed = true;
+      lastRedisFailureAt = 0;
+      return true;
+    }
+  } catch {
+    // Reported below.
   }
 
-  const attempt = (async () => {
-    try {
-      const client = getRedis();
-      // lazyConnect + no offline queue: a command before the first connect
-      // fails instantly, which would mark Redis down for the cooldown.
-      if (client.status === "wait") await client.connect();
-      const result = await client.ping();
-      redisAvailable = result === "PONG";
-      return redisAvailable;
-    } catch {
-      redisAvailable = false;
-      lastRedisFailureAt = Date.now();
-      return false;
-    }
-  })();
+  reportRedisFailure(undefined);
+  return false;
+}
 
-  return Promise.race([attempt, sleep(maxWaitMs).then(() => false)]);
+/**
+ * Report whether Redis is usable. A ready connection that last answered is
+ * trusted without a round trip. After a failure, callers fail fast for the
+ * cooldown, which also gives the client's background reconnects room to
+ * succeed; then one shared PING probes again. `maxWaitMs` bounds how long a
+ * caller waits for that probe. A wait that times out starts the cooldown; a
+ * probe that succeeds later clears it.
+ */
+export async function pingRedis(maxWaitMs = 1_000): Promise<boolean> {
+  const client = getRedis();
+
+  // The writable check matches ioredis's own: after disconnect() the status
+  // stays "ready" until the socket closes, but commands already fail.
+  if (redisConfirmed && client.status === "ready" && client.stream.writable) {
+    return true;
+  }
+  if (Date.now() - lastRedisFailureAt < REDIS_RETRY_COOLDOWN_MS) return false;
+
+  redisProbe ??= probeRedis(client).finally(() => {
+    redisProbe = null;
+  });
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<"timeout">((resolve) => {
+    timer = setTimeout(() => resolve("timeout"), maxWaitMs);
+  });
+  const result = await Promise.race([redisProbe, timeout]);
+  clearTimeout(timer);
+
+  // A finished probe has recorded its own result.
+  if (result !== "timeout") return result;
+  reportRedisFailure(undefined);
+  return false;
+}
+
+/** Close the shared client on shutdown; QUIT lets pending replies finish. */
+export async function closeRedis(): Promise<void> {
+  const client = redis;
+  if (!client) return;
+  if (client.status !== "ready") return client.disconnect();
+
+  await client.quit().catch(() => client.disconnect());
 }
 
 export async function createSession(
   sessionId: string,
   email: string
 ): Promise<void> {
-  const isUp = redisAvailable ?? (await pingRedis());
-
-  if (isUp && redis) {
+  if (await pingRedis()) {
     try {
       const data = JSON.stringify({ email });
-      await redis.setex(
+      await getRedis().setex(
         `${SESSION_PREFIX}${sessionId}`,
         SESSION_MAX_AGE_SEC,
         data
       );
       return;
-    } catch {
-      redisAvailable = false;
-      lastRedisFailureAt = Date.now();
+    } catch (cause) {
+      reportRedisFailure(cause);
     }
   }
 
@@ -112,19 +148,16 @@ export async function createSession(
 export async function getSession(
   sessionId: string
 ): Promise<{ email: string } | null> {
-  const isUp = redisAvailable ?? (await pingRedis());
-
-  if (isUp && redis) {
+  if (await pingRedis()) {
     try {
-      const data = await redis.get(`${SESSION_PREFIX}${sessionId}`);
+      const data = await getRedis().get(`${SESSION_PREFIX}${sessionId}`);
       if (data) {
         return JSON.parse(data) as { email: string };
       }
       // Not in Redis: the session may have been created in memory while Redis
       // was still connecting or down, so check the fallback before failing.
-    } catch {
-      redisAvailable = false;
-      lastRedisFailureAt = Date.now();
+    } catch (cause) {
+      reportRedisFailure(cause);
     }
   }
 
@@ -140,17 +173,20 @@ export async function getSession(
   return { email: session.email };
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
-  const isUp = redisAvailable ?? (await pingRedis());
-
-  if (isUp && redis) {
-    try {
-      await redis.del(`${SESSION_PREFIX}${sessionId}`);
-    } catch {
-      redisAvailable = false;
-      lastRedisFailureAt = Date.now();
-    }
-  }
-
+/**
+ * Delete a session from memory and Redis. Returns false when the Redis delete
+ * could not be confirmed: the Redis copy may still authenticate once Redis
+ * recovers, so callers must not report a completed logout.
+ */
+export async function deleteSession(sessionId: string): Promise<boolean> {
   memorySessions.delete(sessionId);
+
+  if (!(await pingRedis())) return false;
+  try {
+    await getRedis().del(`${SESSION_PREFIX}${sessionId}`);
+    return true;
+  } catch (cause) {
+    reportRedisFailure(cause);
+    return false;
+  }
 }

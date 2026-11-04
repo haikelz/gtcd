@@ -1,10 +1,16 @@
-import { getRedis, pingRedis } from "$lib/server/auth/session-store.js";
+import {
+  getRedis,
+  pingRedis,
+  reportRedisFailure,
+} from "$lib/server/auth/session-store.js";
 
 type MemoryEntry = { readonly expiresAt?: number; readonly raw: string };
 
-// ponytail: per-process fallback while Redis is down; values written there are
-// lost on restart and not shared across replicas. Redis is the durable store.
-// Expired entries are dropped when read, not swept.
+// ponytail: per-process fallback, written only while Redis is down or after a
+// failed Redis write. Values there are lost on restart and not shared across
+// replicas; Redis is the durable store. A full map drops expired entries, then
+// the oldest half, so an outage cannot grow it without bound.
+const MEMORY_MAX_ENTRIES = 1_000;
 const memory = new Map<string, MemoryEntry>();
 
 function readMemory(key: string): string | undefined {
@@ -16,12 +22,26 @@ function readMemory(key: string): string | undefined {
   return entry?.raw;
 }
 
-function writeMemory(key: string, raw: string, ttlSeconds?: number): void {
-  memory.set(key, {
-    expiresAt:
-      ttlSeconds === undefined ? undefined : Date.now() + ttlSeconds * 1000,
-    raw,
-  });
+function sweepMemory(): void {
+  const now = Date.now();
+  for (const [key, entry] of memory) {
+    if (entry.expiresAt !== undefined && entry.expiresAt <= now) {
+      memory.delete(key);
+    }
+  }
+
+  if (memory.size >= MEMORY_MAX_ENTRIES) {
+    const oldest = [...memory.keys()].slice(
+      0,
+      Math.floor(MEMORY_MAX_ENTRIES / 2)
+    );
+    for (const key of oldest) memory.delete(key);
+  }
+}
+
+function writeMemory(key: string, raw: string, expiresAt?: number): void {
+  if (memory.size >= MEMORY_MAX_ENTRIES && !memory.has(key)) sweepMemory();
+  memory.set(key, { expiresAt, raw });
 }
 
 /** Read a JSON value (unvalidated: callers parse it with their own schema). */
@@ -31,7 +51,8 @@ export async function getJson(key: string): Promise<unknown> {
   if (await pingRedis()) {
     try {
       raw = await getRedis().get(key);
-    } catch {
+    } catch (cause) {
+      reportRedisFailure(cause);
       raw = readMemory(key);
     }
   } else {
@@ -53,17 +74,26 @@ export async function setJson(
   ttlSeconds?: number
 ): Promise<void> {
   const raw = JSON.stringify(value);
-  writeMemory(key, raw, ttlSeconds);
 
   if (await pingRedis()) {
     try {
       await (ttlSeconds === undefined
         ? getRedis().set(key, raw)
         : getRedis().set(key, raw, "EX", ttlSeconds));
-    } catch {
-      // The in-memory copy keeps the change for this process.
+      // An outage copy must not resurface as a stale value later.
+      memory.delete(key);
+      return;
+    } catch (cause) {
+      reportRedisFailure(cause);
     }
   }
+
+  // Keep the change for this process until Redis is back.
+  writeMemory(
+    key,
+    raw,
+    ttlSeconds === undefined ? undefined : Date.now() + ttlSeconds * 1000
+  );
 }
 
 export async function deleteKey(key: string): Promise<void> {
@@ -72,8 +102,8 @@ export async function deleteKey(key: string): Promise<void> {
   if (await pingRedis()) {
     try {
       await getRedis().del(key);
-    } catch {
-      // Nothing durable to remove.
+    } catch (cause) {
+      reportRedisFailure(cause);
     }
   }
 }
@@ -94,17 +124,18 @@ export async function incrementCounter(
         .expire(key, windowSeconds, "NX")
         .exec()) as [[Error | null, number]];
       return count;
-    } catch {
+    } catch (cause) {
       // Count in memory for this process instead.
+      reportRedisFailure(cause);
     }
   }
 
   const count = Number(readMemory(key) ?? 0) + 1;
-  const entry = memory.get(key);
-  memory.set(key, {
-    expiresAt: entry?.expiresAt ?? Date.now() + windowSeconds * 1000,
-    raw: String(count),
-  });
+  writeMemory(
+    key,
+    String(count),
+    memory.get(key)?.expiresAt ?? Date.now() + windowSeconds * 1000
+  );
   return count;
 }
 
@@ -113,8 +144,9 @@ export async function readCounter(key: string): Promise<number> {
   if (await pingRedis()) {
     try {
       return Number((await getRedis().get(key)) ?? 0);
-    } catch {
+    } catch (cause) {
       // Fall through to the in-memory count.
+      reportRedisFailure(cause);
     }
   }
   return Number(readMemory(key) ?? 0);

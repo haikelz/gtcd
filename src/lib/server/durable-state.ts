@@ -1,4 +1,8 @@
-import { getRedis, pingRedis } from "$lib/server/auth/session-store.js";
+import {
+  getRedis,
+  pingRedis,
+  reportRedisFailure,
+} from "$lib/server/auth/session-store.js";
 
 export class DurableStateUnavailable extends Error {
   constructor() {
@@ -15,13 +19,16 @@ async function connection() {
 }
 
 export async function readDurableJson(key: string): Promise<unknown> {
+  const redis = await connection();
+  let raw: string | null;
   try {
-    const raw = await (await connection()).get(key);
-    return raw === null ? undefined : JSON.parse(raw);
+    raw = await redis.get(key);
   } catch (cause) {
-    if (cause instanceof SyntaxError) throw cause;
+    reportRedisFailure(cause);
     throw new DurableStateUnavailable();
   }
+
+  return raw === null ? undefined : JSON.parse(raw);
 }
 
 /** Compare-and-swap avoids lost updates without WATCH on a shared connection. */
@@ -35,7 +42,8 @@ export async function updateDurableJson<T>(
     let raw: string | null;
     try {
       raw = await redis.get(key);
-    } catch {
+    } catch (cause) {
+      reportRedisFailure(cause);
       throw new DurableStateUnavailable();
     }
     const next = update(raw === null ? undefined : JSON.parse(raw));
@@ -56,7 +64,8 @@ export async function updateDurableJson<T>(
         ttlSeconds === undefined ? "" : String(ttlSeconds)
       );
       if (saved === 1) return next;
-    } catch {
+    } catch (cause) {
+      reportRedisFailure(cause);
       throw new DurableStateUnavailable();
     }
   }
