@@ -1,8 +1,14 @@
+import {
+  forgetNativeSession,
+  isNativeAccountRevoked,
+} from "$lib/server/goatcounter/native-session.js";
+import { getJson, setJson } from "$lib/server/kv.js";
 import type { Cookies } from "@sveltejs/kit";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { createSession, deleteSession, getSession } from "./session-store.js";
 
 const COOKIE_NAME = "dashboard_session";
+const ACCOUNT_CHECK_SECONDS = 5 * 60;
 
 export interface SessionUser {
   email: string;
@@ -10,6 +16,11 @@ export interface SessionUser {
 
 export function generateSessionId(): string {
   return randomBytes(32).toString("hex");
+}
+
+/** Durable key for the time of a user's last successful gtcd sign-in. */
+export function lastLoginKey(email: string): string {
+  return `last-login:${email.trim().toLowerCase()}`;
 }
 
 /**
@@ -41,6 +52,8 @@ export async function createDashboardSession(
   const sessionId = generateSessionId();
 
   await createSession(sessionId, email);
+  // Best effort: email reports read this to stop for long-absent users.
+  await setJson(lastLoginKey(email), Date.now());
 
   cookies.set(COOKIE_NAME, sessionId, {
     path: "/",
@@ -49,6 +62,29 @@ export async function createDashboardSession(
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });
+}
+
+/**
+ * GoatCounter owns the account, so removing or locking a user there must end
+ * their gtcd session too. Ask GoatCounter at most every five minutes per
+ * session. Only its own rejection ends the session; an outage keeps the user
+ * signed in and is asked again after the interval.
+ * ponytail: a session with no stored GoatCounter login (created before native
+ * sessions existed) cannot be checked and lives out its 7 days.
+ */
+async function isAccountRevoked(
+  cookies: Cookies,
+  sessionId: string,
+  email: string
+): Promise<boolean> {
+  const hash = createHash("sha256").update(sessionId).digest("hex");
+  const key = `session-checked:${hash}`;
+  if (await getJson(key)) return false;
+
+  if (await isNativeAccountRevoked(cookies, email)) return true;
+
+  await setJson(key, true, ACCOUNT_CHECK_SECONDS);
+  return false;
 }
 
 export async function getDashboardSession(
@@ -60,6 +96,13 @@ export async function getDashboardSession(
   const session = await getSession(sessionId);
   if (!session) {
     cookies.delete(COOKIE_NAME, { path: "/" });
+    return null;
+  }
+
+  if (await isAccountRevoked(cookies, sessionId, session.email)) {
+    await forgetNativeSession(cookies);
+    // A failed delete keeps the cookie, so the next request asks again.
+    await destroyDashboardSession(cookies);
     return null;
   }
 

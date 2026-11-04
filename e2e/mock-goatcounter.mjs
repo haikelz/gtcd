@@ -75,6 +75,15 @@ const requestCounts = new Map();
 const exportJobs = new Map();
 const modernExports = process.env.MOCK_MODERN_EXPORTS === "true";
 
+// Login security fixtures (e2e/login-security.test.ts), chosen by email:
+// "throttled-*" gets GoatCounter's login rate limit (429); "race-mfa-*" gets a
+// TOTP challenge whose submissions are counted; "*@native.example" gets a
+// native session cookie, and /user/pref then accepts "active-*", rejects
+// "revoked-*" (removed in GoatCounter) and fails for "outage-*".
+const loginForwardedFor = new Map();
+const raceTotpAttempts = new Map();
+const nativePrefChecks = new Map();
+
 http
   .createServer(async (req, res) => {
     const path = new URL(req.url, "http://localhost").pathname;
@@ -90,7 +99,24 @@ http
 
     if (path === "/user/requestlogin") {
       const form = await readForm(req);
+      const email = form.get("email") ?? "";
+      loginForwardedFor.set(email, req.headers["x-forwarded-for"] ?? null);
+      if (email.startsWith("throttled-")) {
+        res.writeHead(429, { "retry-after": "60" });
+        return res.end("Rate limit exceeded");
+      }
       if (form.get("password") !== PASSWORD) return redirect(res, "/user/new");
+      if (email.startsWith("race-mfa-")) {
+        res.writeHead(200, { "content-type": "text/html" });
+        return res.end(totpForm.replace("mac-1", `race:${email}`));
+      }
+      if (email.endsWith("@native.example")) {
+        res.writeHead(303, {
+          location: "/",
+          "set-cookie": `key=native:${email}; Path=/; HttpOnly`,
+        });
+        return res.end();
+      }
       if (form.get("email") === MFA_EMAIL) {
         res.writeHead(200, { "content-type": "text/html" });
         return res.end(totpForm);
@@ -100,10 +126,45 @@ http
 
     if (path === "/user/totplogin") {
       const form = await readForm(req);
+      const mac = form.get("loginmac") ?? "";
+      if (mac.startsWith("race:")) {
+        raceTotpAttempts.set(mac, (raceTotpAttempts.get(mac) ?? 0) + 1);
+        // Answer slowly so parallel submissions overlap.
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        res.writeHead(200, { "content-type": "text/html" });
+        return res.end(totpForm.replace("mac-1", mac));
+      }
       if (form.get("loginmac") !== "mac-1") return redirect(res, "/user/new");
       if (form.get("totp_token") === TOTP_CODE) return redirect(res, "/");
       res.writeHead(200, { "content-type": "text/html" });
       return res.end(totpForm);
+    }
+
+    if (path === "/user/pref") {
+      const email =
+        /(?:^|;\s*)key=native:([^;]+)/.exec(req.headers.cookie ?? "")?.[1] ??
+        "";
+      nativePrefChecks.set(email, (nativePrefChecks.get(email) ?? 0) + 1);
+      if (email.startsWith("outage-")) {
+        res.writeHead(503);
+        return res.end();
+      }
+      if (!email.startsWith("active-")) return redirect(res, "/user/new");
+      res.writeHead(200, { "content-type": "text/html" });
+      return res.end(`<form method="post" action="/user/pref">
+  <input type="hidden" name="csrf" value="csrf-1">
+  <input type="email" name="user.email" value="${email}">
+</form>`);
+    }
+
+    if (path === "/__login-security") {
+      const email =
+        new URL(req.url, "http://localhost").searchParams.get("email") ?? "";
+      return json(res, {
+        forwardedFor: loginForwardedFor.get(email) ?? null,
+        prefChecks: nativePrefChecks.get(email) ?? 0,
+        totpAttempts: raceTotpAttempts.get(`race:${email}`) ?? 0,
+      });
     }
 
     if (path.endsWith("/me")) {

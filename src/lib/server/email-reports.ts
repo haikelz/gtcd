@@ -20,6 +20,7 @@ import {
   type ReportFrequency,
   type ReportPeriod,
 } from "$lib/report-period.js";
+import { lastLoginKey } from "$lib/server/auth/session.js";
 import { getDashboardLayout } from "$lib/server/dashboard-layout-store.js";
 import { getSites } from "$lib/server/goatcounter/admin.js";
 import { getVhost } from "$lib/server/goatcounter/client.js";
@@ -72,6 +73,7 @@ export type EmailReportSubscription = {
 
 const SUBSCRIBERS_KEY = "email-report:subscribers";
 const TICK_MS = 15 * 60_000;
+const REPORT_OWNER_MAX_ABSENCE_MS = 90 * 24 * 60 * 60_000;
 
 export const DEFAULT_SUBSCRIPTION: EmailReportSubscription = {
   frequency: "never",
@@ -155,6 +157,38 @@ async function getSubscribers(): Promise<string[]> {
   return Array.isArray(value)
     ? value.filter((email): email is string => typeof email === "string")
     : [];
+}
+
+/**
+ * Subscribers whose owner signed in to gtcd within 90 days. The scheduler
+ * cannot ask GoatCounter whether a user still exists, so a long absence
+ * stands in: a removed user stops receiving reports, and a returning user
+ * resumes after their next sign-in. A subscriber with no sign-in record yet
+ * (subscribed before this rule) starts the 90 days on first sight.
+ */
+async function activeSubscribers(): Promise<string[]> {
+  const subscribers = await getSubscribers();
+  const active: string[] = [];
+  const now = Date.now();
+
+  for (const email of subscribers) {
+    const recorded = await readDurableJson(lastLoginKey(email));
+    const lastLogin =
+      typeof recorded === "number"
+        ? recorded
+        : await updateDurableJson(lastLoginKey(email), (value) =>
+            typeof value === "number" ? value : now
+          );
+    if (now - lastLogin <= REPORT_OWNER_MAX_ABSENCE_MS) active.push(email);
+  }
+
+  const skipped = subscribers.length - active.length;
+  if (skipped > 0) {
+    console.info(
+      `email reports: skipped ${skipped} subscriber(s) with no gtcd sign-in in 90 days`
+    );
+  }
+  return active;
 }
 
 export async function getSubscription(
@@ -602,7 +636,7 @@ async function runDueReports(now: Date): Promise<void> {
     const state = await getSchedulerState();
     state.lastRunAt = now.toISOString();
     await saveSchedulerState(state, lease);
-    const subscribers = (await getSubscribers()).sort();
+    const subscribers = (await activeSubscribers()).sort();
     const cursor = state.cursor;
     const start = cursor ? subscribers.findIndex((email) => email > cursor) : 0;
     const offset = start < 0 ? 0 : start;

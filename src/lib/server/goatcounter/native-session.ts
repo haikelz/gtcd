@@ -238,6 +238,32 @@ export async function verifyNativeIdentity(
   return html;
 }
 
+/**
+ * True only when GoatCounter itself rejects the login stored with this gtcd
+ * session, e.g. after the user was removed or signed out there. An outage or
+ * a gtcd session with no stored GoatCounter login answers false.
+ */
+export async function isNativeAccountRevoked(
+  cookies: Cookies,
+  email: string
+): Promise<boolean> {
+  let session: NativeSession;
+  try {
+    session = await getNativeSession(cookies, email);
+  } catch {
+    return false;
+  }
+
+  try {
+    await verifyNativeIdentity(session);
+    return false;
+  } catch (cause) {
+    return cause instanceof NativeAdminError && cause.code === "reauthenticate";
+  } finally {
+    await saveNativeSession(cookies, session);
+  }
+}
+
 export async function logoutNativeSession(
   cookies: Cookies,
   email: string
