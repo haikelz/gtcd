@@ -388,10 +388,11 @@ export const actions = {
     } catch (cause: unknown) {
       return fail(400, {
         field: null,
-        message:
-          cause instanceof Error
-            ? cause.message
-            : translate(locals.locale, "settings.testVisitNotRecorded"),
+        message: stats.reportLoadError(
+          cause,
+          locals.locale,
+          "settings.testVisitNotRecorded"
+        ),
         testVisit: false,
       });
     }
@@ -428,10 +429,16 @@ export const actions = {
     } catch (cause: unknown) {
       return fail(400, {
         field: null,
+        // GoatCounter's validation text (e.g. a taken cname) helps; client
+        // internals such as retry timings do not.
         message:
-          cause instanceof Error
+          cause instanceof Error && !stats.isTransientUpstreamError(cause)
             ? cause.message
-            : translate(locals.locale, "settings.createSiteFailed"),
+            : stats.reportLoadError(
+                cause,
+                locals.locale,
+                "settings.createSiteFailed"
+              ),
         values,
       });
     }

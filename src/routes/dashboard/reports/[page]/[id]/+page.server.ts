@@ -8,6 +8,7 @@ import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 import {
   getStatsDetail,
   isStatsDetailPage,
+  streamReport,
 } from "$lib/server/goatcounter/stats.js";
 
 const REPORTS = {
@@ -67,31 +68,17 @@ export async function load({ locals, params, url, parent }) {
   const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
 
-  try {
-    const includePaths = await resolveFilter(getFilterFromUrl(url), { vhost });
-    const detail = await getStatsDetail(
-      params.page,
-      params.id,
-      start,
-      end,
-      50,
-      offset,
-      includePaths,
-      { vhost }
-    );
+  // Streamed: the page renders its skeleton while GoatCounter answers.
+  const page = params.page;
+  const detail = streamReport(
+    resolveFilter(getFilterFromUrl(url), { vhost }).then((includePaths) =>
+      getStatsDetail(page, params.id, start, end, 50, offset, includePaths, {
+        vhost,
+      })
+    ),
+    locals.locale,
+    "reports.detailLoadFailed"
+  );
 
-    return { range, offset, report, detail, detailId: params.id };
-  } catch (cause: unknown) {
-    return {
-      range,
-      offset,
-      report,
-      detail: null,
-      detailId: params.id,
-      error:
-        cause instanceof Error
-          ? cause.message
-          : translate(locals.locale, "reports.detailLoadFailed"),
-    };
-  }
+  return { detail, detailId: params.id, offset, range, report };
 }

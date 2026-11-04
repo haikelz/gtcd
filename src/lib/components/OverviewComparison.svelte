@@ -47,9 +47,19 @@
     showBrowsers,
     showLocations,
   }: Props = $props();
-  const totals = $derived(Promise.all([total, previous.total]));
-  const browserPair = $derived(Promise.all([browsers, previous.browsers]));
-  const locationPair = $derived(Promise.all([locations, previous.locations]));
+  // A failed current-period widget shows its own error; here it only makes
+  // the comparison unavailable.
+  const totals = $derived(Promise.all([orNull(total), previous.total]));
+  const browserPair = $derived(
+    Promise.all([orNull(browsers), previous.browsers])
+  );
+  const locationPair = $derived(
+    Promise.all([orNull(locations), previous.locations])
+  );
+
+  function orNull<T>(request: Promise<T>): Promise<T | null> {
+    return request.catch(() => null);
+  }
 
   function decimal(value: number, signed = false): string {
     return new Intl.NumberFormat(displayPreferences().locale, {

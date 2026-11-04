@@ -1,5 +1,9 @@
-import { gcFetch } from "./client.js";
+import { error } from "@sveltejs/kit";
+import type { Locale } from "$lib/dashboard-layout";
+import { type MessageKey, translate } from "$lib/i18n";
+import { gcFetch, UpstreamHttpError } from "./client.js";
 import type { GoatCounterRequestOptions } from "./client.js";
+import { PathFilterLimitError } from "./filter.js";
 import type {
   CountTotalResponse,
   GoatCounterUser,
@@ -280,4 +284,82 @@ export async function getPaths(
       };
     }),
   };
+}
+
+function isRateLimited(cause: unknown): boolean {
+  if (cause instanceof UpstreamHttpError) return cause.status === 429;
+
+  // ponytail: gcFetch reports an exhausted 429 retry budget as a plain Error,
+  // so its fixed prefix is the only signal. Check the status instead once
+  // client.ts throws UpstreamHttpError for 429.
+  return (
+    cause instanceof Error &&
+    cause.message.startsWith("Rate limit exceeded (429)")
+  );
+}
+
+function isUnavailable(cause: unknown): boolean {
+  if (cause instanceof UpstreamHttpError) {
+    return cause.status === 408 || cause.status >= 500;
+  }
+  if (!(cause instanceof Error)) return false;
+
+  // AbortSignal.timeout rejects with TimeoutError; undici reports network
+  // failures as a TypeError that carries the socket error as its cause.
+  return (
+    cause.name === "TimeoutError" ||
+    (cause instanceof TypeError && cause.cause !== undefined)
+  );
+}
+
+/**
+ * A translated, user-safe message for a failed report request. Upstream text
+ * stays in the server log; unknown failures use the page's own message.
+ */
+/** A rate limit, timeout or outage: worth a retry, not worth showing raw. */
+export function isTransientUpstreamError(cause: unknown): boolean {
+  return isRateLimited(cause) || isUnavailable(cause);
+}
+
+export function reportLoadError(
+  cause: unknown,
+  locale: Locale,
+  fallback: MessageKey
+): string {
+  console.error(
+    "Report request failed:",
+    cause instanceof Error ? cause.message : cause
+  );
+
+  if (cause instanceof PathFilterLimitError) {
+    return translate(locale, "common.filterLimit", {
+      limit: cause.limit.toLocaleString(locale),
+    });
+  }
+  if (isRateLimited(cause)) return translate(locale, "common.rateLimited");
+  if (isUnavailable(cause)) {
+    return translate(locale, "common.upstreamUnavailable");
+  }
+
+  return translate(locale, fallback);
+}
+
+/**
+ * A report request for a load function to stream. A failure rejects with
+ * the translated message as an expected error, which reaches the page's
+ * {:catch} block as `{ message }`.
+ */
+export function streamReport<T>(
+  request: Promise<T>,
+  locale: Locale,
+  fallback: MessageKey
+): Promise<T> {
+  const streamed = request.catch((cause: unknown) => {
+    throw error(503, reportLoadError(cause, locale, fallback));
+  });
+
+  // SvelteKit handles the rejection once it serializes the promise; mark it
+  // handled now so a fast failure cannot become an unhandled rejection.
+  streamed.catch(() => {});
+  return streamed;
 }

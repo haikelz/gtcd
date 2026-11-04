@@ -75,6 +75,7 @@ export default {
   "customize.moveDown": "Pindahkan {widget} ke bawah",
   "customize.moveUp": "Pindahkan {widget} ke atas",
   "customize.noViews": "Belum ada tampilan tersimpan",
+  "customize.openOverview": "Buka ringkasan",
   "customize.noViewsDescription":
     "Untuk menyimpan laporan, pilih Tampilan → Simpan tampilan ini di toolbar.",
   "customize.removeDefault": "Hapus bawaan",

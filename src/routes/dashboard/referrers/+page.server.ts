@@ -1,4 +1,3 @@
-import { translate } from "$lib/i18n";
 import {
   getFilterFromUrl,
   resolveFilter,
@@ -11,27 +10,16 @@ export async function load({ locals, url, parent }) {
   const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
 
-  try {
-    const includePaths = await resolveFilter(getFilterFromUrl(url), { vhost });
-    const refs = await stats.getStats(
-      "toprefs",
-      start,
-      end,
-      100,
-      offset,
-      includePaths,
-      { vhost }
-    );
-    return { range, offset, refs };
-  } catch (error: unknown) {
-    return {
-      range,
-      offset,
-      error:
-        error instanceof Error
-          ? error.message
-          : translate(locals.locale, "reports.referrersLoadFailed"),
-      refs: null,
-    };
-  }
+  // Streamed: the page renders its skeleton while GoatCounter answers.
+  const refs = stats.streamReport(
+    resolveFilter(getFilterFromUrl(url), { vhost }).then((includePaths) =>
+      stats.getStats("toprefs", start, end, 100, offset, includePaths, {
+        vhost,
+      })
+    ),
+    locals.locale,
+    "reports.referrersLoadFailed"
+  );
+
+  return { offset, range, refs };
 }

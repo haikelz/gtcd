@@ -87,4 +87,5 @@ export default {
   "overview.viewLocationsReport": "Lihat laporan lokasi",
   "overview.viewReport": "Lihat laporan {name}",
   "overview.visits": "Kunjungan",
+  "overview.widgetFailed": "Gagal dimuat",
 } satisfies Record<keyof typeof en, string>;

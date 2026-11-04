@@ -1,6 +1,4 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve -- the "Go to path"
-     href is an external live-site URL, not an internal route. */
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
@@ -8,7 +6,9 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import ReportEmptyActions from "$lib/components/ReportEmptyActions.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
+  import ReportSkeleton from "$lib/components/ReportSkeleton.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import {
     Frame,
@@ -16,8 +16,9 @@
     FramePanel,
     FrameTitle,
   } from "$lib/components/ui/frame";
+  import type { HitsResponse } from "$lib/server/goatcounter/types";
   import { ArrowLeft, Link2 } from "@lucide/svelte";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -30,93 +31,119 @@
     return query ? `${page.url.pathname}?${query}` : page.url.pathname;
   }
 
-  const pageTitle = $derived(
-    data.hits?.hits?.find((hit) => hit.path_id === data.pathId)?.path ||
+  function currentHit(hits: HitsResponse | null) {
+    return hits?.hits.find((hit) => hit.path_id === data.pathId);
+  }
+
+  function pageTitle(hits: HitsResponse | null): string {
+    return (
+      currentHit(hits)?.path ||
       t("reports.pageDetailFallbackTitle", { id: data.pathId })
-  );
+    );
+  }
 
-  const currentHit = $derived(
-    data.hits?.hits?.find((hit) => hit.path_id === data.pathId)
-  );
-
-  const goHref = $derived.by(() => {
+  function goHref(hits: HitsResponse | null): string | null {
     const linkDomain = data.site?.linkDomain;
-    if (!linkDomain || currentHit?.event) return null;
+    const hit = currentHit(hits);
+    if (!linkDomain || !hit || hit.event) return null;
+
     const base = /^https?:\/\//i.test(linkDomain)
       ? linkDomain
       : `http://${linkDomain}`;
-    const path = pageTitle.startsWith("/") ? pageTitle : `/${pageTitle}`;
+    const path = hit.path.startsWith("/") ? hit.path : `/${hit.path}`;
     return `${base.replace(/\/+$/, "")}${path}`;
-  });
+  }
 </script>
 
-<SEO
-  description={t("reports.pageDetailSeoDescription", { title: pageTitle })}
-  noindex
-  title={pageTitle}
-/>
-
-<PageHeader
-  description={t("reports.pageDetailDescription")}
-  title={pageTitle}
-  titleClass="font-mono"
->
-  {#snippet eyebrow()}
-    <a
-      class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      href={resolve("/dashboard/pages")}
-    >
-      <ArrowLeft aria-hidden="true" class="size-4" />
-      {t("reports.backToPages")}
-    </a>
-  {/snippet}
-  {#snippet actions()}
-    {#if goHref}
-      <a
-        class="inline-block max-w-full truncate text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-        href={goHref}
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        {t("reports.pageDetailGoTo", {
-          url: goHref.replace(/^https?:\/\//i, ""),
-        })}
-      </a>
-    {/if}
-  {/snippet}
-</PageHeader>
+{#await data.hits}
+  {@render header(null)}
+{:then hits}
+  {@render header(hits)}
+{/await}
 
 <DashboardToolbar showFilter />
 
-{#if data.error}
-  <ErrorAlert message={data.error} />
-{:else if data.refs?.refs && data.refs.refs.length > 0}
-  <Frame class="animate-fade-in">
+{#await data.refs}
+  <Frame>
     <FrameHeader>
       <FrameTitle>{t("reports.pageDetailReferrers")}</FrameTitle>
     </FrameHeader>
-    <FramePanel>
-      <BarChart
-        data={data.refs.refs}
-        label={t("reports.referrerLabel")}
-        maxItems={30}
-      />
-      <ReportPagination
-        nextHref={data.refs.more ? refsHref(data.offset + 30) : undefined}
-        previousHref={data.offset > 0
-          ? refsHref(Math.max(0, data.offset - 30))
-          : undefined}
-      />
-    </FramePanel>
+    <FramePanel><ReportSkeleton /></FramePanel>
   </Frame>
-{:else}
-  <Frame class="animate-fade-in">
-    <FramePanel>
-      <EmptyState
-        desc={t("reports.pageDetailEmptyDescription")}
-        icon={Link2}
-        title={t("reports.pageDetailEmptyTitle")}
-      />
-    </FramePanel>
-  </Frame>
-{/if}
+{:then refs}
+  {#if refs.refs.length > 0}
+    <Frame>
+      <FrameHeader>
+        <FrameTitle>{t("reports.pageDetailReferrers")}</FrameTitle>
+      </FrameHeader>
+      <FramePanel>
+        <BarChart
+          data={refs.refs}
+          label={t("reports.referrerLabel")}
+          maxItems={30}
+        />
+        <ReportPagination
+          nextHref={refs.more ? refsHref(data.offset + 30) : undefined}
+          previousHref={data.offset > 0
+            ? refsHref(Math.max(0, data.offset - 30))
+            : undefined}
+        />
+      </FramePanel>
+    </Frame>
+  {:else}
+    <Frame>
+      <FramePanel>
+        <EmptyState
+          desc={t("reports.pageDetailEmptyDescription")}
+          icon={Link2}
+          title={t("reports.pageDetailEmptyTitle")}
+        >
+          {#snippet actions()}<ReportEmptyActions
+              filterable={false}
+            />{/snippet}
+        </EmptyState>
+      </FramePanel>
+    </Frame>
+  {/if}
+{:catch failure}
+  <ErrorAlert message={failure.message} />
+{/await}
+
+{#snippet header(hits: HitsResponse | null)}
+  {@const title = pageTitle(hits)}
+  {@const href = goHref(hits)}
+  <SEO
+    description={t("reports.pageDetailSeoDescription", { title })}
+    noindex
+    {title}
+  />
+  <PageHeader
+    description={t("reports.pageDetailDescription")}
+    {title}
+    titleClass="font-mono"
+  >
+    {#snippet eyebrow()}
+      <a
+        class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        href={dashboardHref(resolve("/dashboard/pages"), { view: true })}
+      >
+        <ArrowLeft aria-hidden="true" class="size-4" />
+        {t("reports.backToPages")}
+      </a>
+    {/snippet}
+    {#snippet actions()}
+      {#if href}
+        <a
+          class="inline-block max-w-full truncate text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          {href}
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {t("reports.pageDetailGoTo", {
+            url: href.replace(/^https?:\/\//i, ""),
+          })}
+        </a>
+      {/if}
+    {/snippet}
+  </PageHeader>
+{/snippet}

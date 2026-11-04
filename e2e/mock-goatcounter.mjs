@@ -74,6 +74,9 @@ function json(res, value) {
 const requestCounts = new Map();
 const exportJobs = new Map();
 const modernExports = process.env.MOCK_MODERN_EXPORTS === "true";
+// Method, path and Host of each request, so tests can tell which site a
+// write went to.
+const requestLog = [];
 
 // Login security fixtures (e2e/login-security.test.ts), chosen by email:
 // "throttled-*" gets GoatCounter's login rate limit (429); "race-mfa-*" gets a
@@ -90,9 +93,25 @@ http
     if (path === "/__metrics") {
       return json(res, Object.fromEntries(requestCounts));
     }
+    if (path === "/__requests") return json(res, requestLog);
+    requestLog.push({ host: req.headers.host, method: req.method, path });
     requestCounts.set(path, (requestCounts.get(path) ?? 0) + 1);
     if (path === "/status")
       return json(res, { version: modernExports ? "dev" : "v2.7.0" });
+    // Reports for the fixed year 2041 hit GoatCounter's rate limit.
+    if (
+      path.includes("/stats/") &&
+      new URL(req.url, "http://localhost").searchParams
+        .get("start")
+        ?.startsWith("2041-")
+    ) {
+      res.writeHead(429, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ error: "rate limited" }));
+    }
+    if (path === "/api/v0/count" && req.method === "POST") {
+      res.writeHead(202);
+      return res.end();
+    }
     if (STATS_DELAY_MS && path.includes("/stats/")) {
       await new Promise((resolve) => setTimeout(resolve, STATS_DELAY_MS));
     }

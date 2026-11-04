@@ -73,6 +73,7 @@ export default {
   "customize.moveDown": "Move {widget} down",
   "customize.moveUp": "Move {widget} up",
   "customize.noViews": "No saved views yet",
+  "customize.openOverview": "Open overview",
   "customize.noViewsDescription":
     "To save a report, select Views → Save current view in the toolbar.",
   "customize.removeDefault": "Remove default",

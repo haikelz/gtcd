@@ -61,6 +61,7 @@ export default {
   "reports.languagesSeoTitle": "Bahasa — gtcd",
   "reports.languagesTitle": "Bahasa",
   "reports.loadFailed": "Laporan ini gagal dimuat.",
+  "reports.loading": "Memuat laporan",
   "reports.locationLabel": "Negara",
   "reports.locationsDescription": "Pengunjung menurut negara.",
   "reports.locationsEmptyDescription":
@@ -85,7 +86,6 @@ export default {
   "reports.pagesEmptyDescription":
     "Belum ada halaman terlacak pada periode ini.",
   "reports.pagesEmptyTitle": "Belum ada data halaman",
-  "reports.pagesInvalidList": "Pilih daftar halaman yang valid.",
   "reports.paginationExpired":
     "Tautan halaman ini sudah kedaluwarsa atau milik laporan lain. Atur ulang paginasi untuk melanjutkan.",
   "reports.paginationLimit":
@@ -138,6 +138,8 @@ export default {
   "reports.referrersSources": "{count} sumber dalam periode ini",
   "reports.referrersTitle": "Perujuk teratas",
   "reports.screenSizeLabel": "Ukuran layar",
+  "reports.setUpTracking": "Siapkan pelacakan",
+  "reports.showLastYear": "Tampilkan 12 bulan terakhir",
   "reports.systemLabel": "Sistem operasi",
   "reports.systemsDescription": "Pengunjung menurut sistem operasi.",
   "reports.systemsEmptyDescription":

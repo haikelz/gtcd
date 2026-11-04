@@ -1,10 +1,8 @@
 import {
   isWidgetVisible,
-  type Locale,
   type WidgetId,
   widgetLimit,
 } from "$lib/dashboard-layout.js";
-import { translate } from "$lib/i18n";
 import { previousRange } from "$lib/period.js";
 import {
   getFilterFromUrl,
@@ -16,16 +14,12 @@ import { getDateRangeFromUrl, toDateRange } from "$lib/server/helpers.js";
 import { orNull } from "$lib/server/report-summary.js";
 import type { PageServerLoad } from "./$types";
 
-function errorMessage(reason: unknown, locale: Locale): string {
-  return reason instanceof Error
-    ? reason.message
-    : translate(locale, "overview.loadFailed");
-}
-
 /**
  * The overview streams every GoatCounter request: the page renders as soon as
  * the filter resolves, and each widget fills in when its own data arrives.
  * Upstream pacing (4 req/s) would otherwise hold the whole page for seconds.
+ * A failed widget rejects with a translated message so it can show an error
+ * with Retry instead of looking empty.
  */
 export const load: PageServerLoad = async ({ url, parent }) => {
   const { dashboardLayout, preferences, vhost } = await parent();
@@ -45,18 +39,19 @@ export const load: PageServerLoad = async ({ url, parent }) => {
   let includePaths: number[] | undefined;
   try {
     includePaths = await resolveFilter(getFilterFromUrl(url), requestOptions);
-  } catch (e: unknown) {
+  } catch (cause: unknown) {
     const none = Promise.resolve(null);
 
+    // Without a resolved filter no widget has data; the page shows only this.
     return {
       browsers: none,
       campaigns: none,
       comparison: { total: none, browsers: none, locations: none },
       diffs: none,
-      error: Promise.resolve(
-        e instanceof Error
-          ? e.message
-          : translate(preferences.locale, "overview.filterFailed")
+      filterError: stats.reportLoadError(
+        cause,
+        preferences.locale,
+        "overview.filterFailed"
       ),
       hits: none,
       languages: none,
@@ -121,9 +116,11 @@ export const load: PageServerLoad = async ({ url, parent }) => {
       ? stats.getTotal(start, end, includePaths, requestOptions)
       : null,
   };
-  const started = Object.values(requests).filter(
-    (request): request is NonNullable<typeof request> => request !== null
-  );
+  function widget<T>(request: Promise<T> | null): Promise<T | null> {
+    return request
+      ? stats.streamReport(request, preferences.locale, "overview.loadFailed")
+      : Promise.resolve(null);
+  }
 
   // Change against the previous period, per displayed page — like
   // GoatCounter's dashboard. A nice-to-have: never fail the page for it.
@@ -154,7 +151,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
     return diffs;
   }
 
-  const hits = orNull(requests.hits);
+  const hits = widget(requests.hits);
 
   // Queue comparison work after current widgets. Stats calls retain the shared
   // cache, site isolation and outbound pacing; failures stay comparison-local.
@@ -198,28 +195,18 @@ export const load: PageServerLoad = async ({ url, parent }) => {
   };
 
   return {
-    browsers: orNull(requests.browsers),
-    campaigns: orNull(requests.campaigns),
+    browsers: widget(requests.browsers),
+    campaigns: widget(requests.campaigns),
     comparison,
     diffs: hits.then(previousPeriodDiffs).catch(() => null),
-    // Only a load-wide failure gets the page-level alert; a single failed
-    // widget falls back to its empty state.
-    error: Promise.allSettled(started).then((results) => {
-      const failures = results.filter(
-        (result): result is PromiseRejectedResult =>
-          result.status === "rejected"
-      );
-      return started.length > 0 && failures.length === started.length
-        ? errorMessage(failures[0].reason, preferences.locale)
-        : null;
-    }),
+    filterError: null,
     hits,
-    languages: orNull(requests.languages),
-    locations: orNull(requests.locations),
+    languages: widget(requests.languages),
+    locations: widget(requests.locations),
     range,
-    referrers: orNull(requests.referrers),
-    sizes: orNull(requests.sizes),
-    systems: orNull(requests.systems),
-    total: orNull(requests.total),
+    referrers: widget(requests.referrers),
+    sizes: widget(requests.sizes),
+    systems: widget(requests.systems),
+    total: widget(requests.total),
   };
 };

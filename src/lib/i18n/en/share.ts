@@ -51,7 +51,6 @@ export default {
   "share.readOnly": "Read-only analytics, shared from GoatCounter.",
   "share.referrer": "Referrer",
   "share.referrers": "Top referrers",
-  "share.title": "{site} analytics",
   "share.topCountry": "Top country",
   "share.topPage": "Top page",
   "share.topPages": "Top pages",

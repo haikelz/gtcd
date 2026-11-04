@@ -8,6 +8,7 @@
   import DonutChart from "$lib/components/DonutChart.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import PageRow from "$lib/components/PageRow.svelte";
+  import ReportEmptyActions from "$lib/components/ReportEmptyActions.svelte";
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import StatCard from "$lib/components/StatCard.svelte";
@@ -32,6 +33,7 @@
   } from "$lib/components/ui/frame";
   import { widgetLimit, widgetStyle } from "$lib/dashboard-layout";
   import {
+    dashboardHref,
     displayPreferences,
     formatCount,
     numbersHidden,
@@ -73,11 +75,6 @@
   const prev = $derived(previousRange(range.start, range.end));
 
   const linkDomain = $derived(data.site?.linkDomain ?? "");
-  const customizeHref = $derived(
-    page.url.searchParams.get("site")
-      ? `${resolve("/dashboard/customize")}?site=${page.url.searchParams.get("site")}`
-      : resolve("/dashboard/customize")
-  );
   const receivedData = $derived(data.site?.receivedData !== false);
   const snippetEndpoint = $derived(
     data.vhost ? `https://${data.vhost}` : page.url.origin
@@ -180,7 +177,10 @@
   title={t("overview.pageTitle")}
 >
   {#snippet actions()}
-    <Button href={customizeHref} variant="outline">
+    <Button
+      href={dashboardHref(resolve("/dashboard/customize"))}
+      variant="outline"
+    >
       <SlidersHorizontal />
       {t("overview.customize")}
     </Button>
@@ -209,7 +209,9 @@
     <AlertAction>
       {#if data.isAdmin}
         <form
-          action="/dashboard/settings?/sendTestVisit"
+          action={dashboardHref(
+            `${resolve("/dashboard/settings")}?/sendTestVisit`
+          )}
           method="POST"
           use:enhance={() =>
             async ({ result }) => {
@@ -228,44 +230,48 @@
           </Button>
         </form>
       {/if}
-      <Button href={resolve("/dashboard/settings")} size="sm" variant="outline">
+      <Button
+        href={dashboardHref(resolve("/dashboard/settings"))}
+        size="sm"
+        variant="outline"
+      >
         {t("overview.siteSettings")}
       </Button>
     </AlertAction>
   </Alert>
 {/if}
 
-{#await data.error then error}
-  {#if error}
-    <ErrorAlert class="mb-4" message={error} title={t("overview.errorTitle")} />
+{#if data.filterError}
+  <ErrorAlert message={data.filterError} title={t("overview.errorTitle")} />
+{:else}
+  {#if !visibleWidgets.includes("kpis")}
+    <div class="mb-6">{@render comparisonWidget()}</div>
   {/if}
-{/await}
 
-{#if !visibleWidgets.includes("kpis")}
-  <div class="mb-6">{@render comparisonWidget()}</div>
-{/if}
-
-<div class="grid gap-6 xl:grid-flow-dense xl:grid-cols-12">
-  {#each visibleWidgets as widgetId (widgetId)}
-    {#if widgetId === "kpis"}
-      {@render kpiWidget()}
-      <div class="xl:col-span-12">{@render comparisonWidget()}</div>
-    {:else if widgetId === "traffic"}
-      {@render trafficWidget()}
-    {:else if widgetId === "browsers"}
-      {@render browsersWidget()}
-    {:else if widgetId === "pages"}
-      {@render pagesWidget()}
-    {:else if widgetId === "locations"}
-      {@render locationsWidget()}
-    {:else}
-      {@const report = technicalReports.find((entry) => entry.id === widgetId)}
-      {#if report}
-        {@render technicalWidget(report)}
+  <div class="grid gap-6 xl:grid-flow-dense xl:grid-cols-12">
+    {#each visibleWidgets as widgetId (widgetId)}
+      {#if widgetId === "kpis"}
+        {@render kpiWidget()}
+        <div class="xl:col-span-12">{@render comparisonWidget()}</div>
+      {:else if widgetId === "traffic"}
+        {@render trafficWidget()}
+      {:else if widgetId === "browsers"}
+        {@render browsersWidget()}
+      {:else if widgetId === "pages"}
+        {@render pagesWidget()}
+      {:else if widgetId === "locations"}
+        {@render locationsWidget()}
+      {:else}
+        {@const report = technicalReports.find(
+          (entry) => entry.id === widgetId
+        )}
+        {#if report}
+          {@render technicalWidget(report)}
+        {/if}
       {/if}
-    {/if}
-  {/each}
-</div>
+    {/each}
+  </div>
+{/if}
 
 {#snippet comparisonWidget()}
   {#if visibleWidgets.some( (id) => ["kpis", "traffic", "browsers", "locations"].includes(id) )}
@@ -309,6 +315,8 @@
             : t("overview.kpiInPeriod")}
         value={total && !numbersHidden() ? formatCount(total.total) : "—"}
       />
+    {:catch}
+      {@render failedStat(ChartNoAxesCombined, t("overview.visits"))}
     {/await}
     {#await data.hits}
       <StatCard icon={FileText} label={t("overview.kpiTrackedPages")} loading />
@@ -319,6 +327,8 @@
         subtext={t("overview.kpiPathsInReport")}
         value={hits ? formatCount(hits.hits.length) : "—"}
       />
+    {:catch}
+      {@render failedStat(FileText, t("overview.kpiTrackedPages"))}
     {/await}
     {#await data.browsers}
       <StatCard icon={Globe} label={t("overview.kpiTopBrowser")} loading />
@@ -336,6 +346,8 @@
               })}
         value={browsers?.stats?.[0]?.name?.trim() || "—"}
       />
+    {:catch}
+      {@render failedStat(Globe, t("overview.kpiTopBrowser"))}
     {/await}
     {#await data.locations}
       <StatCard icon={MapPin} label={t("overview.kpiTopCountry")} loading />
@@ -353,8 +365,14 @@
               })}
         value={locations?.stats?.[0]?.name?.trim() || "—"}
       />
+    {:catch}
+      {@render failedStat(MapPin, t("overview.kpiTopCountry"))}
     {/await}
   </section>
+{/snippet}
+
+{#snippet failedStat(icon: typeof Globe, label: string)}
+  <StatCard {icon} {label} subtext={t("overview.widgetFailed")} />
 {/snippet}
 
 {#snippet trafficWidget()}
@@ -397,6 +415,8 @@
           height={280}
           style={trafficStyle}
         />
+      {:catch failure}
+        <ErrorAlert message={failure.message} />
       {/await}
     </FramePanel>
   </Frame>
@@ -421,7 +441,7 @@
       </div>
       <Button
         aria-label={t("overview.viewBrowserReport")}
-        href={resolve("/dashboard/browsers")}
+        href={dashboardHref(resolve("/dashboard/browsers"), { view: true })}
         size="icon-sm"
         title={t("overview.viewBrowserReport")}
         variant="ghost"
@@ -437,7 +457,19 @@
           {@render listSkeleton(4)}
         </div>
       {:then browsers}
-        <DonutChart data={browsers?.stats ?? []} />
+        {#if browsers?.stats?.length}
+          <DonutChart data={browsers.stats} />
+        {:else}
+          <EmptyState
+            desc={t("overview.emptyAudienceDescription")}
+            icon={Globe}
+            title={t("overview.noBrowserData")}
+          >
+            {#snippet actions()}<ReportEmptyActions />{/snippet}
+          </EmptyState>
+        {/if}
+      {:catch failure}
+        <ErrorAlert message={failure.message} />
       {/await}
     </FramePanel>
   </Frame>
@@ -460,7 +492,11 @@
       </div>
       <div class="flex items-center gap-1">
         <ScaleToggle />
-        <Button href={resolve("/dashboard/pages")} size="sm" variant="ghost">
+        <Button
+          href={dashboardHref(resolve("/dashboard/pages"), { view: true })}
+          size="sm"
+          variant="ghost"
+        >
           {t("overview.allPages")}
           <ArrowUpRight />
         </Button>
@@ -496,8 +532,12 @@
             desc={t("overview.emptyPagesDescription")}
             icon={FileText}
             title={t("overview.noPageData")}
-          />
+          >
+            {#snippet actions()}<ReportEmptyActions />{/snippet}
+          </EmptyState>
         {/if}
+      {:catch failure}
+        <ErrorAlert message={failure.message} />
       {/await}
     </FramePanel>
   </Frame>
@@ -522,7 +562,7 @@
       </div>
       <Button
         aria-label={t("overview.viewLocationsReport")}
-        href={resolve("/dashboard/locations")}
+        href={dashboardHref(resolve("/dashboard/locations"), { view: true })}
         size="icon-sm"
         title={t("overview.viewLocationsReport")}
         variant="ghost"
@@ -549,8 +589,12 @@
             desc={t("overview.emptyAudienceDescription")}
             icon={MapPin}
             title={t("overview.noLocationData")}
-          />
+          >
+            {#snippet actions()}<ReportEmptyActions />{/snippet}
+          </EmptyState>
         {/if}
+      {:catch failure}
+        <ErrorAlert message={failure.message} />
       {/await}
     </FramePanel>
   </Frame>
@@ -576,7 +620,7 @@
         aria-label={t("overview.viewReport", {
           name: report.title.toLowerCase(),
         })}
-        href={resolve(report.href)}
+        href={dashboardHref(resolve(report.href), { view: true })}
         size="icon-sm"
         title={t("overview.viewReport", { name: report.title.toLowerCase() })}
         variant="ghost"
@@ -609,8 +653,12 @@
             title={t("overview.emptyReportTitle", {
               name: report.title.toLowerCase(),
             })}
-          />
+          >
+            {#snippet actions()}<ReportEmptyActions />{/snippet}
+          </EmptyState>
         {/if}
+      {:catch failure}
+        <ErrorAlert message={failure.message} />
       {/await}
     </FramePanel>
   </Frame>
@@ -626,9 +674,10 @@
         diff={diffs?.[hit.path_id]}
         group={groups.group}
         {hit}
-        href={resolve("/dashboard/pages/[id]", {
-          id: String(hit.path_id),
-        })}
+        href={dashboardHref(
+          resolve("/dashboard/pages/[id]", { id: String(hit.path_id) }),
+          { view: true }
+        )}
         {linkDomain}
         chartStyle={pagesStyle}
         rank={i + 1}

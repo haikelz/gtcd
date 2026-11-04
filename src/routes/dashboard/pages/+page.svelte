@@ -6,6 +6,7 @@
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import PageRow from "$lib/components/PageRow.svelte";
+  import ReportEmptyActions from "$lib/components/ReportEmptyActions.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
@@ -20,7 +21,7 @@
   } from "$lib/components/ui/frame";
   import { statsScaleMax } from "$lib/period.js";
   import { FileText } from "@lucide/svelte";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -91,7 +92,12 @@
               <PageRow
                 diff={diffs?.[hit.path_id]}
                 {hit}
-                href={resolve(`/dashboard/pages/${hit.path_id}`)}
+                href={dashboardHref(
+                  resolve("/dashboard/pages/[id]", {
+                    id: String(hit.path_id),
+                  }),
+                  { view: true }
+                )}
                 {linkDomain}
                 rank={i + 1}
                 scaleMax={sharedScaleMax}
@@ -149,7 +155,9 @@
         desc={t("reports.pagesEmptyDescription")}
         icon={FileText}
         title={t("reports.pagesEmptyTitle")}
-      />
+      >
+        {#snippet actions()}<ReportEmptyActions />{/snippet}
+      </EmptyState>
     </FramePanel>
   </Frame>
 {/if}

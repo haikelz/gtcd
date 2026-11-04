@@ -1,5 +1,4 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-navigation-without-resolve -- view links are resolve("/dashboard") plus saved query parameters; returnTo is validated server-side. */
   import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
@@ -21,7 +20,7 @@
   } from "$lib/components/ui/frame";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import { formatDate } from "$lib/preferences";
   import { REPORT_FREQUENCIES } from "$lib/report-period";
   import {
@@ -159,7 +158,7 @@
 {/if}
 
 <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-  <div class="space-y-4">
+  <div class="flex flex-col gap-4">
     {#if data.saveQuery !== null}
       <Frame>
         <FrameHeader>
@@ -170,7 +169,11 @@
             {t("customize.saveViewDescription")}
           </FrameDescription>
         </FrameHeader>
-        <form action="?/saveView" method="POST" use:enhance={notifyAndUpdate}>
+        <form
+          action={dashboardHref("?/saveView")}
+          method="POST"
+          use:enhance={notifyAndUpdate}
+        >
           <FramePanel aria-labelledby="save-view-heading" class="grid gap-5">
             <input name="query" type="hidden" value={data.saveQuery} />
             <input name="returnTo" type="hidden" value={data.returnTo ?? ""} />
@@ -243,7 +246,7 @@
                       href={viewHref(view.query)}>{view.name}</a
                     >
                     {#if isDefault}
-                      <Badge size="sm" variant="primary-light"
+                      <Badge variant="primary-light"
                         >{t("customize.defaultBadge")}</Badge
                       >
                     {/if}
@@ -254,7 +257,7 @@
                 </div>
                 <div class="flex items-center gap-1">
                   <form
-                    action="?/setDefaultView"
+                    action={dashboardHref("?/setDefaultView")}
                     method="POST"
                     use:enhance={notifyAndUpdate}
                   >
@@ -278,7 +281,7 @@
                     </Button>
                   </form>
                   <form
-                    action="?/deleteView"
+                    action={dashboardHref("?/deleteView")}
                     method="POST"
                     use:enhance={notifyAndUpdate}
                   >
@@ -304,7 +307,15 @@
             desc={t("customize.noViewsDescription")}
             icon={Bookmark}
             title={t("customize.noViews")}
-          />
+          >
+            {#snippet actions()}
+              <Button
+                href={dashboardHref(resolve("/dashboard"))}
+                size="sm"
+                variant="outline">{t("customize.openOverview")}</Button
+              >
+            {/snippet}
+          </EmptyState>
         {/if}
       </FramePanel>
     </Frame>
@@ -315,7 +326,11 @@
           {t("customize.displayDescription")}
         </FrameDescription>
       </FrameHeader>
-      <form action="?/saveDisplay" method="POST" use:enhance={notifyAndUpdate}>
+      <form
+        action={dashboardHref("?/saveDisplay")}
+        method="POST"
+        use:enhance={notifyAndUpdate}
+      >
         <FramePanel aria-labelledby="display-heading" class="grid gap-5">
           <div class="grid gap-2">
             <Label for="display-fewer-numbers"
@@ -389,7 +404,7 @@
       </FrameHeader>
       {#if reports.configured}
         <form
-          action="?/saveEmailReport"
+          action={dashboardHref("?/saveEmailReport")}
           method="POST"
           use:enhance={notifyAndUpdate}
         >
@@ -455,7 +470,7 @@
           </FramePanel>
           <FrameFooter class="flex-row flex-wrap justify-end gap-2">
             <Button
-              formaction="?/sendTestEmail"
+              formaction={dashboardHref("?/sendTestEmail")}
               type="submit"
               variant="outline"
             >
@@ -492,7 +507,11 @@
           })}</FrameDescription
         >
       </FrameHeader>
-      <form action="?/saveTrafficAlert" method="POST" use:enhance={saveAlert}>
+      <form
+        action={dashboardHref("?/saveTrafficAlert")}
+        method="POST"
+        use:enhance={saveAlert}
+      >
         <FramePanel class="grid gap-4">
           <Label for="alert-enabled" class="leading-normal">
             <Checkbox
@@ -616,7 +635,11 @@
         {t("customize.widgetsDescription")}
       </FrameDescription>
     </FrameHeader>
-    <form action="?/saveWidgets" method="POST" use:enhance={notifyAndUpdate}>
+    <form
+      action={dashboardHref("?/saveWidgets")}
+      method="POST"
+      use:enhance={notifyAndUpdate}
+    >
       <FramePanel aria-labelledby="widgets-heading" class="p-0">
         <ol class="divide-y divide-border">
           {#each widgets as widget, index (widget.id)}

@@ -1,6 +1,6 @@
 import type { Locale } from "$lib/dashboard-layout";
 import { translate } from "$lib/i18n";
-import { getPaths } from "$lib/server/goatcounter/stats.js";
+import { getPaths, reportLoadError } from "$lib/server/goatcounter/stats.js";
 
 function parseAfter(value: string | null, locale: Locale): number | undefined {
   if (!value) return undefined;
@@ -28,10 +28,7 @@ export async function load({ locals, url, parent }) {
       after,
       nextAfter: undefined,
       paths: null,
-      error:
-        cause instanceof Error
-          ? cause.message
-          : translate(locals.locale, "reports.pathsLoadFailed"),
+      error: reportLoadError(cause, locals.locale, "reports.pathsLoadFailed"),
     };
   }
 }

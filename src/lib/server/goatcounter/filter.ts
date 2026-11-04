@@ -22,6 +22,19 @@ interface PathScanEntry {
 
 const cache = new Map<string, PathScanEntry>();
 
+/** The site has more paths than a filter may scan. */
+export class PathFilterLimitError extends Error {
+  readonly limit = MAX_PATH_SCAN;
+
+  constructor() {
+    super(
+      `This site has more than ${MAX_PATH_SCAN} paths, which is the limit ` +
+        "for path filtering."
+    );
+    this.name = "PathFilterLimitError";
+  }
+}
+
 /** Read and normalize the filter query parameter. */
 export function getFilterFromUrl(url: URL): string {
   const raw = url.searchParams.get("filter");
@@ -112,13 +125,7 @@ export async function resolveFilter(
     if (last) after = last.id;
 
     if (scanned >= MAX_PATH_SCAN) {
-      if (more) {
-        throw new Error(
-          `This site has more than ${MAX_PATH_SCAN.toLocaleString()} paths, ` +
-            "which is the limit for path filtering. Remove the filter to " +
-            "view reports."
-        );
-      }
+      if (more) throw new PathFilterLimitError();
       break;
     }
   }

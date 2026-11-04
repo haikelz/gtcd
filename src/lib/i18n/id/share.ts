@@ -53,7 +53,6 @@ export default {
   "share.readOnly": "Analitik hanya-baca, dibagikan dari GoatCounter.",
   "share.referrer": "Perujuk",
   "share.referrers": "Perujuk teratas",
-  "share.title": "Analitik {site}",
   "share.topCountry": "Negara teratas",
   "share.topPage": "Halaman teratas",
   "share.topPages": "Halaman teratas",

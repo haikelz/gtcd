@@ -28,6 +28,11 @@
     week: t("share.rangeWeek"),
     year: t("share.rangeYear"),
   });
+  // An empty panel offers the longest period this link allows.
+  const widestRange = $derived(data.ranges.at(-1) ?? data.range);
+  const widerRangeAction = $derived(
+    widestRange === data.range ? undefined : widerRange
+  );
 </script>
 
 <SEO title={t("share.metaTitle")} description={t("share.readOnly")} noindex />
@@ -175,10 +180,11 @@
                 {/each}
               </ul>
             {:else}
-              <EmptyState icon={FileText} title={t("share.noPageData")} />
-              <Button href="?range={data.range}" size="sm" variant="outline"
-                >{t("share.retry")}</Button
-              >
+              <EmptyState
+                actions={widerRangeAction}
+                icon={FileText}
+                title={t("share.noPageData")}
+              />
             {/if}
           {/await}
         </FramePanel>
@@ -224,10 +230,11 @@
                 tone="chart-3"
               />
             {:else}
-              <EmptyState icon={Link2} title={t("share.noReferrerData")} />
-              <Button href="?range={data.range}" size="sm" variant="outline"
-                >{t("share.retry")}</Button
-              >
+              <EmptyState
+                actions={widerRangeAction}
+                icon={Link2}
+                title={t("share.noReferrerData")}
+              />
             {/if}
           {/await}
         </FramePanel>
@@ -252,10 +259,11 @@
                 tone="chart-2"
               />
             {:else}
-              <EmptyState icon={MapPin} title={t("share.noLocationData")} />
-              <Button href="?range={data.range}" size="sm" variant="outline"
-                >{t("share.retry")}</Button
-              >
+              <EmptyState
+                actions={widerRangeAction}
+                icon={MapPin}
+                title={t("share.noLocationData")}
+              />
             {/if}
           {/await}
         </FramePanel>
@@ -275,6 +283,12 @@
       >{t("share.retry")}</Button
     >
   </div>
+{/snippet}
+
+{#snippet widerRange()}
+  <Button href="?range={widestRange}" size="sm" variant="outline"
+    >{RANGE_LABELS[widestRange]}</Button
+  >
 {/snippet}
 
 {#snippet listSkeleton(rows: number)}

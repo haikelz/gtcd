@@ -1,4 +1,3 @@
-import { translate } from "$lib/i18n";
 import {
   getFilterFromUrl,
   resolveFilter,
@@ -12,26 +11,20 @@ export async function load({ locals, params, url, parent }) {
   const offset = getOffsetFromUrl(url);
   const pathId = Number(params.id);
 
-  try {
-    const includePaths = await resolveFilter(getFilterFromUrl(url), { vhost });
-    const [refs, hits] = await Promise.all([
-      stats.getReferrals(pathId, start, end, 30, offset, { vhost }),
+  // Streamed: referrers render into a skeleton. Hits only supply the path
+  // for the title, which falls back to the ID while they load or fail.
+  const refs = stats.streamReport(
+    stats.getReferrals(pathId, start, end, 30, offset, { vhost }),
+    locals.locale,
+    "reports.loadFailed"
+  );
+  const hits = resolveFilter(getFilterFromUrl(url), { vhost })
+    .then((includePaths) =>
       stats.getHits(start, end, 100, undefined, undefined, includePaths, {
         vhost,
-      }),
-    ]);
-    return { range, offset, refs, hits, pathId };
-  } catch (e: unknown) {
-    return {
-      range,
-      offset,
-      error:
-        e instanceof Error
-          ? e.message
-          : translate(locals.locale, "reports.loadFailed"),
-      refs: null,
-      hits: null,
-      pathId,
-    };
-  }
+      })
+    )
+    .catch(() => null);
+
+  return { hits, offset, pathId, range, refs };
 }

@@ -6,7 +6,9 @@
   import EmptyState from "$lib/components/EmptyState.svelte";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
+  import ReportEmptyActions from "$lib/components/ReportEmptyActions.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
+  import ReportSkeleton from "$lib/components/ReportSkeleton.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import {
     Frame,
@@ -16,7 +18,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { ArrowLeft, ChartNoAxesColumnIncreasing } from "@lucide/svelte";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -47,7 +49,7 @@
   {#snippet eyebrow()}
     <a
       class="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-      href={resolve(data.report.parentHref)}
+      href={dashboardHref(resolve(data.report.parentHref), { view: true })}
     >
       <ArrowLeft aria-hidden="true" class="size-4" />
       {t("reports.backTo", { parent: t(data.report.parentKey) })}
@@ -57,36 +59,47 @@
 
 <DashboardToolbar showFilter />
 
-{#if data.error}
-  <ErrorAlert message={data.error} />
-{:else if data.detail?.stats && data.detail.stats.length > 0}
+{#await data.detail}
   <Frame>
-    <FrameHeader
-      class="flex-row flex-wrap items-baseline justify-between gap-3"
-    >
-      <FrameTitle id="detail-report-heading">{label}</FrameTitle>
-      <FrameDescription class="text-xs">
-        {t("reports.entries", { count: data.detail.stats.length })}
-      </FrameDescription>
+    <FrameHeader>
+      <FrameTitle>{label}</FrameTitle>
     </FrameHeader>
-    <FramePanel aria-labelledby="detail-report-heading" role="region">
-      <BarChart data={data.detail.stats} {label} maxItems={50} />
-      <ReportPagination
-        nextHref={data.detail.more ? reportHref(data.offset + 50) : undefined}
-        previousHref={data.offset > 0
-          ? reportHref(Math.max(0, data.offset - 50))
-          : undefined}
-      />
-    </FramePanel>
+    <FramePanel><ReportSkeleton /></FramePanel>
   </Frame>
-{:else}
-  <Frame>
-    <FramePanel>
-      <EmptyState
-        desc={t("reports.detailEmptyDescription")}
-        icon={ChartNoAxesColumnIncreasing}
-        title={t("reports.detailEmptyTitle")}
-      />
-    </FramePanel>
-  </Frame>
-{/if}
+{:then detail}
+  {#if detail.stats.length > 0}
+    <Frame>
+      <FrameHeader
+        class="flex-row flex-wrap items-baseline justify-between gap-3"
+      >
+        <FrameTitle id="detail-report-heading">{label}</FrameTitle>
+        <FrameDescription class="text-xs">
+          {t("reports.entries", { count: detail.stats.length })}
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel aria-labelledby="detail-report-heading" role="region">
+        <BarChart data={detail.stats} {label} maxItems={50} />
+        <ReportPagination
+          nextHref={detail.more ? reportHref(data.offset + 50) : undefined}
+          previousHref={data.offset > 0
+            ? reportHref(Math.max(0, data.offset - 50))
+            : undefined}
+        />
+      </FramePanel>
+    </Frame>
+  {:else}
+    <Frame>
+      <FramePanel>
+        <EmptyState
+          desc={t("reports.detailEmptyDescription")}
+          icon={ChartNoAxesColumnIncreasing}
+          title={t("reports.detailEmptyTitle")}
+        >
+          {#snippet actions()}<ReportEmptyActions />{/snippet}
+        </EmptyState>
+      </FramePanel>
+    </Frame>
+  {/if}
+{:catch failure}
+  <ErrorAlert message={failure.message} />
+{/await}

@@ -59,6 +59,7 @@ export default {
   "reports.languagesSeoTitle": "Languages — gtcd",
   "reports.languagesTitle": "Languages",
   "reports.loadFailed": "Failed to load this report.",
+  "reports.loading": "Loading report",
   "reports.locationLabel": "Country",
   "reports.locationsDescription": "Visitors by country.",
   "reports.locationsEmptyDescription":
@@ -81,7 +82,6 @@ export default {
   "reports.pagesDescription": "Visits by page.",
   "reports.pagesEmptyDescription": "No pages tracked for this time period.",
   "reports.pagesEmptyTitle": "No page data",
-  "reports.pagesInvalidList": "Choose a valid page list.",
   "reports.paginationExpired":
     "This page link has expired or belongs to another report. Reset pagination to continue.",
   "reports.paginationLimit":
@@ -131,6 +131,8 @@ export default {
   "reports.referrersSources": "{count} sources in this period",
   "reports.referrersTitle": "Top referrers",
   "reports.screenSizeLabel": "Screen size",
+  "reports.setUpTracking": "Set up tracking",
+  "reports.showLastYear": "Show the last 12 months",
   "reports.systemLabel": "Operating system",
   "reports.systemsDescription": "Visitors by operating system.",
   "reports.systemsEmptyDescription":

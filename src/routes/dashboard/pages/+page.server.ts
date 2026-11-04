@@ -126,14 +126,11 @@ export async function load({ locals, url, parent }) {
       paginationNotice,
       cursorError: false,
     };
-  } catch (e: unknown) {
+  } catch (cause: unknown) {
     return {
       ...base,
       cursorError: Boolean(token),
-      error:
-        e instanceof Error
-          ? e.message
-          : translate(locals.locale, "reports.loadFailed"),
+      error: stats.reportLoadError(cause, locals.locale, "reports.loadFailed"),
     };
   }
 }

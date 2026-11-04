@@ -7,6 +7,7 @@
   import ReportPagination from "$lib/components/ReportPagination.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { Badge } from "$lib/components/ui/badge";
+  import { Button } from "$lib/components/ui/button";
   import {
     Frame,
     FrameDescription,
@@ -15,7 +16,7 @@
     FrameTitle,
   } from "$lib/components/ui/frame";
   import { FolderTree } from "@lucide/svelte";
-  import { t } from "$lib/display";
+  import { dashboardHref, t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
@@ -63,7 +64,9 @@
                 ? t("reports.pathEventLabel", { path: item.path })
                 : item.path}
               class="group flex min-h-11 items-center justify-between gap-3 px-2 py-2.5 no-underline transition-colors hover:bg-foreground/5"
-              href={resolve(`/dashboard/pages/${item.id}`)}
+              href={dashboardHref(
+                resolve("/dashboard/pages/[id]", { id: String(item.id) })
+              )}
             >
               <div class="min-w-0 flex-1">
                 <span
@@ -97,6 +100,7 @@
   <Frame>
     <FramePanel>
       <EmptyState
+        actions={data.isAdmin ? setupTracking : undefined}
         desc={t("reports.pathsEmptyDescription")}
         icon={FolderTree}
         title={t("reports.pathsEmptyTitle")}
@@ -104,3 +108,13 @@
     </FramePanel>
   </Frame>
 {/if}
+
+{#snippet setupTracking()}
+  <Button
+    href={dashboardHref(resolve("/dashboard/settings"))}
+    size="sm"
+    variant="outline"
+  >
+    {t("reports.setUpTracking")}
+  </Button>
+{/snippet}

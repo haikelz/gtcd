@@ -84,4 +84,5 @@ export default {
   "overview.viewLocationsReport": "View locations report",
   "overview.viewReport": "View {name} report",
   "overview.visits": "Visits",
+  "overview.widgetFailed": "Could not load",
 } as const satisfies Record<`overview.${string}`, string>;
