@@ -244,7 +244,7 @@ Add the tracking snippet to your website:
 <script
   data-goatcounter="https://analytics.example.com/count"
   async
-  src="//gc.zgo.at/count.js"
+  src="https://analytics.example.com/count.js"
 ></script>
 ```
 
@@ -276,8 +276,10 @@ pnpm check
 pnpm test:checks
 
 # Smoke-test the production build against a mock GoatCounter
-# Requires an isolated Redis 7 instance; never use production Redis for tests.
-pnpm build && pnpm exec playwright install chromium && TEST_REDIS_URL=redis://127.0.0.1:6379 pnpm test:e2e
+# Requires a disposable Redis 7 instance, e.g.
+#   docker run -d --name gtcd-test-redis -p 127.0.0.1:16379:6379 redis:7-alpine
+# TEST_REDIS_URL has no default; never point it at another project's Redis.
+pnpm build && pnpm exec playwright install chromium && TEST_REDIS_URL=redis://127.0.0.1:16379/0 pnpm test:e2e
 
 # Production build
 pnpm build
@@ -387,7 +389,7 @@ Add the tracking snippet to your website:
 <script
   data-goatcounter="https://<DOMAIN>/count"
   async
-  src="//gc.zgo.at/count.js"
+  src="https://<DOMAIN>/count.js"
 ></script>
 ```
 
@@ -424,8 +426,16 @@ The login session cookie is `HttpOnly`, `SameSite=Lax`, and its `Secure` flag
 follows the protocol the client actually used, so both `http://localhost`
 development stacks and TLS production domains work without configuration.
 
+gtcd re-checks each signed-in user against GoatCounter at most every 5 minutes
+and ends the session once GoatCounter rejects it, so removing a user or
+signing them out in GoatCounter reaches gtcd within that window. A GoatCounter
+outage keeps sessions alive. Email reports and traffic alerts pause for
+subscribers who have not signed in to gtcd for 90 days and resume at their
+next sign-in.
+
 `GOATCOUNTER_VHOST` is an optional server setting when the internal upstream
-address differs from the site's configured hostname. Keep request Host routing
+address differs from the site's configured hostname. gtcd sends it as the
+`Host` header through `node:http`, because Node's `fetch` drops a custom Host. Keep request Host routing
 consistent, especially for multiple sites. `BODY_SIZE_LIMIT=10M` permits the
 documented native import size through adapter-node; the reverse proxy must also
 allow it. These settings are not automatically wired into every deployment

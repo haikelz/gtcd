@@ -114,7 +114,7 @@ distinctions, baseline limitations and delivery consequences when shortening.
   title/desc and sr-only tables. DonutChart caps at five segments to stay
   within the palette.
 - `ErrorAlert`: the standard report load failure (destructive Alert with
-  Retry). `EmptyState`: Empty primitive with icon, title and description.
+  Retry). `EmptyState`: Empty primitive with icon, title, description and an optional `actions` snippet; pass the next step (clear filter, widen the period, set up tracking) whenever one exists.
 - Streaming: the overview loader returns each GoatCounter request as an
   unawaited promise; widgets `{#await}` it and show a shape-matched
   `Skeleton` until data arrives. Pages also streams optional comparisons;

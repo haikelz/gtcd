@@ -2,8 +2,11 @@
 
 Redis holds saved views, layouts, share grants, subscriptions and delivery
 checkpoints as well as sessions and cache entries. Durable reads and writes
-fail closed during an outage. Sessions and query caches may still use memory;
-that fallback never confirms a durable mutation or authorizes a public share.
+fail closed during an outage: a layout that cannot be read renders defaults
+read-only and is never overwritten. Sessions, login counters and query caches
+may still use memory; that fallback never confirms a durable mutation or
+authorizes a public share. Logging out during an outage cannot confirm the
+Redis session is gone, so the logout is reported as failed.
 
 The Compose setup and Kubernetes deployment scripts configure Redis 7 AOF with
 `appendfsync always`, disable periodic RDB snapshots (`save ""`), and use `/data`
@@ -12,6 +15,13 @@ capable of provisioning the `redis-data` 1Gi ReadWriteOnce claim. The Redis
 Deployment uses Recreate to avoid two writers on the same volume. Persistence
 does not replace backups, replication or disk monitoring. Do not enable an
 eviction policy that can evict durable keys; use `noeviction` (Redis default).
+
+Both scripts also write `maxmemory 64mb` and `maxmemory-policy noeviction`.
+A full Redis refuses writes (durable saves fail closed, sessions fall back to
+memory) instead of being OOM-killed; Kubernetes keeps the rest of its 96Mi
+limit for the AOF rewrite fork. Compose setup keeps an existing custom
+`maxmemory`. Watch `used_memory` in `INFO memory` and raise the limit and the
+container memory together before it fills.
 
 ## Before upgrading an existing installation
 
@@ -70,6 +80,9 @@ budget. Failed or exhausted attempts are visible in administrator diagnostics.
 
 SMTP is **at-least-once**, not exactly-once: a process can stop after SMTP accepts
 mail but before Redis records success. A retry can then deliver a duplicate.
+On SIGTERM the server drains requests, then stops the scheduler and waits for
+the current recipient before closing Redis. `scripts/start.mjs` force-exits
+after 25 seconds, so a crash, a SIGKILL or a stuck run can still leave this gap.
 Redis outages stop delivery instead of switching to a process-local lock. AOF
 protects local restarts, but disk loss and restoring an old backup can still lose
 recent checkpoints. Back up regularly and review pending jobs after recovery.
@@ -77,13 +90,17 @@ recent checkpoints. Back up regularly and review pending jobs after recovery.
 ## Local verification
 
 Build first (`pnpm build`) and install Playwright Chromium
-(`pnpm exec playwright install chromium`). Point `TEST_REDIS_URL` at an isolated
-Redis 7 instance before `pnpm test:e2e` or `pnpm test:perf`; both configurations
-default to `redis://127.0.0.1:6379` if it is unset. Tests create synthetic records
-and must not target production. CI provides Redis as a service.
+(`pnpm exec playwright install chromium`). Set `TEST_REDIS_URL` to an isolated
+Redis 7 instance before `pnpm test:e2e` or `pnpm test:perf`, for example
+`TEST_REDIS_URL=redis://127.0.0.1:16379/2`. Both configurations stop with an
+error when it is unset; they never assume `127.0.0.1:6379`, which may belong to
+another project. Tests create synthetic records and must not target production.
+CI sets it to its Redis service.
 
 `TEST_APP_PORT` and `TEST_MOCK_PORT` configure the main smoke stack (defaults
-4173 and 5187). The pages-performance smoke test also starts a fixed-port stack
+4173 and 5187). A mock GoatCounter left running from an earlier run stops the
+suite with a message naming the port; free it with `lsof -ti tcp:<port> | xargs
+kill`. The pages-performance smoke test also starts a fixed-port stack
 on 4199 and 5199; these ports are not changed by those variables. The performance
 suite uses fixed ports 4193 and 5197. Keep the relevant ports free. These fixture tests
 do not rehearse the live backup/restore procedure above or prove disk durability.

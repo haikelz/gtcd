@@ -55,7 +55,8 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 
 - GoatCounter instances enforce an upstream limit of 4 requests/second.
 - All outbound calls through `gcFetch` MUST be paced by `paceRequest()` (minimum 280ms threshold).
-- Upstream HTTP 429 responses trigger exponential backoff with random jitter and an absolute minimum delay of 1,000ms.
+- An upstream HTTP 429 pauses the shared pacer for every queued request, honoring `Retry-After` (seconds or HTTP date) between 1s and 60s. Only GETs retry on timeouts, 5xx and network errors; POST and PUT retry only on 429. Each `gcFetch` has a 20s total deadline and never retries a timed-out attempt.
+- Requests that name a vhost go through `upstreamFetch` (`src/lib/server/goatcounter/upstream-fetch.ts`): Node's `fetch` silently drops a custom `Host`, and GoatCounter selects the site by Host.
 - Dashboard queries use a 30-second cache (in-memory per process, shared through Redis under `gc-cache:*`). In-flight deduplication and pacing are process-local; cache sharing does not impose a global multi-replica rate limit.
 
 ### 3. Data Normalization

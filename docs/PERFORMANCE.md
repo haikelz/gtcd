@@ -16,8 +16,8 @@ Playwright starts isolated production and mock-GoatCounter processes on ports
 4193 and 5197. It signs in, creates a fresh browser context with the session,
 and opens an uncached report period. The initial login's streaming requests are
 allowed to finish before measurements start. The performance configuration inherits
-Redis from `TEST_REDIS_URL` (default `redis://127.0.0.1:6379`) in the smoke
-configuration. No real analytics, GoatCounter credentials, SMTP service, or
+Redis from `TEST_REDIS_URL` in the smoke configuration; it has no default, so set
+it to a disposable Redis (for example `redis://127.0.0.1:16379/2`). No real analytics, GoatCounter credentials, SMTP service, or
 GoatCounter database is needed.
 
 The benchmark records cold-browser TTFB, FCP, encoded JavaScript response bytes,
