@@ -33,6 +33,11 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,svg,png,woff2,ico}"],
+        // Any modifyURLPrefix keeps @vite-pwa/sveltekit from appending its
+        // default globs. Its prerendered/** glob matches nothing here (no
+        // prerendered pages) and only produced a build warning; this empty
+        // map rewrites no URLs.
+        modifyURLPrefix: {},
         // Cache app assets only, never authenticated reports. Retire the old
         // runtime API cache when this worker replaces an earlier version.
         importScripts: ["/retire-api-cache.js"],
