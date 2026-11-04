@@ -101,8 +101,10 @@ kubectl create secret generic "$secret_name" \
 
 # Redis loads requirepass from this Secret, mounted as /run/secrets/redis.conf.
 # The checksum annotation restarts Redis only when the config changes, so a
-# routine deploy does not drop every session.
-redis_conf="$(printf 'requirepass %s\nsave ""\nappendonly yes\nappendfsync always\ndir /data\n' "$REDIS_PASSWORD")"
+# routine deploy does not drop every session. maxmemory stays well under the
+# 96Mi container limit (room for the AOF rewrite fork); noeviction makes Redis
+# refuse writes when full instead of being OOM-killed or evicting durable keys.
+redis_conf="$(printf 'requirepass %s\nsave ""\nappendonly yes\nappendfsync always\ndir /data\nmaxmemory 64mb\nmaxmemory-policy noeviction\n' "$REDIS_PASSWORD")"
 echo "  Creating/updating Secret 'redis-config'..."
 kubectl create secret generic redis-config \
   --from-literal=redis.conf="$redis_conf" \

@@ -176,10 +176,13 @@ else
   ok "Reusing Redis password from $REDIS_CONF"
 fi
 # Redis also owns share grants and delivery checkpoints, not just cache data.
-# Replace only persistence directives; preserve password and custom settings.
+# Replace only persistence and eviction directives; preserve password and
+# custom settings. noeviction refuses writes when full instead of dropping
+# durable keys; a custom maxmemory is kept, otherwise 64mb applies.
 redis_conf_tmp="$(mktemp)"
-grep -Ev '^(save|appendonly|appendfsync|dir)[[:space:]]' "$REDIS_CONF" > "$redis_conf_tmp" || true
-printf 'save ""\nappendonly yes\nappendfsync always\ndir /data\n' >> "$redis_conf_tmp"
+grep -Ev '^(save|appendonly|appendfsync|dir|maxmemory-policy)[[:space:]]' "$REDIS_CONF" > "$redis_conf_tmp" || true
+printf 'save ""\nappendonly yes\nappendfsync always\ndir /data\nmaxmemory-policy noeviction\n' >> "$redis_conf_tmp"
+grep -Eq '^maxmemory[[:space:]]' "$redis_conf_tmp" || printf 'maxmemory 64mb\n' >> "$redis_conf_tmp"
 cat "$redis_conf_tmp" > "$REDIS_CONF"
 rm "$redis_conf_tmp"
 # The redis container user must read the bind-mounted file; the 700 directory

@@ -3,9 +3,11 @@
 ## Scope and current status
 
 Upstream defaults reviewed against GoatCounter v2.7.0 source; repository
-configuration rechecked 2026-10-18. The deployed image version
-is unknown: both deployment recipes use a mutable `latest` tag. Verify the
-installed version and its `serve -help` before changing upstream flags.
+configuration rechecked 2026-10-18. Both deployment recipes now pin v2.7.0 by
+digest (see [GoatCounter image pin](#goatcounter-image-pin)). An installation
+created from the earlier `latest` recipes runs whatever that tag resolved to
+when it was pulled. Verify the installed version and its `serve -help` before
+changing upstream flags.
 
 Local regression tests exercise gtcd against an isolated HTTP server, not a real
 GoatCounter database. No live database, CPU throttling, disk latency, ingestion
@@ -23,9 +25,15 @@ the last observed dependency status; it is not a fresh ingestion check. It retur
 HTTP 200 even when dependencies are degraded, so container probe success does not
 mean Redis-backed settings or upstream reports are available.
 
-Permanent 4xx errors fail immediately. HTTP 408, 429, network failures, and 5xx
-errors retain bounded retries. A final 429 no longer waits for a nonexistent
-next attempt. The API token remains server-side.
+Permanent 4xx errors fail immediately. Reads retry HTTP 408, 429, network
+failures and 5xx errors with backoff. Writes (POST, PUT) retry only after a 429:
+any other failure may already have taken effect upstream, such as a created
+site or export. Each call has one 20-second budget across pacing, attempts and
+backoff, and an attempt that times out (15 seconds) is not retried, so an
+unreachable GoatCounter fails a page in about 15 seconds instead of a minute.
+A 429 pauses every queued request in the process for its `Retry-After`
+(seconds or HTTP date), at least 1 second and at most 60; a request whose
+budget cannot cover the pause fails at once. The API token remains server-side.
 
 Measured with the same local regression scenario before and after the change:
 
@@ -150,6 +158,46 @@ cleanup cost and disk space. Keep a tested backup for recovery. Deletion does no
 necessarily shrink SQLite's main file immediately; schedule any compaction as a
 separate maintenance operation with sufficient spare disk and an outage plan.
 
+## GoatCounter image pin
+
+`docker-compose.yaml` and `k8s/gtcd/goatcounter.yaml` run
+`arp242/goatcounter:2.7.0` pinned to its multi-architecture index digest
+`sha256:791df3317bf5ce379511181a4802aaf29127a318b372d4fe39ec59e1c5af44be`.
+On 2026-11-04 `latest`, `2.7` and `2.7.0` all resolved to that digest. The
+Kubernetes manifest starts GoatCounter with `-automigrate`, so a newer image
+migrates the schema on start. Migrations only move forward: a pin older than
+the version that last ran against the database is a downgrade onto a schema it
+does not know.
+
+Before applying the pin to an existing installation, or changing it later:
+
+1. Read the version and image digest that run now, in the intended context or
+   Compose project:
+
+   ```sh
+   kubectl exec deployment/goatcounter -- goatcounter version
+   kubectl get pods -l app=goatcounter \
+     -o jsonpath='{.items[*].status.containerStatuses[*].imageID}'
+   docker compose exec goatcounter goatcounter version
+   docker compose images goatcounter
+   ```
+
+2. List the migrations the running binary knows; `pending:` marks ones it has
+   not applied. Run the same command through `docker compose exec` for Compose:
+
+   ```sh
+   kubectl exec deployment/goatcounter -- goatcounter db migrate list
+   ```
+
+3. Pin only the same or a newer release than step 1 reports. If the running
+   version is newer than this pin, pin that version instead.
+4. Resolve the new release's index digest with
+   `docker buildx imagetools inspect arp242/goatcounter:<version>` and use the
+   top-level `Digest:` line, not a per-platform manifest. Update both files in
+   one change.
+5. Take and test a database backup (see [Database and storage](#2-database-and-storage)),
+   then roll out to staging before production.
+
 ## Rollout and recovery
 
 For application changes, use the checks in [Repository Workflow](WORKFLOW.md#verification),
@@ -158,8 +206,9 @@ owned diff. Do not run setup or deployment scripts just to validate:
 they rewrite configuration or change shared infrastructure.
 
 Before a live rollout, record the image digest, DB path/mounts, site settings,
-resource metrics, and a tested backup. Pin a verified image digest in the deployment
-as a separately reviewed change. Apply to staging first, confirm `/status`, then
+resource metrics, and a tested backup. Change the GoatCounter image digest only as
+described in [GoatCounter image pin](#goatcounter-image-pin), as a separately
+reviewed change. Apply to staging first, confirm `/status`, then
 exercise login, reports, tracking persistence, and 429 recovery. Observe a full
 peak period before claiming capacity improvement. Recreate entails downtime;
 schedule it. Roll back application code/configuration if needed, but do not roll

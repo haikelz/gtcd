@@ -31,8 +31,9 @@ spec:
         - name: redis
           image: redis:7-alpine
           imagePullPolicy: IfNotPresent
-          # requirepass, save and appendonly come from the redis-config Secret
-          # created by deploy-k8s.sh.
+          # requirepass, persistence and maxmemory 64mb (noeviction) come from
+          # the redis-config Secret created by deploy-k8s.sh. Keep maxmemory
+          # well below the memory limit: the AOF rewrite fork needs headroom.
           command: ["redis-server", "/run/secrets/redis.conf"]
           ports:
             - containerPort: 6379

@@ -17,7 +17,10 @@ services:
       - goatcounter
 
   goatcounter:
-    image: arp242/goatcounter:latest
+    # Pinned release (multi-arch index digest). Check the running version
+    # before changing it: an older pin than the database schema is a downgrade.
+    # See docs/GOATCOUNTER_OPERATIONS.md#goatcounter-image-pin.
+    image: arp242/goatcounter:2.7.0@sha256:791df3317bf5ce379511181a4802aaf29127a318b372d4fe39ec59e1c5af44be
     restart: unless-stopped
     expose:
       - "8080"
@@ -54,6 +57,9 @@ services:
 
   gtcd:
     build: .
+    restart: unless-stopped
+    # Above scripts/start.mjs's 25s shutdown bound (Docker's default is 10s).
+    stop_grace_period: 30s
     env_file: .env
     environment:
       GOATCOUNTER_URL: ${GOATCOUNTER_URL:-http://goatcounter:8080}

@@ -29,7 +29,11 @@ spec:
           type: RuntimeDefault
       containers:
         - name: goatcounter
-          image: arp242/goatcounter:latest
+          # Pinned release (multi-arch index digest); -automigrate below
+          # upgrades the schema on start. Check the running version before
+          # changing the pin: an older pin than the schema is a downgrade.
+          # See docs/GOATCOUNTER_OPERATIONS.md#goatcounter-image-pin.
+          image: arp242/goatcounter:2.7.0@sha256:791df3317bf5ce379511181a4802aaf29127a318b372d4fe39ec59e1c5af44be
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
