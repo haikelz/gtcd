@@ -1,3 +1,4 @@
+import { translate } from "$lib/i18n";
 import { toDisplayPreferences } from "$lib/preferences.js";
 import {
   getMe,
@@ -26,10 +27,13 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
     const detail = await getStatsDetail(params.page, params.id, start, end, 20);
     return json(detail);
   } catch (e: unknown) {
+    // Upstream errors can name internal hosts; keep them in the server log.
+    console.error("stats api:", e instanceof Error ? e.message : e);
+
     const status =
       e instanceof Error && e.message === "Not authenticated" ? 401 : 500;
     return json(
-      { error: e instanceof Error ? e.message : "Internal error" },
+      { error: translate(locals.locale, "common.reportLoadFailed") },
       { status }
     );
   }
