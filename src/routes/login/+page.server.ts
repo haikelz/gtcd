@@ -84,7 +84,7 @@ export const actions: Actions = {
     }
 
     const secure = shouldUseSecureCookies(request.headers, url);
-    const result = await authenticateWithGoatCounter(email, password);
+    const result = await authenticateWithGoatCounter(email, password, ip);
 
     if (!result.success) {
       switch (result.reason) {
@@ -130,7 +130,11 @@ export const actions: Actions = {
       return fail(400, { error: translate(locals.locale, "auth.mfaInvalid") });
     }
 
-    const result = await verifyTotpWithGoatCounter(mfa.pending.challenge, code);
+    const result = await verifyTotpWithGoatCounter(
+      mfa.pending.challenge,
+      code,
+      clientIp(getClientAddress)
+    );
 
     if (!result.success) {
       switch (result.reason) {

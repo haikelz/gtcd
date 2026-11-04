@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
+import { isIP } from "node:net";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import type { Cookies } from "@sveltejs/kit";
 import { getJson, setJson, deleteKey } from "$lib/server/kv.js";
@@ -97,12 +98,19 @@ export function captureNativeCookies(
 }
 
 /** Manual redirects, no API bearer, correct Host even with an internal URL.
- * Native mutations must never be retried automatically. */
+ * Native mutations must never be retried automatically.
+ *
+ * GoatCounter throttles login and TOTP to 20 requests a minute per address
+ * (handlers/user.go). Its RealIP middleware reads the right-most public
+ * X-Forwarded-For entry, so `clientIp` gives each user their own bucket instead
+ * of sharing gtcd's. A 429 or 5xx says nothing about the credentials, so both
+ * throw "unavailable" instead of reaching the caller's outcome checks. */
 export async function nativeRequest(
   path: string,
   session: NativeSession,
   vhost?: string,
-  body?: URLSearchParams | FormData
+  body?: URLSearchParams | FormData,
+  clientIp?: string | null
 ): Promise<Response> {
   if (!path.startsWith("/") || path.startsWith("//") || /[\r\n\\]/.test(path))
     throw new NativeAdminError(400, "invalid");
@@ -121,8 +129,9 @@ export async function nativeRequest(
   const adminUrl = getGoatCounterAdminUrl();
   const host =
     vhost || getVhost() || (adminUrl ? new URL(adminUrl).host : url.host);
+  let response: Response;
   try {
-    const response = await new Promise<Response>((resolve, reject) => {
+    response = await new Promise<Response>((resolve, reject) => {
       const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(
         url,
         {
@@ -138,6 +147,9 @@ export async function nativeRequest(
                   "Content-Type": contentType,
                   "Content-Length": String(bytes.byteLength),
                 }
+              : {}),
+            ...(clientIp && isIP(clientIp)
+              ? { "X-Forwarded-For": clientIp }
               : {}),
           },
           signal: AbortSignal.timeout(15_000),
@@ -174,11 +186,17 @@ export async function nativeRequest(
       request.on("error", reject);
       request.end(bytes);
     });
-    captureNativeCookies(response.headers, session.cookies);
-    return response;
   } catch {
     throw new NativeAdminError(502, "unavailable");
   }
+
+  captureNativeCookies(response.headers, session.cookies);
+  if (response.status === 429 || response.status >= 500)
+    throw new NativeAdminError(
+      response.status === 429 ? 429 : 502,
+      "unavailable"
+    );
+  return response;
 }
 
 export function readNativeIdentity(
@@ -215,10 +233,8 @@ export async function verifyNativeIdentity(
     !identity ||
     identity.email.toLowerCase() !== session.email.toLowerCase() ||
     !session.cookies.key
-  ) {
-    if (response.status >= 500) throw new NativeAdminError(502, "unavailable");
+  )
     throw new NativeAdminError(401, "reauthenticate");
-  }
   return html;
 }
 

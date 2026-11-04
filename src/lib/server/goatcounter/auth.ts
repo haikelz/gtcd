@@ -14,11 +14,14 @@ import type { GoatCounterAuthResult, GoatCounterTotpResult } from "./types.js";
  *   no password set    → 303 "/user/forgot?email=…"
  *   TOTP enabled       → 200 with the TOTP form
  * Classify by the Location header; treating every 3xx as success would accept
- * any wrong credential, because failures redirect too.
+ * any wrong credential, because failures redirect too. Its login throttle
+ * (429) and server errors throw from nativeRequest and report "unavailable",
+ * so they never count as a failed login.
  */
 export async function authenticateWithGoatCounter(
   email: string,
-  password: string
+  password: string,
+  clientIp: string | null
 ): Promise<GoatCounterAuthResult> {
   let response: Response;
 
@@ -30,10 +33,11 @@ export async function authenticateWithGoatCounter(
       new URLSearchParams({
         email,
         password,
-      })
+      }),
+      clientIp
     );
   } catch {
-    // Network error or GoatCounter unavailable
+    // Network error, throttled, or GoatCounter unavailable
     return {
       success: false,
       reason: "unavailable",
@@ -78,11 +82,13 @@ export async function authenticateWithGoatCounter(
 /**
  * Finish a TOTP login. GoatCounter answers a valid code with 303 "/", a wrong
  * code with the TOTP form again (200), and a stale challenge with 303
- * "/user/new".
+ * "/user/new". A throttle (429) or server error is "unavailable", never a
+ * wrong code.
  */
 export async function verifyTotpWithGoatCounter(
   challenge: TotpChallenge,
-  code: string
+  code: string,
+  clientIp: string | null
 ): Promise<GoatCounterTotpResult> {
   let response: Response;
 
@@ -95,7 +101,8 @@ export async function verifyTotpWithGoatCounter(
         loginmac: challenge.loginMac,
         totp_token: code,
         user_logintoken: challenge.loginToken,
-      })
+      }),
+      clientIp
     );
   } catch {
     return { success: false, reason: "unavailable" };
@@ -108,6 +115,5 @@ export async function verifyTotpWithGoatCounter(
       : { success: false, reason: "expired" };
   }
 
-  if (response.status >= 500) return { success: false, reason: "unavailable" };
   return { success: false, reason: "invalid_code" };
 }
