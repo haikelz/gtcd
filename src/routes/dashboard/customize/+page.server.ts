@@ -12,10 +12,7 @@ import {
 } from "$lib/dashboard-layout.js";
 import { translate } from "$lib/i18n/index.js";
 import { isReportFrequency } from "$lib/report-period.js";
-import {
-  getDashboardLayout,
-  saveDashboardLayout,
-} from "$lib/server/dashboard-layout-store.js";
+import { saveDashboardLayout } from "$lib/server/dashboard-layout-store.js";
 import {
   getSubscription,
   sendTestReport,
@@ -100,9 +97,21 @@ export const actions = {
       });
     }
 
-    const layout = await getDashboardLayout(email);
-    const others = layout.views.filter((view) => view.name !== name);
-    if (others.length >= MAX_SAVED_VIEWS) {
+    // Decided inside the atomic update, against the latest stored views.
+    let tooManyViews = false;
+    await saveDashboardLayout(email, (layout) => {
+      const others = layout.views.filter((view) => view.name !== name);
+      tooManyViews = others.length >= MAX_SAVED_VIEWS;
+      if (tooManyViews) return layout;
+
+      return {
+        ...layout,
+        defaultView: makeDefault ? name : layout.defaultView,
+        views: [...others, { name, query }],
+      };
+    });
+
+    if (tooManyViews) {
       return fail(400, {
         action: "saveView",
         message: translate(locals.locale, "customize.tooManyViews", {
@@ -110,12 +119,6 @@ export const actions = {
         }),
       });
     }
-
-    await saveDashboardLayout(email, {
-      ...layout,
-      defaultView: makeDefault ? name : layout.defaultView,
-      views: [...others, { name, query }],
-    });
 
     if (returnTo) {
       const target = new URLSearchParams(query);
@@ -132,13 +135,12 @@ export const actions = {
     const email = requireEmail(locals);
     const formData = await request.formData();
     const name = sanitizeViewName(formData.get("name"));
-    const layout = await getDashboardLayout(email);
 
-    await saveDashboardLayout(email, {
+    await saveDashboardLayout(email, (layout) => ({
       ...layout,
       defaultView: layout.defaultView === name ? null : layout.defaultView,
       views: layout.views.filter((view) => view.name !== name),
-    });
+    }));
 
     return {
       action: "deleteView",
@@ -149,11 +151,12 @@ export const actions = {
     const email = requireEmail(locals);
     const formData = await request.formData();
     const name = sanitizeViewName(formData.get("name"));
-    const layout = await getDashboardLayout(email);
-    const defaultView =
-      name && layout.views.some((view) => view.name === name) ? name : null;
 
-    await saveDashboardLayout(email, { ...layout, defaultView });
+    const { defaultView } = await saveDashboardLayout(email, (layout) => ({
+      ...layout,
+      defaultView:
+        name && layout.views.some((view) => view.name === name) ? name : null,
+    }));
 
     return {
       action: "setDefaultView",
@@ -167,13 +170,12 @@ export const actions = {
   saveWidgets: async ({ locals, request }) => {
     const email = requireEmail(locals);
     const formData = await request.formData();
-    const layout = await getDashboardLayout(email);
 
     if (formData.get("reset") === "on") {
-      await saveDashboardLayout(email, {
+      await saveDashboardLayout(email, (layout) => ({
         ...layout,
         widgets: DEFAULT_DASHBOARD_LAYOUT.widgets,
-      });
+      }));
       return {
         action: "saveWidgets",
         message: translate(locals.locale, "customize.widgetsReset"),
@@ -200,7 +202,7 @@ export const actions = {
       });
     }
 
-    await saveDashboardLayout(email, { ...layout, widgets });
+    await saveDashboardLayout(email, (layout) => ({ ...layout, widgets }));
 
     return {
       action: "saveWidgets",
@@ -322,11 +324,10 @@ export const actions = {
   saveDisplay: async ({ locals, request }) => {
     const email = requireEmail(locals);
     const formData = await request.formData();
-    const layout = await getDashboardLayout(email);
     const fewerNumbers = formData.get("fewerNumbers");
     const locale = formData.get("locale");
 
-    await saveDashboardLayout(email, {
+    await saveDashboardLayout(email, (layout) => ({
       ...layout,
       overrides: {
         // "follow" (or anything else) defers to the GoatCounter setting.
@@ -334,7 +335,7 @@ export const actions = {
           fewerNumbers === "on" ? true : fewerNumbers === "off" ? false : null,
         locale: isLocale(locale) ? locale : null,
       },
-    });
+    }));
 
     return {
       action: "saveDisplay",
