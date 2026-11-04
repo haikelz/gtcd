@@ -1,0 +1,97 @@
+import { expect, test, type Page } from "@playwright/test";
+
+const PASSWORD = "correct-horse";
+
+// The PWA worker precaches every chunk; keep it out of the network checks.
+test.use({ serviceWorkers: "block" });
+
+async function signIn(page: Page) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("qa@example.com");
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+}
+
+test("a page downloads only the active language catalog", async ({ page }) => {
+  const scripts: Promise<string>[] = [];
+  page.on("response", (response) => {
+    if (response.url().endsWith(".js")) scripts.push(response.text());
+  });
+
+  await page.goto("/login");
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+
+  const sources = await Promise.all(scripts);
+  // common.reportLoadFailed in English, common.retry in Indonesian.
+  expect(sources.some((source) => source.includes("could not load"))).toBe(
+    true
+  );
+  expect(sources.some((source) => source.includes("Coba lagi"))).toBe(false);
+});
+
+test("a rate-limited report streams a skeleton, then a translated error with Retry", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await signIn(page);
+
+  // The streamed response stays open until the report settles, so check the
+  // skeleton in the first chunk instead of waiting for the load event.
+  await page.goto("/dashboard/browsers?start=2041-01-01&end=2041-01-07", {
+    waitUntil: "commit",
+  });
+  await expect(
+    page.getByRole("status").filter({ hasText: "Loading report" })
+  ).toHaveCount(1);
+  await expect(
+    page.getByText("GoatCounter is limiting requests right now.", {
+      exact: false,
+    })
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+  await expect(page.getByText(/Rate limit exceeded|\(429\)/)).toHaveCount(0);
+});
+
+test("an empty report offers a next step", async ({ page }) => {
+  await signIn(page);
+
+  await page.goto("/dashboard/browsers?filter=no-such-path");
+  const clear = page.getByRole("link", { name: "Clear filter" });
+  await expect(clear).toBeVisible();
+  await expect(clear).not.toHaveAttribute("href", /filter=/);
+});
+
+test("error toasts stay until dismissed", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/logout", (route) => route.fulfill({ status: 503 }));
+
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  const toast = page.getByRole("alert").filter({
+    hasText: "Unable to sign out.",
+  });
+  await expect(toast).toBeVisible();
+  await page.waitForTimeout(6_000);
+  await expect(toast).toBeVisible();
+
+  await toast.getByRole("button", { name: "Dismiss notification" }).click();
+  await expect(toast).toHaveCount(0);
+});
+
+test("other toasts pause while hovered", async ({ page }) => {
+  test.setTimeout(45_000);
+  await signIn(page);
+  await page.goto("/dashboard/settings?site=1");
+  // The toast needs the enhanced form, so let the page hydrate first.
+  await page.waitForLoadState("networkidle");
+
+  await page.getByRole("button", { name: "Send test visit" }).click();
+  const toast = page.getByText(/^Test visit sent/);
+  await toast.hover();
+  await page.waitForTimeout(6_000);
+  await expect(toast).toBeVisible();
+
+  await page.mouse.move(0, 0);
+  await expect(toast).toHaveCount(0, { timeout: 8_000 });
+});

@@ -9,6 +9,8 @@ export default {
     "Grafik garis kunjungan {group} dari {start} sampai {end}.",
   "charts.chartLabel":
     "Grafik garis kunjungan {group}. Total kunjungan: {total}, rata-rata harian: {average}.",
+  "charts.chartLabelHidden":
+    "Grafik garis kunjungan {group}. Angka disembunyikan dalam mode sembunyikan angka.",
   "charts.chartScale": "Skala grafik",
   "charts.chartTitle": "Grafik kunjungan {group}",
   "charts.dailyAverage": "Rata-rata harian",

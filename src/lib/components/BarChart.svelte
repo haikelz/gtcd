@@ -49,11 +49,13 @@
           <span class="w-12 text-right text-muted-foreground">{share}%</span>
         </span>
       </div>
+      <!-- The meter reports the share, so fewer-numbers mode exposes no counts. -->
       <div
         role="meter"
-        aria-valuenow={item.count}
+        aria-valuenow={Number(share)}
         aria-valuemin="0"
-        aria-valuemax={maxCount}
+        aria-valuemax="100"
+        aria-valuetext="{share}%"
         aria-label={numbersHidden()
           ? `${label}: ${share}%`
           : t("charts.itemVisits", {

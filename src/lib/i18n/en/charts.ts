@@ -7,6 +7,8 @@ export default {
     "Line chart showing {group} visits between {start} and {end}.",
   "charts.chartLabel":
     "{groupTitle} traffic line chart. Total visits: {total}, Daily average: {average}.",
+  "charts.chartLabelHidden":
+    "{groupTitle} traffic line chart. Numbers are hidden in fewer-numbers mode.",
   "charts.chartScale": "Chart scale",
   "charts.chartTitle": "{groupTitle} Traffic Chart",
   "charts.dailyAverage": "Daily avg",

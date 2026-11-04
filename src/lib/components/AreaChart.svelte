@@ -247,11 +247,13 @@
     <!-- SVG Area Chart with Full A11Y -->
     <svg
       role="img"
-      aria-label={t("charts.chartLabel", {
-        ...groupParams,
-        average: formatCount(avgDaily),
-        total: formatCount(totalSum),
-      })}
+      aria-label={hideNumbers
+        ? t("charts.chartLabelHidden", groupParams)
+        : t("charts.chartLabel", {
+            ...groupParams,
+            average: formatCount(avgDaily),
+            total: formatCount(totalSum),
+          })}
       viewBox="0 0 {width} {height}"
       class={view === "table" ? "hidden" : "w-full"}
       style="height: {height}px;"

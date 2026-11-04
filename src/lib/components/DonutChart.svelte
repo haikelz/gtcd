@@ -101,7 +101,7 @@
       </div>
     </div>
     <ul
-      class="list-none m-0 p-0 space-y-3"
+      class="list-none m-0 p-0 flex flex-col gap-3"
       aria-label={t("charts.sharesList", { label })}
     >
       {#each segments as segment, index (index)}
@@ -126,15 +126,16 @@
     <table class="sr-only">
       <thead
         ><tr
-          ><th scope="col">{label}</th><th scope="col">{t("charts.visits")}</th
-          ><th scope="col">{t("charts.share")}</th></tr
+          ><th scope="col">{label}</th>{#if !numbersHidden()}<th scope="col"
+              >{t("charts.visits")}</th
+            >{/if}<th scope="col">{t("charts.share")}</th></tr
         ></thead
       >
       <tbody
         >{#each segments as segment, index (index)}<tr
-            ><th scope="row">{segment.name}</th><td>{segment.count}</td><td
-              >{segment.share.toFixed(1)}%</td
-            ></tr
+            ><th scope="row">{segment.name}</th>{#if !numbersHidden()}<td
+                >{formatCount(segment.count)}</td
+              >{/if}<td>{segment.share.toFixed(1)}%</td></tr
           >{/each}</tbody
       >
     </table>
