@@ -123,8 +123,9 @@ info "Generating Caddyfile for domain: $GC_DOMAIN"
 
 cat > "$CADDYFILE" <<CADDY
 ${GC_DOMAIN} {
-	# GoatCounter tracking endpoint
-	handle /count {
+	# GoatCounter tracking endpoint and its script, served by this instance
+	@tracking path /count /count.js
+	handle @tracking {
 		reverse_proxy goatcounter:8080
 	}
 

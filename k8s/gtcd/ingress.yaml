@@ -4,6 +4,11 @@ metadata:
   name: gtcd
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Both entrypoints stay open: a proxy in front (Cloudflare in "Flexible"
+    # SSL mode) reaches the origin over plain HTTP. Redirect HTTP to HTTPS at
+    # the edge (Cloudflare "Always Use HTTPS") or in Traefik's static config
+    # (--entrypoints.web.http.redirections.entrypoint.to=websecure); an
+    # Ingress annotation alone cannot redirect without a Middleware CRD.
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
 spec:
   ingressClassName: traefik
@@ -18,6 +23,15 @@ spec:
           # GoatCounter tracking endpoint
           - path: /count
             pathType: Prefix
+            backend:
+              service:
+                name: goatcounter
+                port:
+                  number: 8080
+          # Tracking script from this instance instead of GoatCounter's CDN.
+          # Prefix /count matches whole path segments, not /count.js.
+          - path: /count.js
+            pathType: Exact
             backend:
               service:
                 name: goatcounter

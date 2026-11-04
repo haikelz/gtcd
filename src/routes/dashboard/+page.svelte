@@ -200,7 +200,7 @@
       <pre
         class="w-full max-w-full overflow-x-auto rounded-md border border-border bg-muted p-2.5 font-mono text-xs text-foreground"><code
           >&lt;script data-goatcounter="{snippetEndpoint}/count"
-        async src="//gc.zgo.at/count.js"&gt;&lt;/script&gt;</code
+        async src="{page.url.origin}/count.js"&gt;&lt;/script&gt;</code
         ></pre>
       <p>
         {t("overview.noDataBlocker")}
