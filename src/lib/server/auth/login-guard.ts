@@ -18,7 +18,6 @@ const MFA_TTL_SECONDS = 5 * 60;
 const MAX_MFA_ATTEMPTS = 5;
 
 type PendingMfa = {
-  readonly attempts: number;
   readonly challenge: TotpChallenge;
   readonly email: string;
   readonly expiresAt: number;
@@ -74,7 +73,6 @@ function isPendingMfa(value: unknown): value is PendingMfa {
   const pending = value as PendingMfa | undefined;
   return (
     typeof pending?.email === "string" &&
-    typeof pending.attempts === "number" &&
     typeof pending.expiresAt === "number" &&
     typeof pending.challenge?.loginMac === "string" &&
     typeof pending.challenge.loginToken === "string"
@@ -90,7 +88,6 @@ export async function startMfa(
 ): Promise<void> {
   const id = generateSessionId();
   const pending: PendingMfa = {
-    attempts: 0,
     challenge,
     email,
     expiresAt: Date.now() + MFA_TTL_SECONDS * 1000,
@@ -117,26 +114,14 @@ export async function getPendingMfa(
   return { id, pending };
 }
 
-/** Count a wrong code; false once the challenge has no attempts left. */
-export async function recordMfaFailure(
-  cookies: Cookies,
-  id: string,
-  pending: PendingMfa
-): Promise<boolean> {
-  const attempts = pending.attempts + 1;
-  if (attempts >= MAX_MFA_ATTEMPTS) {
-    await clearMfa(cookies, id);
-    return false;
-  }
-
-  const ttlSeconds = Math.ceil((pending.expiresAt - Date.now()) / 1000);
-  if (ttlSeconds <= 0) {
-    await clearMfa(cookies, id);
-    return false;
-  }
-
-  await setJson(`mfa:${id}`, { ...pending, attempts }, ttlSeconds);
-  return true;
+/**
+ * Reserve one code attempt before GoatCounter sees the code. The counter is
+ * atomic, so parallel submissions cannot all read a fresh challenge. Returns
+ * the attempts left after this one; negative once the challenge is used up.
+ */
+export async function claimMfaAttempt(id: string): Promise<number> {
+  const attempt = await incrementCounter(`mfa-attempts:${id}`, MFA_TTL_SECONDS);
+  return MAX_MFA_ATTEMPTS - attempt;
 }
 
 export async function clearMfa(cookies: Cookies, id?: string): Promise<void> {

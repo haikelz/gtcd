@@ -1,12 +1,12 @@
 import { getGoatCounterAdminUrl } from "$lib/server/auth/admin.js";
 import {
+  claimMfaAttempt,
   clearLoginFailures,
   clearMfa,
   clientIp,
   getPendingMfa,
   isLoginLimited,
   recordLoginFailure,
-  recordMfaFailure,
   startMfa,
 } from "$lib/server/auth/login-guard.js";
 import {
@@ -130,27 +130,38 @@ export const actions: Actions = {
       return fail(400, { error: translate(locals.locale, "auth.mfaInvalid") });
     }
 
+    const ip = clientIp(getClientAddress);
+
+    if (await isLoginLimited(mfa.pending.email, ip)) {
+      return fail(429, {
+        error: translate(locals.locale, "auth.tooManyAttempts"),
+      });
+    }
+
+    // Claimed before GoatCounter answers, so an outage also spends one try.
+    const attemptsLeft = await claimMfaAttempt(mfa.id);
+    if (attemptsLeft < 0) {
+      await clearMfa(cookies, mfa.id);
+      return fail(429, { error: translate(locals.locale, "auth.mfaExpired") });
+    }
+
     const result = await verifyTotpWithGoatCounter(
       mfa.pending.challenge,
       code,
-      clientIp(getClientAddress)
+      ip
     );
 
     if (!result.success) {
       switch (result.reason) {
-        case "invalid_code": {
-          await recordLoginFailure(
-            mfa.pending.email,
-            clientIp(getClientAddress)
-          );
-          const canRetry = await recordMfaFailure(cookies, mfa.id, mfa.pending);
+        case "invalid_code":
+          await recordLoginFailure(mfa.pending.email, ip);
+          if (attemptsLeft === 0) await clearMfa(cookies, mfa.id);
           return fail(400, {
             error: translate(
               locals.locale,
-              canRetry ? "auth.mfaInvalid" : "auth.mfaExpired"
+              attemptsLeft > 0 ? "auth.mfaInvalid" : "auth.mfaExpired"
             ),
           });
-        }
         case "expired":
           await clearMfa(cookies, mfa.id);
           return fail(400, {
