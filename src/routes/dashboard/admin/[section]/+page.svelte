@@ -22,8 +22,9 @@
     AlertTitle,
     AlertDescription,
   } from "$lib/components/ui/alert";
-  import type { PageProps } from "./$types";
+  import { t } from "$lib/display";
   import type { NativeSection } from "$lib/native-admin";
+  import type { PageProps } from "./$types";
 
   let { data, form }: PageProps = $props();
   const sections: {
@@ -31,48 +32,44 @@
     title: string;
     description: string;
     admin: boolean;
-  }[] = [
+  }[] = $derived([
     {
       id: "users",
-      title: "Users",
-      description: "Manage access to this GoatCounter site.",
+      title: t("admin.sectionUsers"),
+      description: t("admin.sectionUsersDescription"),
       admin: true,
     },
     {
       id: "tokens",
-      title: "API tokens",
-      description:
-        "Create credentials for integrations and revoke tokens you no longer use.",
+      title: t("admin.sectionTokens"),
+      description: t("admin.sectionTokensDescription"),
       admin: true,
     },
     {
       id: "security",
-      title: "Account security",
-      description: "Change your password and manage two-factor authentication.",
+      title: t("admin.sectionSecurity"),
+      description: t("admin.sectionSecurityDescription"),
       admin: false,
     },
     {
       id: "imports",
-      title: "Import data",
-      description:
-        "Upload historical pageviews to the selected GoatCounter site.",
+      title: t("admin.sectionImports"),
+      description: t("admin.sectionImportsDescription"),
       admin: true,
     },
     {
       id: "pages",
-      title: "Page data",
-      description:
-        "Find recorded paths, then delete or merge their pageviews. This does not change your website.",
+      title: t("admin.sectionPages"),
+      description: t("admin.sectionPagesDescription"),
       admin: true,
     },
     {
       id: "preferences",
-      title: "GoatCounter preferences",
-      description:
-        "Update your native account display settings and GoatCounter email reports. GTCD display preferences and scheduled reports are separate.",
+      title: t("admin.sectionPreferences"),
+      description: t("admin.sectionPreferencesDescription"),
       admin: false,
     },
-  ];
+  ]);
   const selected = $derived(
     sections.find((section) => section.id === data.section) ?? sections[0]
   );
@@ -111,13 +108,13 @@
 </script>
 
 <SEO
-  title={`${selected.title} — Administration`}
+  title={t("admin.seoTitle", { section: selected.title })}
   description={selected.description}
 />
 <PageHeader title={selected.title} description={selected.description} />
 
 <nav
-  aria-label="Administration"
+  aria-label={t("admin.title")}
   class="mb-6 flex flex-wrap gap-1 border-b border-border pb-3"
 >
   {#each sections.filter((section) => !section.admin || data.canAdminister) as section (section.id)}
@@ -132,12 +129,12 @@
 
 {#if problem}
   <Alert variant="destructive" class="mb-6" role="alert">
-    <AlertTitle>Administration unavailable</AlertTitle>
+    <AlertTitle>{t("admin.unavailableTitle")}</AlertTitle>
     <AlertDescription>
       <p>{problem.message}</p>
       {#if problem.reconnect}
         <form method="POST" action={resolve("/logout")} class="mt-3">
-          <Button type="submit" variant="outline">Sign out and reconnect</Button
+          <Button type="submit" variant="outline">{t("admin.reconnect")}</Button
           >
         </form>
       {/if}
@@ -145,13 +142,13 @@
   </Alert>
 {/if}
 
-<div aria-live="polite" aria-atomic="true" class="space-y-3">
+<div aria-live="polite" aria-atomic="true" class="flex flex-col gap-3">
   {#each native?.messages ?? [] as message (message.text)}
     <Alert variant={message.error ? "destructive" : "default"} class="mb-4">
       <AlertTitle
         >{message.error
-          ? "Review your request"
-          : "GoatCounter response"}</AlertTitle
+          ? t("admin.messageError")
+          : t("admin.messageInfo")}</AlertTitle
       >
       <AlertDescription>{message.text}</AlertDescription>
     </Alert>
@@ -161,18 +158,21 @@
 {#if token}
   <Frame class="mb-6">
     <FrameHeader
-      ><FrameTitle>Revealed API token</FrameTitle><FrameDescription
-        >Keep this credential private. It is only shown after an explicit
-        request.</FrameDescription
+      ><FrameTitle>{t("admin.revealedTokenTitle")}</FrameTitle><FrameDescription
+        >{t("admin.revealedTokenDescription")}</FrameDescription
       ></FrameHeader
     >
     <FramePanel
-      ><CopyField id="revealed-token" label="API token" value={token} /><Button
+      ><CopyField
+        id="revealed-token"
+        label={t("admin.tokenLabel")}
+        value={token}
+      /><Button
         variant="ghost"
         class="mt-2"
         onclick={() => {
           revealed = false;
-        }}>Hide token</Button
+        }}>{t("admin.hideToken")}</Button
       ></FramePanel
     >
   </Frame>
@@ -181,11 +181,8 @@
 {#if native}
   {#if data.section === "imports"}
     <Alert class="mb-6"
-      ><AlertTitle>Before you import</AlertTitle><AlertDescription
-        >Use GoatCounter CSV or CSV.gz files, up to 8 MB (32 MB uncompressed).
-        Google Analytics imports add totals, not full visitor history. Accepted
-        uploads are processed in the background; acceptance does not mean the
-        import has finished. Replacing data deletes existing pageviews.</AlertDescription
+      ><AlertTitle>{t("admin.importTitle")}</AlertTitle><AlertDescription
+        >{t("admin.importDescription")}</AlertDescription
       ></Alert
     >
   {/if}
@@ -193,7 +190,7 @@
     <div class="mb-6 flex flex-wrap gap-2">
       {#if page.url.searchParams.has("resource")}<Button
           href={sectionUrl("users")}
-          variant="outline">All users</Button
+          variant="outline">{t("admin.allUsers")}</Button
         >{/if}
       {#each native.links as link (link.path)}<Button
           href={userUrl(link.path)}
@@ -213,7 +210,9 @@
       >
       <FramePanel class="overflow-x-auto p-0">
         <table class="w-full text-left text-sm">
-          <caption class="sr-only">{selected.title} in GoatCounter</caption>
+          <caption class="sr-only"
+            >{t("admin.tableCaption", { section: selected.title })}</caption
+          >
           <thead class="border-b border-border bg-muted/40"
             ><tr
               >{#each table.headers as header, headerIndex (headerIndex)}<th
@@ -235,7 +234,7 @@
     </Frame>
   {/each}
 
-  <div class="max-w-3xl space-y-6">
+  <div class="flex max-w-3xl flex-col gap-6">
     {#each native.forms as nativeForm, formIndex (`${data.section}:${nativeForm.method}:${nativeForm.id}`)}
       <Frame>
         <FrameHeader><FrameTitle>{nativeForm.title}</FrameTitle></FrameHeader>
@@ -265,25 +264,23 @@
               name="__intent"
               value={nativeForm.intent}
             />{/if}
-          <FramePanel class="space-y-4">
+          <FramePanel class="flex flex-col gap-4">
             {#if nativeForm.id === "/user/enable-totp" && native.setupSecret}
               <p class="text-sm text-muted-foreground">
-                Add this setup key to your authenticator, then enter its
-                six-digit code. Store the key privately; GoatCounter does not
-                issue recovery codes.
+                {t("admin.totpSetupHelp")}
               </p>
               <CopyField
                 id="totp-setup"
-                label="Authenticator setup key"
+                label={t("admin.totpSetupKey")}
                 value={native.setupSecret}
               />
             {/if}
             {#each nativeForm.fields as field, fieldIndex (fieldIndex)}
               {@const id = `native-${formIndex}-${fieldIndex}`}
               {#if field.type === "radio" && nativeForm.fields[fieldIndex - 1]?.type !== "radio"}
-                <p class="text-sm font-medium">Access</p>
+                <p class="text-sm font-medium">{t("admin.access")}</p>
               {/if}
-              <div class="space-y-1.5">
+              <div class="flex flex-col gap-1.5">
                 {#if field.type === "checkbox" || field.type === "radio"}
                   <label
                     for={id}
@@ -347,8 +344,7 @@
                 {/if}
                 {#if field.name === "user.email"}
                   <p id={`${id}-help`} class="text-sm text-muted-foreground">
-                    Your sign-in address is read-only here. An administrator can
-                    change it in Users.
+                    {t("admin.emailReadOnly")}
                   </p>
                 {:else if field.help}<p
                     id={`${id}-help`}
@@ -370,9 +366,7 @@
                   required
                   class="mt-1 size-4 accent-destructive"
                   disabled={pending}
-                /><span
-                  >I confirm: {nativeForm.title}. This changes stored data or
-                  account access and may not be reversible.</span
+                /><span>{t("admin.confirm", { title: nativeForm.title })}</span
                 ></label
               >
             {/if}
@@ -382,7 +376,9 @@
               type="submit"
               variant={nativeForm.destructive ? "destructive" : "default"}
               disabled={pending}
-              >{pending ? "Submitting…" : nativeForm.submitLabel}</Button
+              >{pending
+                ? t("admin.submitting")
+                : nativeForm.submitLabel}</Button
             >
           </FrameFooter>
         </form>
@@ -394,10 +390,9 @@
                 name="__reveal"
                 value={nativeForm.id.split("/").at(-1)}
               /><Button type="submit" variant="outline" disabled={pending}
-                >Reveal token: {nativeForm.title.replace(
-                  /^[^:]+:\s*/,
-                  ""
-                )}</Button
+                >{t("admin.revealToken", {
+                  name: nativeForm.title.replace(/^[^:]+:\s*/, ""),
+                })}</Button
               >
             </form></FramePanel
           >
@@ -406,11 +401,8 @@
     {/each}
     {#if !native.forms.length && !native.tables.length}
       <Alert
-        ><AlertTitle>No administration controls available</AlertTitle
-        ><AlertDescription
-          >Your account may not have access, or this GoatCounter version uses
-          different forms. API tokens also require a verified email address. No
-          changes have been sent.</AlertDescription
+        ><AlertTitle>{t("admin.noControlsTitle")}</AlertTitle><AlertDescription
+          >{t("admin.noControlsDescription")}</AlertDescription
         ></Alert
       >
     {/if}

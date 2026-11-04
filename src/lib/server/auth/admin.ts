@@ -1,4 +1,7 @@
 import { env } from "$env/dynamic/private";
+import { getRequestEvent } from "$app/server";
+import type { Locale } from "$lib/dashboard-layout";
+import { translate } from "$lib/i18n";
 import { error } from "@sveltejs/kit";
 
 function getAdminEmails(): readonly string[] {
@@ -8,6 +11,16 @@ function getAdminEmails(): readonly string[] {
     .split(",")
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean);
+}
+
+// The 403 page follows the request's language; a load called outside a
+// request (as the e2e guard checks do) falls back to English.
+function requestLocale(): Locale {
+  try {
+    return getRequestEvent().locals.locale ?? "en";
+  } catch {
+    return "en";
+  }
 }
 
 export function isDashboardAdmin(email: string): boolean {
@@ -20,7 +33,7 @@ export function requireDashboardAdmin(
   readonly email: string;
 } {
   if (!user || !isDashboardAdmin(user.email)) {
-    throw error(403, "Administrator access is required.");
+    throw error(403, translate(requestLocale(), "admin.required"));
   }
 
   return user;

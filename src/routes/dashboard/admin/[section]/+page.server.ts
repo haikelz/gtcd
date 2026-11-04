@@ -1,4 +1,6 @@
 import { error, fail, redirect } from "@sveltejs/kit";
+import type { Locale } from "$lib/dashboard-layout";
+import { type MessageKey, translate } from "$lib/i18n";
 import {
   requireDashboardAdmin,
   isDashboardAdmin,
@@ -14,32 +16,29 @@ import { NativeAdminError } from "$lib/server/goatcounter/native-session.js";
 import type { NativeSection } from "$lib/native-admin.js";
 import type { Actions, PageServerLoad } from "./$types";
 
+const PROBLEM_KEYS = {
+  denied: "admin.problemDenied",
+  invalid: "admin.problemInvalid",
+  reauthenticate: "admin.problemReauthenticate",
+  unavailable: "admin.problemUnavailable",
+} as const satisfies Record<NativeAdminError["code"], MessageKey>;
+
 function authorize(
-  user: App.Locals["user"],
+  locals: App.Locals,
   section: string
 ): { email: string; section: NativeSection } {
-  if (!user) throw redirect(303, "/login");
+  if (!locals.user) throw redirect(303, "/login");
   if (!isNativeSection(section))
-    throw error(404, "Administration page not found.");
+    throw error(404, translate(locals.locale, "admin.notFound"));
   if (!["security", "preferences"].includes(section))
-    requireDashboardAdmin(user);
-  return { email: user.email, section };
+    requireDashboardAdmin(locals.user);
+  return { email: locals.user.email, section };
 }
 
-function feedback(cause: unknown) {
+function feedback(cause: unknown, locale: Locale) {
   if (!(cause instanceof NativeAdminError)) throw cause;
-  const messages = {
-    reauthenticate:
-      "Your GoatCounter session has expired. Sign out and sign in again to continue.",
-    denied:
-      "Your GoatCounter account does not have permission to make this change.",
-    unavailable:
-      "GoatCounter could not complete the request. Check the current state before trying again.",
-    invalid:
-      "The form is no longer valid. Reload this page, check your entries and confirm the action again. Import files must be CSV or CSV.gz, up to 8 MB.",
-  };
   return {
-    message: messages[cause.code],
+    message: translate(locale, PROBLEM_KEYS[cause.code]),
     reconnect: cause.code === "reauthenticate",
     status: cause.status,
   };
@@ -51,7 +50,7 @@ export const load: PageServerLoad = async ({
   params,
   url,
 }) => {
-  const account = authorize(locals.user, params.section);
+  const account = authorize(locals, params.section);
   const context = await getDashboardSiteContext(url);
   try {
     return {
@@ -71,14 +70,14 @@ export const load: PageServerLoad = async ({
       section: account.section,
       canAdminister: isDashboardAdmin(account.email),
       nativePage: null,
-      problem: feedback(cause),
+      problem: feedback(cause, locals.locale),
     };
   }
 };
 
 export const actions: Actions = {
   default: async ({ cookies, locals, params, url, request }) => {
-    const account = authorize(locals.user, params.section);
+    const account = authorize(locals, params.section);
     const context = await getDashboardSiteContext(url);
     const submitted = await request.formData();
     try {
@@ -120,7 +119,7 @@ export const actions: Actions = {
       return { nativePage: result.page };
     } catch (cause) {
       if (!(cause instanceof NativeAdminError)) throw cause;
-      return fail(cause.status, { problem: feedback(cause) });
+      return fail(cause.status, { problem: feedback(cause, locals.locale) });
     }
   },
 };

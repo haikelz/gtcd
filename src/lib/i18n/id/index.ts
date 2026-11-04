@@ -10,6 +10,7 @@ import share from "./share";
 import email from "./email";
 import auth from "./auth";
 import diagnostics from "./diagnostics";
+import admin from "./admin";
 
 export default {
   ...common,
@@ -24,4 +25,5 @@ export default {
   ...email,
   ...auth,
   ...diagnostics,
+  ...admin,
 };
