@@ -84,6 +84,14 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      # The push carries only the immutable commit tag. latest and the semver
+      # tags move only after the published arm64 image passes its smoke test.
+      - id: candidate
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: type=sha,prefix=sha-
+
       - name: Build amd64 image for smoke test
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -116,13 +124,25 @@ jobs:
           provenance: mode=max
           push: true
           sbom: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.candidate.outputs.tags }}
 
       - name: Smoke test published arm64 image
         if: env.PUBLISH == 'true'
         run: scripts/smoke-image.sh "$IMAGE@$DIGEST" linux/arm64
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
+
+      # Tags the already-pushed index by digest; a single-source imagetools
+      # create keeps the same manifest list, attestations included.
+      - name: Promote smoke-tested image tags
+        if: env.PUBLISH == 'true'
+        run: |
+          args=()
+          for tag in $TAGS; do args+=(--tag "$tag"); done
+          docker buildx imagetools create "${args[@]}" "$IMAGE@$DIGEST"
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
 
       - name: Summary
         if: env.PUBLISH == 'true'
