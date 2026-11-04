@@ -1,11 +1,19 @@
 import { env } from "$env/dynamic/private";
-import { getRedis, pingRedis } from "$lib/server/auth/session-store.js";
+import {
+  getRedis,
+  pingRedis,
+  reportRedisFailure,
+} from "$lib/server/auth/session-store.js";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
 const MIN_REQUEST_INTERVAL_MS = 280; // GoatCounter allows 4 req/sec; 280ms keeps throughput under ~3.5 req/sec.
 const DEFAULT_CACHE_TTL_MS = 30_000; // 30 seconds cache for dashboard read queries
 const REQUEST_TIMEOUT_MS = 15_000;
+// One budget per call across pacing, attempts and backoff, so an unreachable
+// GoatCounter cannot stall a page for a minute.
+const REQUEST_DEADLINE_MS = 20_000;
+const MAX_RATE_LIMIT_WAIT_MS = 60_000;
 const CACHE_MAX_ENTRIES = 500; // Hard cap so unique query URLs cannot grow without bound.
 
 interface CacheEntry<T> {
@@ -35,9 +43,15 @@ const startedAt = Date.now();
 const SHARED_CACHE_PREFIX = "gc-cache:";
 
 async function readSharedCache<T>(cacheKey: string): Promise<T | undefined> {
-  if (!(await pingRedis(100))) return undefined;
+  if (!(await pingRedis())) return undefined;
+
+  const raw = await getRedis()
+    .get(SHARED_CACHE_PREFIX + cacheKey)
+    .catch((cause: unknown) => {
+      reportRedisFailure(cause);
+      return null;
+    });
   try {
-    const raw = await getRedis().get(SHARED_CACHE_PREFIX + cacheKey);
     return raw === null ? undefined : (JSON.parse(raw) as T);
   } catch {
     return undefined;
@@ -49,7 +63,7 @@ async function writeSharedCache(
   data: unknown,
   ttlMs: number
 ): Promise<void> {
-  if (!(await pingRedis(100))) return;
+  if (!(await pingRedis())) return;
   try {
     await getRedis().set(
       SHARED_CACHE_PREFIX + cacheKey,
@@ -57,8 +71,9 @@ async function writeSharedCache(
       "PX",
       ttlMs
     );
-  } catch {
+  } catch (cause) {
     // The per-process cache still holds the value.
+    reportRedisFailure(cause);
   }
 }
 
@@ -80,6 +95,8 @@ async function clearSharedCache(): Promise<void> {
 }
 
 let lastRequestTime = 0;
+// A 429 holds every queued request until then, not only the one that saw it.
+let rateLimitedUntil = 0;
 let pacerQueue: Promise<void> = Promise.resolve();
 
 // Last observed upstream health, used by /api/health without issuing blocking requests.
@@ -104,21 +121,65 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Ensure outbound calls to GoatCounter are spaced apart to never exceed the 4 req/sec rate limit.
-async function paceRequest(): Promise<void> {
+/**
+ * Space outbound calls so they never exceed the 4 req/sec rate limit, and
+ * hold them all while a 429 pause lasts. Throws instead of waiting past
+ * `deadline`; nothing has been sent at that point.
+ */
+async function paceRequest(deadline: number): Promise<void> {
   const execute = async () => {
-    const now = Date.now();
-    const elapsed = now - lastRequestTime;
+    // Re-check after sleeping: a 429 may have arrived meanwhile.
+    for (;;) {
+      const now = Date.now();
+      const wait = Math.max(
+        MIN_REQUEST_INTERVAL_MS - (now - lastRequestTime),
+        rateLimitedUntil - now
+      );
+      if (wait <= 0) break;
+      if (now + wait >= deadline) {
+        throw new Error(
+          rateLimitedUntil > now
+            ? "Rate limit exceeded (429). Retry later."
+            : "GoatCounter request deadline exceeded."
+        );
+      }
 
-    if (elapsed < MIN_REQUEST_INTERVAL_MS) {
-      await sleep(MIN_REQUEST_INTERVAL_MS - elapsed);
+      await sleep(wait);
     }
 
     lastRequestTime = Date.now();
   };
 
-  pacerQueue = pacerQueue.then(execute, execute);
-  return pacerQueue;
+  const turn = pacerQueue.then(execute);
+  pacerQueue = turn.catch(() => {});
+  return turn;
+}
+
+/** Retry-After is delta-seconds or an HTTP-date; X-Rate-Limit-Reset is seconds. */
+function retryAfterMs(response: Response): number {
+  const header =
+    response.headers.get("Retry-After") ||
+    response.headers.get("X-Rate-Limit-Reset");
+  if (!header) return 0;
+
+  const seconds = Number(header);
+  const ms = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Date.parse(header) - Date.now();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/** Pause every queued request after a 429; returns the pause in ms. */
+function pauseForRateLimit(response: Response, attempt: number): number {
+  const jitter = Math.floor(Math.random() * 250);
+  const waitMs = Math.min(
+    Math.max(1000, retryAfterMs(response), BASE_DELAY_MS * 2 ** attempt) +
+      jitter,
+    MAX_RATE_LIMIT_WAIT_MS
+  );
+
+  rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + waitMs);
+  return waitMs;
 }
 
 function sweepCache(now: number): void {
@@ -371,48 +432,45 @@ async function requestWithRetry<T>(
   cacheKey: string,
   options: GoatCounterRequestOptions
 ): Promise<T> {
+  const deadline = Date.now() + REQUEST_DEADLINE_MS;
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await paceRequest();
+    // Past the deadline, the last upstream error explains more than the pacer.
+    await paceRequest(deadline).catch((cause: unknown) => {
+      throw lastError ?? cause;
+    });
 
+    try {
       counters.upstreamAttempts++;
       if (attempt > 0) counters.retries++;
       const response = await fetch(url.toString(), {
         ...init,
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(
+          Math.max(1, Math.min(REQUEST_TIMEOUT_MS, deadline - Date.now()))
+        ),
         headers: {
           ...upstreamHeaders(getApiKey(), options.vhost),
           ...init.headers,
         },
       });
 
+      // GoatCounter refused without running the request, so even a POST may
+      // be sent again once the shared pause ends.
       if (response.status === 429) {
         counters.rateLimited++;
-        const retryAfterHeader =
-          response.headers.get("Retry-After") ||
-          response.headers.get("X-Rate-Limit-Reset");
-        const parsedSeconds = retryAfterHeader
-          ? parseInt(retryAfterHeader, 10)
-          : 0;
-
-        // Ensure wait is at least 1000ms, adding exponential backoff and jitter
-        const jitter = Math.floor(Math.random() * 250);
-        const exponentialDelay = BASE_DELAY_MS * Math.pow(2, attempt);
-        const waitMs =
-          Math.max(1000, parsedSeconds * 1000, exponentialDelay) + jitter;
+        lastUpstreamFailureAt = Date.now();
+        const waitMs = pauseForRateLimit(response, attempt);
+        const exhausted =
+          attempt === MAX_RETRIES || Date.now() + waitMs >= deadline;
 
         lastError = new Error(
-          attempt === MAX_RETRIES
+          exhausted
             ? "Rate limit exceeded (429). Retry budget exhausted."
             : `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`
         );
-
-        lastUpstreamFailureAt = Date.now();
-        if (attempt === MAX_RETRIES) break;
+        if (exhausted) break;
         counters.backoffs++;
-        await sleep(waitMs);
         continue;
       }
 
@@ -445,24 +503,27 @@ async function requestWithRetry<T>(
       return result;
     } catch (error) {
       lastUpstreamFailureAt = Date.now();
+      if (!(error instanceof Error)) throw error;
 
-      if (error instanceof Error) {
-        lastError = error;
-        if (
-          error instanceof UpstreamHttpError &&
+      lastError = error;
+      // A POST or PUT that failed any other way may already have run upstream.
+      // A timeout spent the budget, and a 4xx other than 408 will not change.
+      if (
+        !isGet ||
+        error.name === "TimeoutError" ||
+        (error instanceof UpstreamHttpError &&
           error.status >= 400 &&
           error.status < 500 &&
-          error.status !== 408
-        ) {
-          throw error;
-        }
+          error.status !== 408)
+      ) {
+        throw error;
       }
 
-      if (attempt < MAX_RETRIES) {
-        counters.backoffs++;
-        const jitter = Math.floor(Math.random() * 150);
-        await sleep(BASE_DELAY_MS * Math.pow(2, attempt) + jitter);
-      }
+      const delay =
+        BASE_DELAY_MS * 2 ** attempt + Math.floor(Math.random() * 150);
+      if (attempt === MAX_RETRIES || Date.now() + delay >= deadline) break;
+      counters.backoffs++;
+      await sleep(delay);
     }
   }
 
@@ -481,7 +542,7 @@ export async function gcFetchRaw(
     );
   }
 
-  await paceRequest();
+  await paceRequest(Date.now() + REQUEST_DEADLINE_MS);
 
   const url = `${baseUrl}${path}`;
   const apiKey = getApiKey();
@@ -509,6 +570,9 @@ export async function gcFetchRaw(
 
   if (response.ok) lastUpstreamSuccessAt = Date.now();
   else lastUpstreamFailureAt = Date.now();
-  if (response.status === 429) counters.rateLimited++;
+  if (response.status === 429) {
+    counters.rateLimited++;
+    pauseForRateLimit(response, 0);
+  }
   return response;
 }
