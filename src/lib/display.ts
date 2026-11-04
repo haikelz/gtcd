@@ -1,6 +1,7 @@
 import { page } from "$app/state";
 import type { Locale } from "$lib/dashboard-layout";
-import { type MessageKey, type MessageParams, translate } from "$lib/i18n";
+import type { MessageKey, MessageParams } from "$lib/i18n";
+import { fillMessage, type Messages } from "$lib/i18n/messages";
 import {
   DEFAULT_DISPLAY_PREFERENCES,
   type DisplayPreferences,
@@ -30,7 +31,12 @@ export function currentLocale(): Locale {
   return page.data.preferences?.locale ?? page.data.locale ?? "en";
 }
 
-/** A UI message in the current locale; see $lib/i18n. */
+/**
+ * A UI message in the current locale. The layouts load only that locale's
+ * catalog into page data (see $lib/i18n/messages).
+ */
 export function t(key: MessageKey, params?: MessageParams): string {
-  return translate(currentLocale(), key, params);
+  const messages: Partial<Messages> = page.data.messages ?? {};
+
+  return fillMessage(messages[key] ?? key, params);
 }
