@@ -4,6 +4,7 @@ import {
   pingRedis,
   reportRedisFailure,
 } from "$lib/server/auth/session-store.js";
+import { upstreamFetch } from "./upstream-fetch.js";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
@@ -444,7 +445,7 @@ async function requestWithRetry<T>(
     try {
       counters.upstreamAttempts++;
       if (attempt > 0) counters.retries++;
-      const response = await fetch(url.toString(), {
+      const response = await upstreamFetch(url, {
         ...init,
         signal: AbortSignal.timeout(
           Math.max(1, Math.min(REQUEST_TIMEOUT_MS, deadline - Date.now()))
@@ -551,7 +552,7 @@ export async function gcFetchRaw(
   counters.upstreamAttempts++;
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await upstreamFetch(url, {
       ...init,
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       headers: {
