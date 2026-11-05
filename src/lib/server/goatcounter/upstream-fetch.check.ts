@@ -55,6 +55,17 @@ await assert.rejects(
   { name: "TimeoutError" }
 );
 
+// A refused connection rejects like fetch, without the internal address.
+await assert.rejects(
+  upstreamFetch("http://127.0.0.1:1/api", {
+    headers: { Host: "stats.example.com" },
+  }),
+  (error: unknown) =>
+    error instanceof TypeError &&
+    error.message === "fetch failed" &&
+    (error.cause as NodeJS.ErrnoException).code === "ECONNREFUSED"
+);
+
 // Without a different Host it is plain fetch.
 const plain = await upstreamFetch(`${base}/api`);
 assert.equal((await plain.json()).host, new URL(base).host);

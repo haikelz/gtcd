@@ -62,9 +62,16 @@ export async function upstreamFetch(
       }
     );
 
-    // Reject with the signal's reason, as fetch does, so callers can still
-    // tell a TimeoutError from a network error.
-    req.on("error", (error) => reject(signal?.aborted ? signal.reason : error));
+    // Reject like fetch: the signal's reason on abort (a TimeoutError), else a
+    // TypeError carrying the socket error. Callers classify both, and the raw
+    // message names the internal address, so it must not surface as-is.
+    req.on("error", (error) =>
+      reject(
+        signal?.aborted
+          ? signal.reason
+          : new TypeError("fetch failed", { cause: error })
+      )
+    );
     req.end(body);
   });
 }
