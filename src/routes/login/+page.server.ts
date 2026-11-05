@@ -7,6 +7,7 @@ import {
   getPendingMfa,
   isLoginLimited,
   recordLoginFailure,
+  releaseMfaAttempt,
   startMfa,
 } from "$lib/server/auth/login-guard.js";
 import {
@@ -138,7 +139,8 @@ export const actions: Actions = {
       });
     }
 
-    // Claimed before GoatCounter answers, so an outage also spends one try.
+    // Claimed before GoatCounter answers so parallel codes cannot share a try;
+    // an unavailable GoatCounter gives the try back below.
     const attemptsLeft = await claimMfaAttempt(mfa.id);
     if (attemptsLeft < 0) {
       await clearMfa(cookies, mfa.id);
@@ -168,6 +170,7 @@ export const actions: Actions = {
             error: translate(locals.locale, "auth.mfaExpired"),
           });
         case "unavailable":
+          await releaseMfaAttempt(mfa.id);
           return fail(502, {
             error: translate(locals.locale, "auth.unavailable"),
           });

@@ -124,6 +124,11 @@ export async function claimMfaAttempt(id: string): Promise<number> {
   return MAX_MFA_ATTEMPTS - attempt;
 }
 
+/** Give back an attempt GoatCounter never judged (it was unavailable). */
+export async function releaseMfaAttempt(id: string): Promise<void> {
+  await incrementCounter(`mfa-attempts:${id}`, MFA_TTL_SECONDS, -1);
+}
+
 export async function clearMfa(cookies: Cookies, id?: string): Promise<void> {
   const current = id ?? cookies.get(MFA_COOKIE);
   if (current) await deleteKey(`mfa:${current}`);

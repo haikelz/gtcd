@@ -110,17 +110,18 @@ export async function deleteKey(key: string): Promise<void> {
 
 /**
  * Count an event in a fixed window that starts at the first event; returns the
- * count including this one.
+ * count including this one. A negative `by` gives a counted event back.
  */
 export async function incrementCounter(
   key: string,
-  windowSeconds: number
+  windowSeconds: number,
+  by = 1
 ): Promise<number> {
   if (await pingRedis()) {
     try {
       const [[, count]] = (await getRedis()
         .multi()
-        .incr(key)
+        .incrby(key, by)
         .expire(key, windowSeconds, "NX")
         .exec()) as [[Error | null, number]];
       return count;
@@ -130,7 +131,7 @@ export async function incrementCounter(
     }
   }
 
-  const count = Number(readMemory(key) ?? 0) + 1;
+  const count = Number(readMemory(key) ?? 0) + by;
   writeMemory(
     key,
     String(count),

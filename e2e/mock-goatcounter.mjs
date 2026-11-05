@@ -79,12 +79,14 @@ const modernExports = process.env.MOCK_MODERN_EXPORTS === "true";
 const requestLog = [];
 
 // Login security fixtures (e2e/login-security.test.ts), chosen by email:
+// "flaky-mfa-*" gets a TOTP challenge whose first six code checks answer 503;
 // "throttled-*" gets GoatCounter's login rate limit (429); "race-mfa-*" gets a
 // TOTP challenge whose submissions are counted; "*@native.example" gets a
 // native session cookie, and /user/pref then accepts "active-*", rejects
 // "revoked-*" (removed in GoatCounter) and fails for "outage-*".
 const loginForwardedFor = new Map();
 const raceTotpAttempts = new Map();
+const flakyTotpChecks = new Map();
 const nativePrefChecks = new Map();
 
 http
@@ -125,6 +127,10 @@ http
         return res.end("Rate limit exceeded");
       }
       if (form.get("password") !== PASSWORD) return redirect(res, "/user/new");
+      if (email.startsWith("flaky-mfa-")) {
+        res.writeHead(200, { "content-type": "text/html" });
+        return res.end(totpForm.replace("mac-1", `flaky:${email}`));
+      }
       if (email.startsWith("race-mfa-")) {
         res.writeHead(200, { "content-type": "text/html" });
         return res.end(totpForm.replace("mac-1", `race:${email}`));
@@ -146,6 +152,17 @@ http
     if (path === "/user/totplogin") {
       const form = await readForm(req);
       const mac = form.get("loginmac") ?? "";
+      if (mac.startsWith("flaky:")) {
+        const seen = (flakyTotpChecks.get(mac) ?? 0) + 1;
+        flakyTotpChecks.set(mac, seen);
+        if (seen <= 6) {
+          res.writeHead(503);
+          return res.end();
+        }
+        if (form.get("totp_token") === TOTP_CODE) return redirect(res, "/");
+        res.writeHead(200, { "content-type": "text/html" });
+        return res.end(totpForm.replace("mac-1", mac));
+      }
       if (mac.startsWith("race:")) {
         raceTotpAttempts.set(mac, (raceTotpAttempts.get(mac) ?? 0) + 1);
         // Answer slowly so parallel submissions overlap.

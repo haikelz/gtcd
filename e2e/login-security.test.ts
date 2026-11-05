@@ -44,6 +44,27 @@ test("GoatCounter's login throttle reports unavailability without counting failu
   await expect(page.getByText("Too many sign-in attempts.")).toHaveCount(0);
 });
 
+test("TOTP attempts spent while GoatCounter is unavailable are given back", async ({
+  page,
+}) => {
+  const email = `flaky-mfa-${randomUUID()}@example.com`;
+  await signIn(page, email);
+  const code = page.getByLabel("Authentication code");
+
+  // Six outages exceed the five-try limit; refunds keep the challenge alive.
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await code.fill("123456");
+    await page.getByRole("button", { name: "Verify" }).click();
+    await expect(
+      page.getByText("GoatCounter is currently unavailable.", { exact: false })
+    ).toBeVisible();
+  }
+
+  await code.fill("123456");
+  await page.getByRole("button", { name: "Verify" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+});
+
 test("login forwards only a valid client address to GoatCounter", async () => {
   const previous = process.env.GOATCOUNTER_URL;
   process.env.GOATCOUNTER_URL = MOCK_URL;
