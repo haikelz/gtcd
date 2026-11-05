@@ -287,15 +287,7 @@ export async function getPaths(
 }
 
 function isRateLimited(cause: unknown): boolean {
-  if (cause instanceof UpstreamHttpError) return cause.status === 429;
-
-  // ponytail: gcFetch reports an exhausted 429 retry budget as a plain Error,
-  // so its fixed prefix is the only signal. Check the status instead once
-  // client.ts throws UpstreamHttpError for 429.
-  return (
-    cause instanceof Error &&
-    cause.message.startsWith("Rate limit exceeded (429)")
-  );
+  return cause instanceof UpstreamHttpError && cause.status === 429;
 }
 
 function isUnavailable(cause: unknown): boolean {

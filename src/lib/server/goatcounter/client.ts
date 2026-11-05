@@ -138,11 +138,12 @@ async function paceRequest(deadline: number): Promise<void> {
       );
       if (wait <= 0) break;
       if (now + wait >= deadline) {
-        throw new Error(
-          rateLimitedUntil > now
-            ? "Rate limit exceeded (429). Retry later."
-            : "GoatCounter request deadline exceeded."
-        );
+        throw rateLimitedUntil > now
+          ? new UpstreamHttpError(
+              "Rate limit exceeded (429). Retry later.",
+              429
+            )
+          : new Error("GoatCounter request deadline exceeded.");
       }
 
       await sleep(wait);
@@ -465,10 +466,11 @@ async function requestWithRetry<T>(
         const exhausted =
           attempt === MAX_RETRIES || Date.now() + waitMs >= deadline;
 
-        lastError = new Error(
+        lastError = new UpstreamHttpError(
           exhausted
             ? "Rate limit exceeded (429). Retry budget exhausted."
-            : `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`
+            : `Rate limit exceeded (429). Retry scheduled in ${waitMs}ms.`,
+          429
         );
         if (exhausted) break;
         counters.backoffs++;
