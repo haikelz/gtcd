@@ -18,7 +18,9 @@ export default defineConfig({
   webServer: Array.isArray(config.webServer)
     ? config.webServer.map((server, index) => ({
         ...server,
-        port: index === 0 ? mockPort : appPort,
+        // The mock keeps its stdout wait, so a stale mock gets the launcher's
+        // message naming the port instead of Playwright's generic one.
+        ...(index === 0 ? {} : { port: appPort }),
         env: {
           ...server.env,
           ...(index === 0
