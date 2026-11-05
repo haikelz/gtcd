@@ -193,11 +193,12 @@ export async function nativeRequest(
   }
 
   captureNativeCookies(response.headers, session.cookies);
-  if (response.status === 429 || response.status >= 500)
+  if (response.status === 429 || response.status >= 500) {
     throw new NativeAdminError(
       response.status === 429 ? 429 : 502,
       "unavailable"
     );
+  }
   return response;
 }
 

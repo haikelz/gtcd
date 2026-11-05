@@ -298,7 +298,7 @@ export async function revealNativeToken(
         if (matches && token && token.length < 4096) {
           // An admin may list gtcd's own token; revealing it would hand the
           // shared API key to a browser.
-          if (token === getApiKey())
+          if (token === getApiKey()) {
             throw new NativeAdminError(
               403,
               "denied",
@@ -307,6 +307,7 @@ export async function revealNativeToken(
                 "auth.sharedTokenHidden"
               )
             );
+          }
           return token;
         }
       }
