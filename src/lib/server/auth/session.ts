@@ -118,15 +118,7 @@ export async function destroyDashboardSession(
   cookies: Cookies
 ): Promise<boolean> {
   const sessionId = cookies.get(COOKIE_NAME);
-  if (sessionId) {
-    try {
-      // unknown: the store reports a failed delete as false or by throwing.
-      const deleted: unknown = await deleteSession(sessionId);
-      if (deleted === false) return false;
-    } catch {
-      return false;
-    }
-  }
+  if (sessionId && !(await deleteSession(sessionId))) return false;
 
   cookies.delete(COOKIE_NAME, { path: "/" });
   return true;
