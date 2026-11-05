@@ -54,6 +54,19 @@ test("a rate-limited report streams a skeleton, then a translated error with Ret
   await expect(page.getByText(/Rate limit exceeded|\(429\)/)).toHaveCount(0);
 });
 
+test("failed overview KPIs offer a Retry", async ({ page }) => {
+  await signIn(page);
+
+  await page.goto("/dashboard?start=2041-01-01&end=2041-01-07");
+  const kpis = page.getByRole("region", { name: "Key metrics" });
+  await expect(
+    kpis.getByText("GoatCounter is limiting requests right now.", {
+      exact: false,
+    })
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(kpis.getByRole("button", { name: "Retry" })).toBeVisible();
+});
+
 test("an empty report offers a next step", async ({ page }) => {
   await signIn(page);
 

@@ -75,6 +75,21 @@
   const prev = $derived(previousRange(range.start, range.end));
 
   const linkDomain = $derived(data.site?.linkDomain ?? "");
+  // The KPI tiles each say "Could not load"; one alert offers the Retry.
+  const kpiFailure = $derived(
+    Promise.allSettled([
+      data.total,
+      data.hits,
+      data.browsers,
+      data.locations,
+    ]).then(
+      (results) =>
+        results.find(
+          (result): result is PromiseRejectedResult =>
+            result.status === "rejected"
+        )?.reason
+    )
+  );
   const receivedData = $derived(data.site?.receivedData !== false);
   const snippetEndpoint = $derived(
     data.vhost ? `https://${data.vhost}` : page.url.origin
@@ -367,6 +382,14 @@
       />
     {:catch}
       {@render failedStat(MapPin, t("overview.kpiTopCountry"))}
+    {/await}
+    {#await kpiFailure then failure}
+      {#if failure}
+        <ErrorAlert
+          class="col-span-2 xl:col-span-4"
+          message={failure.message ?? t("overview.widgetFailed")}
+        />
+      {/if}
     {/await}
   </section>
 {/snippet}
