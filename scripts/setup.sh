@@ -310,12 +310,20 @@ fi
 
 # ─── Write final .env ────────────────────────────────────────────────────────
 
-cat > "$ENV_FILE" <<EOF
-DOMAIN=${GC_DOMAIN}
-GOATCOUNTER_URL=http://goatcounter:8080
-GOATCOUNTER_API_KEY=${API_KEY}
-REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-EOF
+# Replace or add one key and keep the rest, so a re-run does not drop SMTP,
+# Turnstile or admin settings someone added to .env.
+set_env() {
+  local tmp
+  tmp="$(mktemp)"
+  grep -v "^$1=" "$ENV_FILE" > "$tmp" 2>/dev/null || true
+  printf '%s=%s\n' "$1" "$2" >> "$tmp"
+  mv "$tmp" "$ENV_FILE"
+}
+
+set_env DOMAIN "$GC_DOMAIN"
+set_env GOATCOUNTER_URL "http://goatcounter:8080"
+set_env GOATCOUNTER_API_KEY "$API_KEY"
+set_env REDIS_URL "redis://:${REDIS_PASSWORD}@redis:6379"
 
 ok ".env saved (API key and Redis URL included)"
 
