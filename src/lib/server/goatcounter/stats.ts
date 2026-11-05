@@ -304,15 +304,15 @@ function isUnavailable(cause: unknown): boolean {
   );
 }
 
-/**
- * A translated, user-safe message for a failed report request. Upstream text
- * stays in the server log; unknown failures use the page's own message.
- */
 /** A rate limit, timeout or outage: worth a retry, not worth showing raw. */
 export function isTransientUpstreamError(cause: unknown): boolean {
   return isRateLimited(cause) || isUnavailable(cause);
 }
 
+/**
+ * A translated, user-safe message for a failed request. Upstream text stays in
+ * the server log; unknown failures use the caller's own message.
+ */
 export function reportLoadError(
   cause: unknown,
   locale: Locale,

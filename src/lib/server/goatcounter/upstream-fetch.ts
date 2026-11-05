@@ -13,7 +13,8 @@ const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);
  *
  * ponytail: the node:http path never follows redirects, like
  * `redirect: "manual"`; GoatCounter's API does not redirect, and the login
- * forms already ask for manual redirects.
+ * forms already ask for manual redirects. If a caller ever needs "follow",
+ * re-issue the request to the Location header here.
  */
 export async function upstreamFetch(
   input: string | URL,

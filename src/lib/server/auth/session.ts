@@ -70,7 +70,8 @@ export async function createDashboardSession(
  * session. Only its own rejection ends the session; an outage keeps the user
  * signed in and is asked again after the interval.
  * ponytail: a session with no stored GoatCounter login (created before native
- * sessions existed) cannot be checked and lives out its 7 days.
+ * sessions existed) cannot be checked and lives out its 7 days. To close that
+ * window, end such sessions here and make those users sign in again.
  */
 async function isAccountRevoked(
   cookies: Cookies,
