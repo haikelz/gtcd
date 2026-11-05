@@ -545,7 +545,8 @@ export async function gcFetchRaw(
     );
   }
 
-  await paceRequest(Date.now() + REQUEST_DEADLINE_MS);
+  const deadline = Date.now() + REQUEST_DEADLINE_MS;
+  await paceRequest(deadline);
 
   const url = `${baseUrl}${path}`;
   const apiKey = getApiKey();
@@ -556,7 +557,10 @@ export async function gcFetchRaw(
   try {
     response = await upstreamFetch(url, {
       ...init,
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      // The pacer may have spent part of the budget; stay inside the deadline.
+      signal: AbortSignal.timeout(
+        Math.max(1, Math.min(REQUEST_TIMEOUT_MS, deadline - Date.now()))
+      ),
       headers: {
         "Content-Type": "application/json",
         // The login form endpoint does not require an API token; only send the
