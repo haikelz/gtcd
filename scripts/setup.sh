@@ -323,9 +323,12 @@ set_env() {
 set_env DOMAIN "$GC_DOMAIN"
 set_env GOATCOUNTER_URL "http://goatcounter:8080"
 set_env GOATCOUNTER_API_KEY "$API_KEY"
+# GoatCounter picks the site by Host; calls without a site of their own
+# (/me, /sites) use this instead of the internal goatcounter:8080.
+set_env GOATCOUNTER_VHOST "$GC_VHOST"
 set_env REDIS_URL "redis://:${REDIS_PASSWORD}@redis:6379"
 
-ok ".env saved (API key and Redis URL included)"
+ok ".env saved (API key, site host and Redis URL included)"
 
 # ─── Start full stack ────────────────────────────────────────────────────────
 

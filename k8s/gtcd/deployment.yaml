@@ -107,6 +107,13 @@ spec:
                   name: gtcd-env
                   key: GTCD_PUBLIC_URL
                   optional: true
+            # Site hostname sent as Host to GoatCounter (defaults to DOMAIN).
+            - name: GOATCOUNTER_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: GOATCOUNTER_VHOST
+                  optional: true
             # Optional client IP header for the per-IP login rate limit.
             - name: ADDRESS_HEADER
               valueFrom:

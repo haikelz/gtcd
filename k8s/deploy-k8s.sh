@@ -66,6 +66,9 @@ fi
 
 # adapter-node reads an empty XFF_DEPTH as NaN, so give it a value.
 : "${XFF_DEPTH:=1}"
+# GoatCounter picks the site by Host. The documented bootstrap creates the site
+# with -vhost $DOMAIN, so calls without a site of their own use that.
+: "${GOATCOUNTER_VHOST:=$DOMAIN}"
 
 # Create/update the Secret from env vars. Secret keys are read by the pod at
 # container start, so the deployment is rolled again after the apply below.
@@ -73,6 +76,7 @@ secret_name="gtcd-env"
 secret_vars=(
   GOATCOUNTER_URL
   GOATCOUNTER_API_KEY
+  GOATCOUNTER_VHOST
   GTCD_ADMIN_EMAILS
   GOATCOUNTER_ADMIN_URL
   REDIS_PASSWORD

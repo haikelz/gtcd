@@ -131,10 +131,11 @@ step migrates Redis or rolls back a failed rollout.
   trusted proxy headers instead of disabling CSRF checks.
 - The session cookie is `HttpOnly` and `SameSite=Lax`; its `Secure` flag follows
   the protocol the client used, so `http://localhost` and TLS domains both work.
-- `GOATCOUNTER_VHOST` names the site's hostname when the internal GoatCounter
-  URL differs from it. gtcd sends it as the `Host` header through `node:http`,
-  because Node's `fetch` drops a custom Host. Keep Host routing consistent when
-  you run several sites.
+- GoatCounter picks the site by the `Host` header. gtcd sends each site's
+  hostname for its reports, and `GOATCOUNTER_VHOST` for calls without a site
+  (account and site lists); `setup.sh` writes it and the Kubernetes script
+  defaults it to `DOMAIN`. Requests go through `node:http`, because Node's
+  `fetch` drops a custom Host.
 - Native imports accept files up to 8 MiB. Set `BODY_SIZE_LIMIT=10M` for gtcd
   (adapter-node defaults to 512 KiB) and allow the same request size at the
   reverse proxy.

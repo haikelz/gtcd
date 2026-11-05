@@ -152,7 +152,7 @@ Set these in `.env` or the container environment.
 | `DOMAIN`                |    No    | Dashboard domain for Compose; defaults to `localhost`.                                                      |
 | `GTCD_ADMIN_EMAILS`     |    No    | Comma-separated accounts that can manage sites, exports, sharing and users.                                 |
 | `GOATCOUNTER_ADMIN_URL` |    No    | Public GoatCounter URL, used for password-reset and secret-site links.                                      |
-| `GOATCOUNTER_VHOST`     |    No    | Site hostname to send as `Host` when the internal GoatCounter URL differs from it.                          |
+| `GOATCOUNTER_VHOST`     |    No    | GoatCounter site hostname, sent as `Host`. `setup.sh` writes it; Kubernetes defaults it to `DOMAIN`.        |
 | `GTCD_PUBLIC_URL`       |    No    | Public dashboard URL for links in emails.                                                                   |
 | `SMTP_HOST`             |    No    | SMTP server. Email stays off until `SMTP_HOST` and `SMTP_FROM` are set.                                     |
 | `SMTP_PORT`             |    No    | Defaults to `587`, or `465` with `SMTP_SECURE=true`.                                                        |
