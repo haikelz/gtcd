@@ -44,6 +44,13 @@ test("exports handle stable GoatCounter, refresh completion, and download the co
 
   await page.getByRole("button", { name: "Create export" }).click();
   await expect(page).toHaveURL(/export=\d+/);
+  // GoatCounter 2.7 rejects an unknown "format" field; CSV never sends it.
+  const bodies = await (
+    await fetch(
+      `http://127.0.0.1:${process.env.TEST_MOCK_PORT ?? 5187}/__export-bodies`
+    )
+  ).json();
+  expect(bodies.at(-1)).not.toHaveProperty("format");
   await expect(
     page.getByText("Preparing export", { exact: true })
   ).toBeVisible();

@@ -1,6 +1,7 @@
 import { clearClientCache, gcFetch, gcFetchRaw } from "./client.js";
 import type { GoatCounterRequestOptions } from "./client.js";
 import type { ExportJob, ExportRequest, Site, SiteSettings } from "./types.js";
+import { isCsvOnlyGoatCounter } from "./version.js";
 import type { Locale } from "$lib/dashboard-layout";
 import { translate } from "$lib/i18n";
 
@@ -139,16 +140,11 @@ export async function usesLegacyExports(
   options?: GoatCounterRequestOptions
 ): Promise<boolean> {
   const status = await gcFetch<unknown>("/status", {}, undefined, options);
-  if (!status || typeof status !== "object" || !("version" in status))
+  if (!status || typeof status !== "object" || !("version" in status)) {
     return false;
-  const version =
-    typeof status.version === "string"
-      ? status.version.match(/^v?(\d+)\.(\d+)(?:\.|$)/)
-      : null;
+  }
   return (
-    !!version &&
-    (Number(version[1]) < 2 ||
-      (Number(version[1]) === 2 && Number(version[2]) <= 7))
+    typeof status.version === "string" && isCsvOnlyGoatCounter(status.version)
   );
 }
 
@@ -210,8 +206,10 @@ export async function createExport(
       "/api/v0/export",
       {
         method: "POST",
+        // CSV is the default in every GoatCounter version, and 2.7 rejects an
+        // unknown "format" field, so only a JSON export names its format.
         body: JSON.stringify({
-          ...(!legacy ? { format: input.format } : {}),
+          ...(input.format === "json" ? { format: "json" } : {}),
           start_from_hit_id: input.startFromHitId,
           start_from_day: input.startFromDay,
         }),

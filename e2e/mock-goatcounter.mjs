@@ -73,6 +73,8 @@ function json(res, value) {
 
 const requestCounts = new Map();
 const exportJobs = new Map();
+// Export request bodies, so tests can check which fields gtcd sent.
+const exportBodies = [];
 const modernExports = process.env.MOCK_MODERN_EXPORTS === "true";
 // Method, path and Host of each request, so tests can tell which site a
 // write went to.
@@ -96,10 +98,17 @@ http
       return json(res, Object.fromEntries(requestCounts));
     }
     if (path === "/__requests") return json(res, requestLog);
+    if (path === "/__export-bodies") return json(res, exportBodies);
     requestLog.push({ host: req.headers.host, method: req.method, path });
     requestCounts.set(path, (requestCounts.get(path) ?? 0) + 1);
     if (path === "/status")
-      return json(res, { version: modernExports ? "dev" : "v2.7.0" });
+      // Like the official Docker image, which reports "<commit>_<commit time>"
+      // rather than a release tag: the v2.7.0 commit, or a later build.
+      return json(res, {
+        version: modernExports
+          ? "0123456789ab_2026-03-01T00:00:00Z"
+          : "7e91d8a9bdbb_2025-12-15T18:20:31Z",
+      });
     // Reports for the fixed year 2041 hit GoatCounter's rate limit.
     if (
       path.includes("/stats/") &&
@@ -251,6 +260,7 @@ http
       let body = "";
       for await (const chunk of req) body += chunk;
       const input = JSON.parse(body);
+      exportBodies.push(input);
       if (!modernExports && "format" in input) {
         res.writeHead(400, { "content-type": "application/json" });
         return res.end(
@@ -261,7 +271,7 @@ http
       const job = {
         id,
         site_id: 1,
-        ...(modernExports ? { format: input.format } : {}),
+        ...(modernExports ? { format: input.format ?? "csv" } : {}),
         created_at: new Date().toISOString(),
         finished_at: null,
         num_rows: null,
