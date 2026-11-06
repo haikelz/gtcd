@@ -15,7 +15,11 @@ assert.equal(
   isCsvOnlyGoatCounter("7e91d8a9bdbb_2025-06-08T10:00:00Z-dev"),
   true
 );
-assert.equal(isCsvOnlyGoatCounter("0123456789ab_2026-03-01T00:00:00Z"), false);
+// Builds after v2.7.0 but before the JSON export commit still lack it.
+assert.equal(isCsvOnlyGoatCounter("0123456789ab_2026-03-01T00:00:00Z"), true);
+assert.equal(isCsvOnlyGoatCounter("0123456789ab_2026-04-25T18:35:21Z"), true);
+assert.equal(isCsvOnlyGoatCounter("0a5512861522_2026-04-25T18:35:22Z"), false);
+assert.equal(isCsvOnlyGoatCounter("5c903afd9f73_2026-08-14T13:25:32Z"), false);
 
 // No version information at all: assume the older, CSV-only kind.
 assert.equal(isCsvOnlyGoatCounter("dev"), true);

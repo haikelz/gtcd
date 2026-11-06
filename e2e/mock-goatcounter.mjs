@@ -103,10 +103,10 @@ http
     requestCounts.set(path, (requestCounts.get(path) ?? 0) + 1);
     if (path === "/status")
       // Like the official Docker image, which reports "<commit>_<commit time>"
-      // rather than a release tag: the v2.7.0 commit, or a later build.
+      // rather than a release tag: the v2.7.0 commit, or the JSON export one.
       return json(res, {
         version: modernExports
-          ? "0123456789ab_2026-03-01T00:00:00Z"
+          ? "0a5512861522_2026-04-25T18:35:22Z"
           : "7e91d8a9bdbb_2025-12-15T18:20:31Z",
       });
     // Reports for the fixed year 2041 hit GoatCounter's rate limit.
