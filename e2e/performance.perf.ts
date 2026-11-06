@@ -109,10 +109,20 @@ test("authenticated dashboard performance", async ({
     await report.waitForLoadState("networkidle");
     const periodChangeMs = Math.round(performance.now() - periodStart);
 
-    const repeatBefore = await upstreamRequests();
+    // The report arrived with the overview's custom range, so load the other
+    // preset too; the repeat window then flips between two cached reports.
     await report.getByLabel("Last week", { exact: true }).click();
     await report.waitForLoadState("networkidle");
+    // Streamed rows and paced upstream calls can outlast network idle; wait
+    // until the mock's count holds still so no late call lands in the window.
+    for (let last = -1, now = await upstreamRequests(); now !== last;) {
+      await report.waitForTimeout(800);
+      [last, now] = [now, await upstreamRequests()];
+    }
+    const repeatBefore = await upstreamRequests();
     await report.getByLabel("Last month", { exact: true }).click();
+    await report.waitForLoadState("networkidle");
+    await report.getByLabel("Last week", { exact: true }).click();
     await report.waitForLoadState("networkidle");
     const repeatUpstream = (await upstreamRequests()) - repeatBefore;
 
