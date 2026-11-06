@@ -111,7 +111,9 @@ let upstreamRefreshPending = false;
 export class UpstreamHttpError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** For a 429: how long GoatCounter asked callers to wait. */
+    readonly retryAfterMs?: number
   ) {
     super(message);
     this.name = "UpstreamHttpError";
@@ -169,6 +171,19 @@ function retryAfterMs(response: Response): number {
     ? seconds * 1000
     : Date.parse(header) - Date.now();
   return Number.isFinite(ms) ? ms : 0;
+}
+
+/**
+ * GoatCounter rate-limits in separate buckets: one export an hour per address,
+ * /count hits, logins, and 4 requests a second for the rest of the API. Only a
+ * 429 from that general bucket says anything about other queued requests.
+ */
+function inSharedApiBucket(path: string): boolean {
+  return (
+    path !== "/api/v0/export" &&
+    path !== "/api/v0/count" &&
+    !path.startsWith("/user/")
+  );
 }
 
 /** Pause every queued request after a 429; returns the pause in ms. */
@@ -462,6 +477,15 @@ async function requestWithRetry<T>(
       if (response.status === 429) {
         counters.rateLimited++;
         lastUpstreamFailureAt = Date.now();
+        // An export's hourly limit must not stall reports; fail at once and
+        // say when GoatCounter allows the next one.
+        if (!inSharedApiBucket(url.pathname)) {
+          throw new UpstreamHttpError(
+            "Rate limit exceeded (429).",
+            429,
+            retryAfterMs(response)
+          );
+        }
         const waitMs = pauseForRateLimit(response, attempt);
         const exhausted =
           attempt === MAX_RETRIES || Date.now() + waitMs >= deadline;
@@ -579,7 +603,8 @@ export async function gcFetchRaw(
   else lastUpstreamFailureAt = Date.now();
   if (response.status === 429) {
     counters.rateLimited++;
-    pauseForRateLimit(response, 0);
+    // Login throttling has its own bucket; only API limits hold back reports.
+    if (inSharedApiBucket(path)) pauseForRateLimit(response, 0);
   }
   return response;
 }

@@ -153,6 +153,18 @@ export const actions = {
         vhost: siteContext.vhost,
       });
     } catch (cause) {
+      // GoatCounter allows one export an hour per address, and every gtcd user
+      // shares this server's address; say when the next one is possible.
+      if (cause instanceof UpstreamHttpError && cause.status === 429) {
+        const minutes = Math.max(
+          1,
+          Math.ceil((cause.retryAfterMs || 3_600_000) / 60_000)
+        );
+        return fail(429, {
+          error: translate(locals.locale, "exports.hourlyLimit", { minutes }),
+          values: parsed.values,
+        });
+      }
       return fail(
         cause instanceof UpstreamHttpError &&
           cause.status >= 400 &&

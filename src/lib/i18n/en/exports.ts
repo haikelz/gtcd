@@ -23,9 +23,11 @@ export default {
   "exports.jsonUnsupported":
     "This GoatCounter release does not support JSON exports. Use CSV, or upgrade GoatCounter to a build with JSON export support.",
   "exports.requestFailed":
-    "GoatCounter could not create the export. Check export permissions and the hourly export limit, then try again.",
+    "GoatCounter could not create the export. Check export permissions, then try again.",
+  "exports.hourlyLimit":
+    "GoatCounter allows one export per hour, shared by everyone using this dashboard. Try again in about {minutes} min.",
   "exports.limitsHelp":
-    "One export request per hour. Completed files stay available for 24 hours.",
+    "One export request per hour for everyone using this dashboard. Completed files stay available for 24 hours.",
   "exports.notFound": "Export not found.",
   "exports.notRequested": "Export not requested",
   "exports.optional": "(optional)",

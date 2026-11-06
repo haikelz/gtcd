@@ -261,6 +261,14 @@ http
       for await (const chunk of req) body += chunk;
       const input = JSON.parse(body);
       exportBodies.push(input);
+      // GoatCounter's own hourly export limit, a bucket separate from the API.
+      if (input.start_from_hit_id === 998) {
+        res.writeHead(429, {
+          "content-type": "application/json",
+          "retry-after": "1800",
+        });
+        return res.end(JSON.stringify({ error: "rate limited exceeded" }));
+      }
       if (!modernExports && "format" in input) {
         res.writeHead(400, { "content-type": "application/json" });
         return res.end(

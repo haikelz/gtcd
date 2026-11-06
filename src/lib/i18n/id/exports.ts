@@ -26,9 +26,11 @@ export default {
   "exports.jsonUnsupported":
     "Rilis GoatCounter ini belum mendukung ekspor JSON. Gunakan CSV, atau perbarui GoatCounter ke versi yang mendukung ekspor JSON.",
   "exports.requestFailed":
-    "GoatCounter tidak dapat membuat ekspor. Periksa izin ekspor dan batas ekspor per jam, lalu coba lagi.",
+    "GoatCounter tidak dapat membuat ekspor. Periksa izin ekspor, lalu coba lagi.",
+  "exports.hourlyLimit":
+    "GoatCounter hanya mengizinkan satu ekspor per jam untuk semua pengguna dasbor ini. Coba lagi sekitar {minutes} menit lagi.",
   "exports.limitsHelp":
-    "Satu permintaan ekspor per jam. File yang selesai tersedia selama 24 jam.",
+    "Satu permintaan ekspor per jam untuk semua pengguna dasbor ini. File yang selesai tersedia selama 24 jam.",
   "exports.notFound": "Ekspor tidak ditemukan.",
   "exports.notRequested": "Ekspor gagal diminta",
   "exports.optional": "(opsional)",

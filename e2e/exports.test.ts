@@ -110,3 +110,35 @@ test("exports handle stable GoatCounter, refresh completion, and download the co
     page.getByText("Fixture export failed", { exact: true })
   ).toBeVisible();
 });
+
+test("the hourly export limit says when to retry and does not stall reports", async ({
+  page,
+}) => {
+  const password = readFileSync("e2e/mock-goatcounter.mjs", "utf8").match(
+    /const PASSWORD = ("[^"]+");/
+  );
+  if (!password) throw new Error("Missing mock password");
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("qa@example.com");
+  await page
+    .getByLabel("Password", { exact: true })
+    .fill(JSON.parse(password[1]));
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  await page.goto("/dashboard/exports?site=1");
+  await page.getByLabel("Start after hit ID").fill("998");
+  await page.getByRole("button", { name: "Create export" }).click();
+  await expect(
+    page.getByText("Try again in about 30 min.", { exact: false })
+  ).toBeVisible();
+
+  // The export bucket's 429 must not pause the shared API queue.
+  await page.goto("/dashboard/browsers?site=1");
+  await expect(page.getByText("Chrome").first()).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(
+    page.getByText("GoatCounter is limiting requests", { exact: false })
+  ).toHaveCount(0);
+});
