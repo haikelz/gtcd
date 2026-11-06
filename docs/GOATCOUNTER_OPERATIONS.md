@@ -197,6 +197,13 @@ Before applying the pin to an existing installation, or changing it later:
    one change.
 5. Take and test a database backup (see [Database and storage](#2-database-and-storage)),
    then roll out to staging before production.
+6. Moving past v2.7.0 brings a second API limit from upstream commit
+   `e40357e8c1e4`: 500 requests an hour per client address (`api2`). Every gtcd
+   user reaches GoatCounter from the dashboard's address, so a busy dashboard
+   can spend it and see 429s for up to an hour. Add
+   `-ratelimit api2:15000/3600` to the `serve` arguments, just above the 14,400
+   an hour that gtcd's pacing allows one process, and keep the per-second `api`
+   limit.
 
 ## Rollout and recovery
 
