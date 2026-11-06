@@ -31,6 +31,8 @@ export default {
     "GoatCounter hanya mengizinkan satu ekspor per jam untuk semua pengguna dasbor ini. Coba lagi sekitar {minutes} menit lagi.",
   "exports.limitsHelp":
     "Satu permintaan ekspor per jam untuk semua pengguna dasbor ini. File yang selesai tersedia selama 24 jam.",
+  "exports.nextExportIn":
+    "Ekspor baru saja diminta. GoatCounter mengizinkan ekspor berikutnya sekitar {minutes} menit lagi.",
   "exports.notFound": "Ekspor tidak ditemukan.",
   "exports.notRequested": "Ekspor gagal diminta",
   "exports.optional": "(opsional)",

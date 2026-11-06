@@ -4,6 +4,7 @@ import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { UpstreamHttpError } from "$lib/server/goatcounter/client.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
+import { getJson, setJson } from "$lib/server/kv.js";
 import type {
   ExportJob,
   ExportRequest,
@@ -12,6 +13,29 @@ import type { Locale } from "$lib/dashboard-layout";
 import { translate } from "$lib/i18n";
 
 const EXPORT_PERMISSION = 4;
+
+// GoatCounter allows one export an hour per client address, and every gtcd
+// user shares this server's address, so remember when the next one can start.
+// ponytail: one key per deployment. Replicas behind different addresses get
+// separate GoatCounter buckets, so the notice can overstate their wait; key it
+// by egress address if that ever matters.
+const EXPORT_COOLDOWN_KEY = "export-cooldown";
+const EXPORT_INTERVAL_MS = 3_600_000;
+
+async function startExportCooldown(waitMs: number): Promise<void> {
+  await setJson(
+    EXPORT_COOLDOWN_KEY,
+    Date.now() + waitMs,
+    Math.ceil(waitMs / 1000)
+  );
+}
+
+/** Whole minutes until the next export, or null when one can start now. */
+async function exportWaitMinutes(): Promise<number | null> {
+  const until = await getJson(EXPORT_COOLDOWN_KEY);
+  if (typeof until !== "number" || until <= Date.now()) return null;
+  return Math.ceil((until - Date.now()) / 60_000);
+}
 
 function parseExportId(value: string | null): number | null {
   if (!value || !/^\d+$/.test(value)) return null;
@@ -116,7 +140,7 @@ export async function load({ locals, url }) {
   const legacyExports = await admin.usesLegacyExports({
     vhost: siteContext.vhost,
   });
-  return { job, legacyExports };
+  return { job, legacyExports, waitMinutes: await exportWaitMinutes() };
 }
 
 export const actions = {
@@ -153,15 +177,13 @@ export const actions = {
         vhost: siteContext.vhost,
       });
     } catch (cause) {
-      // GoatCounter allows one export an hour per address, and every gtcd user
-      // shares this server's address; say when the next one is possible.
       if (cause instanceof UpstreamHttpError && cause.status === 429) {
-        const minutes = Math.max(
-          1,
-          Math.ceil((cause.retryAfterMs || 3_600_000) / 60_000)
-        );
+        const waitMs = cause.retryAfterMs || EXPORT_INTERVAL_MS;
+        await startExportCooldown(waitMs);
         return fail(429, {
-          error: translate(locals.locale, "exports.hourlyLimit", { minutes }),
+          error: translate(locals.locale, "exports.hourlyLimit", {
+            minutes: Math.max(1, Math.ceil(waitMs / 60_000)),
+          }),
           values: parsed.values,
         });
       }
@@ -177,6 +199,7 @@ export const actions = {
         }
       );
     }
+    await startExportCooldown(EXPORT_INTERVAL_MS);
     throw redirect(
       303,
       `/dashboard/exports?site=${siteContext.site.id}&export=${job.id}`

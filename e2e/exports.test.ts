@@ -132,6 +132,11 @@ test("the hourly export limit says when to retry and does not stall reports", as
   await expect(
     page.getByText("Try again in about 30 min.", { exact: false })
   ).toBeVisible();
+  // Later visits say how long the shared limit lasts before anyone clicks.
+  await page.goto("/dashboard/exports?site=1");
+  await expect(
+    page.getByRole("button", { name: "Create export" })
+  ).toHaveAccessibleDescription(/allows the next one in about 30 min/);
 
   // The export bucket's 429 must not pause the shared API queue.
   await page.goto("/dashboard/browsers?site=1");

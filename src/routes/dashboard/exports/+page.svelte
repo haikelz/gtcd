@@ -183,10 +183,19 @@
       <FrameFooter
         class="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
-        <p class="text-xs text-muted-foreground">
-          {t("exports.limitsHelp")}
-        </p>
-        <Button class="shrink-0 self-end sm:self-auto" type="submit">
+        <div class="grid gap-1 text-xs">
+          {#if data.waitMinutes}
+            <p class="font-medium" id="export-wait">
+              {t("exports.nextExportIn", { minutes: data.waitMinutes })}
+            </p>
+          {/if}
+          <p class="text-muted-foreground">{t("exports.limitsHelp")}</p>
+        </div>
+        <Button
+          aria-describedby={data.waitMinutes ? "export-wait" : undefined}
+          class="shrink-0 self-end sm:self-auto"
+          type="submit"
+        >
           <FileArchive />
           {t("exports.createExport")}
         </Button>

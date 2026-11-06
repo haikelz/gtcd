@@ -28,6 +28,8 @@ export default {
     "GoatCounter allows one export per hour, shared by everyone using this dashboard. Try again in about {minutes} min.",
   "exports.limitsHelp":
     "One export request per hour for everyone using this dashboard. Completed files stay available for 24 hours.",
+  "exports.nextExportIn":
+    "An export was requested recently. GoatCounter allows the next one in about {minutes} min.",
   "exports.notFound": "Export not found.",
   "exports.notRequested": "Export not requested",
   "exports.optional": "(optional)",
