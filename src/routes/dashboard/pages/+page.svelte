@@ -8,6 +8,7 @@
   import PageRow from "$lib/components/PageRow.svelte";
   import ReportEmptyActions from "$lib/components/ReportEmptyActions.svelte";
   import ReportPagination from "$lib/components/ReportPagination.svelte";
+  import ReportSkeleton from "$lib/components/ReportSkeleton.svelte";
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { Button } from "$lib/components/ui/button";
@@ -27,11 +28,7 @@
   let { data } = $props();
 
   const linkDomain = $derived(data.site?.linkDomain ?? "");
-  const sharedScaleMax = $derived(
-    page.url.searchParams.get("scale") === "shared" && data.hits?.hits
-      ? statsScaleMax(data.hits.hits, "day")
-      : undefined
-  );
+  const sharedScale = $derived(page.url.searchParams.get("scale") === "shared");
 
   function pagesHref(cursor: string): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
@@ -56,108 +53,138 @@
 
 <DashboardToolbar showFilter />
 
-{#if data.error}
-  <ErrorAlert message={data.error} />
+{#snippet failed(message: string)}
+  <ErrorAlert {message} />
   {#if data.cursorError}
     <Button
       href={resolve(pagesHref("") as "/dashboard/pages")}
       variant="outline">{t("reports.resetPagination")}</Button
     >
   {/if}
-{:else if data.hits?.hits && data.hits.hits.length > 0}
-  <Frame class="animate-fade-in">
-    <FrameHeader class="flex-row flex-wrap items-center justify-between gap-3">
-      <div class="min-w-0">
+{/snippet}
+
+{#if data.error}
+  {@render failed(data.error)}
+{:else if data.report}
+  {#await data.report}
+    <Frame>
+      <FrameHeader>
         <FrameTitle>{t("reports.pagesReport")}</FrameTitle>
-        <FrameDescription class="text-xs">
-          {t("reports.pagesTrackedPaths", { count: data.hits.hits.length })}
-        </FrameDescription>
-      </div>
-      <ScaleToggle />
-    </FrameHeader>
-    <FramePanel>
-      <div
-        aria-hidden="true"
-        class="flex justify-between px-2 pb-2 text-xs text-muted-foreground"
-      >
-        <span>{t("reports.pageColumn")}</span><span>{t("reports.visits")}</span>
-      </div>
-      <div>
-        {#snippet rows(diffs?: Record<number, number | null>)}
-          <ul
-            aria-label={t("reports.pagesList")}
-            class="m-0 list-none border-t border-border p-0"
-          >
-            {#each data.hits.hits as hit, i (hit.path_id)}
-              <PageRow
-                diff={diffs?.[hit.path_id]}
-                {hit}
-                href={dashboardHref(
-                  resolve("/dashboard/pages/[id]", {
-                    id: String(hit.path_id),
-                  }),
-                  { view: true }
-                )}
-                {linkDomain}
-                rank={i + 1}
-                scaleMax={sharedScaleMax}
-              />
-            {/each}
-          </ul>
-        {/snippet}
-        {#await data.comparison}
-          <div
-            role="status"
-            class="flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <Skeleton class="size-4" />
-            {t("reports.comparisonLoading")}
+      </FrameHeader>
+      <FramePanel><ReportSkeleton /></FramePanel>
+    </Frame>
+  {:then report}
+    {#if report.hits.hits.length > 0}
+      {@const sharedScaleMax = sharedScale
+        ? statsScaleMax(report.hits.hits, "day")
+        : undefined}
+      <Frame class="animate-fade-in">
+        <FrameHeader
+          class="flex-row flex-wrap items-center justify-between gap-3"
+        >
+          <div class="min-w-0">
+            <FrameTitle>{t("reports.pagesReport")}</FrameTitle>
+            <FrameDescription class="text-xs">
+              {t("reports.pagesTrackedPaths", {
+                count: report.hits.hits.length,
+              })}
+            </FrameDescription>
           </div>
-          {@render rows()}
-        {:then comparison}
-          {#if comparison?.status === "error"}
-            <div role="status">
-              <ErrorAlert message={t("reports.comparisonFailed")} />
-            </div>
-            {@render rows()}
-          {:else}
-            <p role="status" class="sr-only">
-              {t("reports.comparisonLoaded")}
+          <ScaleToggle />
+        </FrameHeader>
+        <FramePanel>
+          <div
+            aria-hidden="true"
+            class="flex justify-between px-2 pb-2 text-xs text-muted-foreground"
+          >
+            <span>{t("reports.pageColumn")}</span><span
+              >{t("reports.visits")}</span
+            >
+          </div>
+          <div>
+            {#snippet rows(diffs?: Record<number, number | null>)}
+              <ul
+                aria-label={t("reports.pagesList")}
+                class="m-0 list-none border-t border-border p-0"
+              >
+                {#each report.hits.hits as hit, i (hit.path_id)}
+                  <PageRow
+                    diff={diffs?.[hit.path_id]}
+                    {hit}
+                    href={dashboardHref(
+                      resolve("/dashboard/pages/[id]", {
+                        id: String(hit.path_id),
+                      }),
+                      { view: true }
+                    )}
+                    {linkDomain}
+                    rank={i + 1}
+                    scaleMax={sharedScaleMax}
+                  />
+                {/each}
+              </ul>
+            {/snippet}
+            {#await data.comparison}
+              <div
+                role="status"
+                class="flex items-center gap-2 text-sm text-muted-foreground"
+              >
+                <Skeleton class="size-4" />
+                {t("reports.comparisonLoading")}
+              </div>
+              {@render rows()}
+            {:then comparison}
+              {#if comparison?.status === "error"}
+                <div role="status">
+                  <ErrorAlert message={t("reports.comparisonFailed")} />
+                </div>
+                {@render rows()}
+              {:else}
+                <p role="status" class="sr-only">
+                  {t("reports.comparisonLoaded")}
+                </p>
+                {@render rows(comparison?.diffs)}
+              {/if}
+            {/await}
+          </div>
+          {#if report.paginationNotice}
+            <p role="status" class="text-sm text-muted-foreground">
+              {report.paginationNotice}
             </p>
-            {@render rows(comparison?.diffs)}
+            <Button
+              href={resolve(pagesHref("") as "/dashboard/pages")}
+              variant="outline">{t("reports.resetPagination")}</Button
+            >
+            <Button
+              onclick={() => location.reload()}
+              size="sm"
+              variant="outline">{t("common.retry")}</Button
+            >
           {/if}
-        {/await}
-      </div>
-      {#if data.paginationNotice}
-        <p role="status" class="text-sm text-muted-foreground">
-          {data.paginationNotice}
-        </p>
-        <Button
-          href={resolve(pagesHref("") as "/dashboard/pages")}
-          variant="outline">{t("reports.resetPagination")}</Button
-        >
-        <Button onclick={() => location.reload()} size="sm" variant="outline"
-          >{t("common.retry")}</Button
-        >
-      {/if}
-      <ReportPagination
-        nextHref={data.nextCursor ? pagesHref(data.nextCursor) : undefined}
-        previousHref={data.hasPrevious
-          ? pagesHref(data.previousCursor)
-          : undefined}
-      />
-    </FramePanel>
-  </Frame>
-{:else}
-  <Frame class="animate-fade-in">
-    <FramePanel>
-      <EmptyState
-        desc={t("reports.pagesEmptyDescription")}
-        icon={FileText}
-        title={t("reports.pagesEmptyTitle")}
-      >
-        {#snippet actions()}<ReportEmptyActions />{/snippet}
-      </EmptyState>
-    </FramePanel>
-  </Frame>
+          <ReportPagination
+            nextHref={report.nextCursor
+              ? pagesHref(report.nextCursor)
+              : undefined}
+            previousHref={report.hasPrevious
+              ? pagesHref(report.previousCursor)
+              : undefined}
+          />
+        </FramePanel>
+      </Frame>
+    {:else}
+      <Frame class="animate-fade-in">
+        <FramePanel>
+          <EmptyState
+            desc={t("reports.pagesEmptyDescription")}
+            icon={FileText}
+            title={t("reports.pagesEmptyTitle")}
+          >
+            {#snippet actions()}<ReportEmptyActions />{/snippet}
+          </EmptyState>
+        </FramePanel>
+      </Frame>
+    {/if}
+  {:catch failure}
+    {@render failed(failure.message)}
+  {/await}
 {/if}

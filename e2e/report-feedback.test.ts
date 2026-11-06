@@ -31,27 +31,43 @@ test("a page downloads only the active language catalog", async ({ page }) => {
   expect(sources.some((source) => source.includes("Coba lagi"))).toBe(false);
 });
 
-test("a rate-limited report streams a skeleton, then a translated error with Retry", async ({
-  page,
-}) => {
-  test.setTimeout(60_000);
+for (const report of ["browsers", "pages"]) {
+  test(`a rate-limited ${report} report streams a skeleton, then a translated error with Retry`, async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await signIn(page);
+
+    // The streamed response stays open until the report settles, so check the
+    // skeleton in the first chunk instead of waiting for the load event.
+    await page.goto(`/dashboard/${report}?start=2041-01-01&end=2041-01-07`, {
+      waitUntil: "commit",
+    });
+    await expect(
+      page.getByRole("status").filter({ hasText: "Loading report" })
+    ).toHaveCount(1);
+    await expect(
+      page.getByText("GoatCounter is limiting requests right now.", {
+        exact: false,
+      })
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+    await expect(page.getByText(/Rate limit exceeded|\(429\)/)).toHaveCount(0);
+  });
+}
+
+test("the paths report streams its list", async ({ page }) => {
   await signIn(page);
 
-  // The streamed response stays open until the report settles, so check the
-  // skeleton in the first chunk instead of waiting for the load event.
-  await page.goto("/dashboard/browsers?start=2041-01-01&end=2041-01-07", {
-    waitUntil: "commit",
-  });
+  // The list can arrive before a browser check runs, so read the first HTML
+  // instead: a streamed page renders its skeleton there.
+  const html = await (await page.request.get("/dashboard/paths")).text();
+  expect(html).toContain("Loading report");
+
+  await page.goto("/dashboard/paths");
   await expect(
-    page.getByRole("status").filter({ hasText: "Loading report" })
-  ).toHaveCount(1);
-  await expect(
-    page.getByText("GoatCounter is limiting requests right now.", {
-      exact: false,
-    })
-  ).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
-  await expect(page.getByText(/Rate limit exceeded|\(429\)/)).toHaveCount(0);
+    page.getByRole("list", { name: "Tracked paths" }).getByRole("link").first()
+  ).toBeVisible();
 });
 
 test("failed overview KPIs offer a Retry", async ({ page }) => {

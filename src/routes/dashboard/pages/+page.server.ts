@@ -30,27 +30,29 @@ export async function load({ locals, url, parent }) {
     preferences.timezone,
     filter,
   ]);
-  const base = {
-    range,
-    hits: null,
-    comparison: Promise.resolve(null),
-    nextCursor: "",
-    previousCursor: "",
-    hasPrevious: false,
-    paginationNotice: "",
-    cursorError: false,
-  };
 
+  // The cursor lives in Redis, so check it before streaming: an expired one
+  // gets its own message and a way back to the first page.
+  let cursor: Awaited<ReturnType<typeof readPageCursor>>;
   try {
-    const cursor = token ? await readPageCursor(key, scope, token) : undefined;
-    if ((token && !cursor) || url.searchParams.has("exclude")) {
-      return {
-        ...base,
-        cursorError: true,
-        error: translate(locals.locale, "reports.paginationExpired"),
-      };
-    }
-    const excluded = cursor?.ids ?? [];
+    cursor = token ? await readPageCursor(key, scope, token) : undefined;
+  } catch (cause: unknown) {
+    return {
+      range,
+      cursorError: true,
+      error: stats.reportLoadError(cause, locals.locale, "reports.loadFailed"),
+    };
+  }
+  if ((token && !cursor) || url.searchParams.has("exclude")) {
+    return {
+      range,
+      cursorError: true,
+      error: translate(locals.locale, "reports.paginationExpired"),
+    };
+  }
+  const excluded = cursor?.ids ?? [];
+
+  const request = (async () => {
     const includePaths = await resolveFilter(filter, { vhost });
     const hits = await stats.getHits(
       start,
@@ -62,8 +64,48 @@ export async function load({ locals, url, parent }) {
       { vhost }
     );
 
-    // The rejection handler is attached before returning the streamed promise.
-    const comparison = (async () => {
+    let nextCursor = "";
+    let paginationNotice = "";
+    if (hits.more) {
+      const nextIds = [
+        ...new Set([...excluded, ...hits.hits.map((hit) => hit.path_id)]),
+      ];
+      if (
+        !hits.hits.length ||
+        nextIds.length === excluded.length ||
+        nextIds.length > MAX_EXCLUDED_PATHS
+      ) {
+        paginationNotice = translate(locals.locale, "reports.paginationLimit");
+      } else {
+        try {
+          nextCursor = await savePageCursor(key, scope, nextIds, token);
+        } catch {
+          paginationNotice = translate(
+            locals.locale,
+            "reports.paginationUnavailable"
+          );
+        }
+      }
+    }
+    return {
+      hits,
+      nextCursor,
+      previousCursor: cursor?.previous ?? "",
+      hasPrevious: Boolean(cursor),
+      paginationNotice,
+    };
+  })();
+
+  // Streamed: the page renders its skeleton while GoatCounter answers.
+  const report = stats.streamReport(
+    request,
+    locals.locale,
+    "reports.loadFailed"
+  );
+
+  // The rejection handler is attached before returning the streamed promise.
+  const comparison = request
+    .then(async ({ hits }) => {
       if (!hits.hits.length) return { status: "ready" as const, diffs: {} };
       const prevWall = previousRange(startWall, endWall);
       const prev = toDateRange(
@@ -91,46 +133,9 @@ export async function load({ locals, url, parent }) {
           count === 0 ? null : ((hit.count - count) / count) * 100;
       }
       return { status: "ready" as const, diffs };
-    })().catch(() => ({ status: "error" as const }));
+    })
+    .catch(() => ({ status: "error" as const }));
 
-    let nextCursor = "";
-    let paginationNotice = "";
-    if (hits.more) {
-      const nextIds = [
-        ...new Set([...excluded, ...hits.hits.map((hit) => hit.path_id)]),
-      ];
-      if (
-        !hits.hits.length ||
-        nextIds.length === excluded.length ||
-        nextIds.length > MAX_EXCLUDED_PATHS
-      ) {
-        paginationNotice = translate(locals.locale, "reports.paginationLimit");
-      } else {
-        try {
-          nextCursor = await savePageCursor(key, scope, nextIds, token);
-        } catch {
-          paginationNotice = translate(
-            locals.locale,
-            "reports.paginationUnavailable"
-          );
-        }
-      }
-    }
-    return {
-      range,
-      hits,
-      comparison,
-      nextCursor,
-      previousCursor: cursor?.previous ?? "",
-      hasPrevious: Boolean(cursor),
-      paginationNotice,
-      cursorError: false,
-    };
-  } catch (cause: unknown) {
-    return {
-      ...base,
-      cursorError: Boolean(token),
-      error: stats.reportLoadError(cause, locals.locale, "reports.loadFailed"),
-    };
-  }
+  // A failed later page offers the way back to the first one.
+  return { range, report, comparison, cursorError: Boolean(token) };
 }

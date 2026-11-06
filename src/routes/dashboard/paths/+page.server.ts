@@ -1,6 +1,6 @@
 import type { Locale } from "$lib/dashboard-layout";
 import { translate } from "$lib/i18n";
-import { getPaths, reportLoadError } from "$lib/server/goatcounter/stats.js";
+import { getPaths, streamReport } from "$lib/server/goatcounter/stats.js";
 
 function parseAfter(value: string | null, locale: Locale): number | undefined {
   if (!value) return undefined;
@@ -19,16 +19,12 @@ export async function load({ locals, url, parent }) {
   const after = parseAfter(url.searchParams.get("after"), locals.locale);
   const { vhost } = await parent();
 
-  try {
-    const result = await getPaths(100, after, { vhost });
-    const nextAfter = result.paths.at(-1)?.id;
-    return { after, nextAfter, paths: result };
-  } catch (cause: unknown) {
-    return {
-      after,
-      nextAfter: undefined,
-      paths: null,
-      error: reportLoadError(cause, locals.locale, "reports.pathsLoadFailed"),
-    };
-  }
+  // Streamed: the page renders its skeleton while GoatCounter answers.
+  const report = streamReport(
+    getPaths(100, after, { vhost }),
+    locals.locale,
+    "reports.pathsLoadFailed"
+  );
+
+  return { after, report };
 }
