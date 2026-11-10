@@ -10,6 +10,18 @@ const MOCK_PORT = Number(process.env.TEST_MOCK_PORT ?? 5187);
 export default defineConfig({
   testDir: "e2e",
   use: { baseURL: `http://127.0.0.1:${APP_PORT}` },
+  // A GoatCounter 429 pauses every queued upstream request in the shared
+  // server, so tests that cause one run after the rest instead of stalling
+  // whatever runs beside them. Running one file runs the main project first;
+  // --no-deps skips that, and the two can then interfere again.
+  projects: [
+    { name: "main", grepInvert: /@pauses-upstream/ },
+    {
+      name: "pauses-upstream",
+      grep: /@pauses-upstream/,
+      dependencies: ["main"],
+    },
+  ],
   webServer: [
     {
       // No `port`: Playwright would reject a port held by a stale mock before

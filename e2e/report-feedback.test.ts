@@ -31,29 +31,37 @@ test("a page downloads only the active language catalog", async ({ page }) => {
   expect(sources.some((source) => source.includes("Coba lagi"))).toBe(false);
 });
 
-for (const report of ["browsers", "pages"]) {
-  test(`a rate-limited ${report} report streams a skeleton, then a translated error with Retry`, async ({
-    page,
-  }) => {
-    test.setTimeout(60_000);
-    await signIn(page);
+// Reports for 2041 make GoatCounter answer 429, which pauses every queued
+// upstream request in the server; playwright.config.ts runs these last.
+const pausesUpstream = { tag: "@pauses-upstream" };
 
-    // The streamed response stays open until the report settles, so check the
-    // skeleton in the first chunk instead of waiting for the load event.
-    await page.goto(`/dashboard/${report}?start=2041-01-01&end=2041-01-07`, {
-      waitUntil: "commit",
-    });
-    await expect(
-      page.getByRole("status").filter({ hasText: "Loading report" })
-    ).toHaveCount(1);
-    await expect(
-      page.getByText("GoatCounter is limiting requests right now.", {
-        exact: false,
-      })
-    ).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
-    await expect(page.getByText(/Rate limit exceeded|\(429\)/)).toHaveCount(0);
-  });
+for (const report of ["browsers", "pages"]) {
+  test(
+    `a rate-limited ${report} report streams a skeleton, then a translated error with Retry`,
+    pausesUpstream,
+    async ({ page }) => {
+      test.setTimeout(60_000);
+      await signIn(page);
+
+      // The streamed response stays open until the report settles, so check the
+      // skeleton in the first chunk instead of waiting for the load event.
+      await page.goto(`/dashboard/${report}?start=2041-01-01&end=2041-01-07`, {
+        waitUntil: "commit",
+      });
+      await expect(
+        page.getByRole("status").filter({ hasText: "Loading report" })
+      ).toHaveCount(1);
+      await expect(
+        page.getByText("GoatCounter is limiting requests right now.", {
+          exact: false,
+        })
+      ).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+      await expect(page.getByText(/Rate limit exceeded|\(429\)/)).toHaveCount(
+        0
+      );
+    }
+  );
 }
 
 test("the paths report streams its list", async ({ page }) => {
@@ -70,7 +78,7 @@ test("the paths report streams its list", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("failed overview KPIs offer a Retry", async ({ page }) => {
+test("failed overview KPIs offer a Retry", pausesUpstream, async ({ page }) => {
   await signIn(page);
 
   await page.goto("/dashboard?start=2041-01-01&end=2041-01-07");
