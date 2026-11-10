@@ -17,7 +17,8 @@ import type { PageServerLoad } from "./$types";
 /**
  * The overview streams every GoatCounter request: the page renders as soon as
  * the filter resolves, and each widget fills in when its own data arrives.
- * Upstream pacing (4 req/s) would otherwise hold the whole page for seconds.
+ * Upstream pacing (GOATCOUNTER_API_RATE) would otherwise hold the whole page
+ * for seconds.
  * A failed widget rejects with a translated message so it can show an error
  * with Retry instead of looking empty.
  */

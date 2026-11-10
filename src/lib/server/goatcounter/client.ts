@@ -4,11 +4,11 @@ import {
   pingRedis,
   reportRedisFailure,
 } from "$lib/server/auth/session-store.js";
+import { requestIntervalMs } from "./api-rate.js";
 import { upstreamFetch } from "./upstream-fetch.js";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
-const MIN_REQUEST_INTERVAL_MS = 280; // GoatCounter allows 4 req/sec; 280ms keeps throughput under ~3.5 req/sec.
 const DEFAULT_CACHE_TTL_MS = 30_000; // 30 seconds cache for dashboard read queries
 const REQUEST_TIMEOUT_MS = 15_000;
 // One budget per call across pacing, attempts and backoff, so an unreachable
@@ -40,7 +40,7 @@ const counters = {
 const startedAt = Date.now();
 
 // Redis copy of the cache, shared by every replica so a second pod does not
-// spend GoatCounter's 4 req/s budget on a query the first already answered.
+// spend GoatCounter's API budget on a query the first already answered.
 const SHARED_CACHE_PREFIX = "gc-cache:";
 
 async function readSharedCache<T>(cacheKey: string): Promise<T | undefined> {
@@ -124,18 +124,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+let minRequestInterval: number | undefined;
+
 /**
- * Space outbound calls so they never exceed the 4 req/sec rate limit, and
- * hold them all while a 429 pause lasts. Throws instead of waiting past
- * `deadline`; nothing has been sent at that point.
+ * Space outbound calls under GoatCounter's API limit (GOATCOUNTER_API_RATE,
+ * 4 a second by default), and hold them all while a 429 pause lasts. Throws
+ * instead of waiting past `deadline`; nothing has been sent at that point.
  */
 async function paceRequest(deadline: number): Promise<void> {
+  const interval = (minRequestInterval ??= requestIntervalMs(
+    env.GOATCOUNTER_API_RATE || process.env.GOATCOUNTER_API_RATE
+  ));
   const execute = async () => {
     // Re-check after sleeping: a 429 may have arrived meanwhile.
     for (;;) {
       const now = Date.now();
       const wait = Math.max(
-        MIN_REQUEST_INTERVAL_MS - (now - lastRequestTime),
+        interval - (now - lastRequestTime),
         rateLimitedUntil - now
       );
       if (wait <= 0) break;
@@ -175,8 +180,9 @@ function retryAfterMs(response: Response): number {
 
 /**
  * GoatCounter rate-limits in separate buckets: one export an hour per address,
- * /count hits, logins, and 4 requests a second for the rest of the API. Only a
- * 429 from that general bucket says anything about other queued requests.
+ * /count hits, logins, and GOATCOUNTER_API_RATE a second for the rest of the
+ * API. Only a 429 from that general bucket says anything about other queued
+ * requests.
  */
 function inSharedApiBucket(path: string): boolean {
   return (
