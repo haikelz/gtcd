@@ -28,6 +28,9 @@ export default defineConfig({
             : {
                 GOATCOUNTER_URL: `http://127.0.0.1:${mockPort}`,
                 GOATCOUNTER_ADMIN_URL: `http://localhost:${mockPort}`,
+                // The rate Compose and Kubernetes deploy with; the mock has no
+                // limit of its own.
+                GOATCOUNTER_API_RATE: "20",
                 PORT: String(appPort),
                 ORIGIN: `http://127.0.0.1:${appPort}`,
               }),

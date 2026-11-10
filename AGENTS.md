@@ -53,8 +53,8 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 
 ### 2. GoatCounter Rate Limiting & Outbound Pacing
 
-- GoatCounter instances enforce an upstream limit of 4 requests/second.
-- All outbound calls through `gcFetch` MUST be paced by `paceRequest()` (minimum 280ms threshold).
+- GoatCounter enforces an API limit per client address: 4 requests/second by default, `-ratelimit api:N/1` to change it. Compose and Kubernetes run the bundled GoatCounter at `GOATCOUNTER_API_RATE` (default 20) on both sides; goatcounter.com stays at 4.
+- All outbound calls through `gcFetch` MUST be paced by `paceRequest()` at `GOATCOUNTER_API_RATE` with its 12% margin (`src/lib/server/goatcounter/api-rate.ts`; 280ms at the default 4). Never pace above the GoatCounter instance's own limit.
 - An upstream HTTP 429 pauses the shared pacer for every queued request, honoring `Retry-After` (seconds or HTTP date) between 1s and 60s. Only GETs retry on timeouts, 5xx and network errors; POST and PUT retry only on 429. Each `gcFetch` has a 20s total deadline and never retries a timed-out attempt.
 - Requests that name a vhost go through `upstreamFetch` (`src/lib/server/goatcounter/upstream-fetch.ts`): Node's `fetch` silently drops a custom `Host`, and GoatCounter selects the site by Host.
 - Dashboard queries use a 30-second cache (in-memory per process, shared through Redis under `gc-cache:*`). In-flight deduplication and pacing are process-local; cache sharing does not impose a global multi-replica rate limit.

@@ -44,6 +44,10 @@ spec:
             - -listen
             - ":8080"
             - -automigrate
+            # API calls a second from deploy-k8s.sh; gtcd paces itself to the
+            # same value (deployment.yaml). GoatCounter's default is api:4/1.
+            - -ratelimit
+            - "api:${GOATCOUNTER_API_RATE}/1"
           env:
             - name: GOATCOUNTER_DB
               value: "sqlite+/data/db.sqlite3"

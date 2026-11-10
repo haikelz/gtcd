@@ -107,6 +107,9 @@ spec:
                   name: gtcd-env
                   key: GTCD_PUBLIC_URL
                   optional: true
+            # GoatCounter calls a second, matching goatcounter.yaml's -ratelimit.
+            - name: GOATCOUNTER_API_RATE
+              value: "${GOATCOUNTER_API_RATE}"
             # Site hostname sent as Host to GoatCounter (defaults to DOMAIN).
             - name: GOATCOUNTER_VHOST
               valueFrom:

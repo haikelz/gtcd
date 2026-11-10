@@ -35,8 +35,9 @@ itself runs unchanged.
   setup, imports and page cleanup, without exposing the API token.
 - **Secure by default:** the API key never reaches the browser; login supports
   GoatCounter two-factor codes, rate limiting and optional Cloudflare Turnstile.
-- **Gentle on GoatCounter:** gtcd paces and caches its API calls to respect
-  GoatCounter's limit of 4 requests per second.
+- **Gentle on GoatCounter:** gtcd paces and caches its API calls to stay under
+  GoatCounter's API limit: 4 requests a second by default, 20 for the bundled
+  instance (`GOATCOUNTER_API_RATE`).
 - **Accessible:** keyboard navigation, screen-reader tables for every chart and
   reduced-motion support (WCAG 2.1 AA).
 
@@ -153,6 +154,7 @@ Set these in `.env` or the container environment.
 | `GTCD_ADMIN_EMAILS`     |    No    | Comma-separated accounts that can manage sites, exports, sharing and users.                                 |
 | `GOATCOUNTER_ADMIN_URL` |    No    | Public GoatCounter URL, used for password-reset and secret-site links.                                      |
 | `GOATCOUNTER_VHOST`     |    No    | GoatCounter site hostname, sent as `Host`. `setup.sh` writes it; Kubernetes defaults it to `DOMAIN`.        |
+| `GOATCOUNTER_API_RATE`  |    No    | GoatCounter API calls a second. gtcd defaults to `4`; Compose and Kubernetes set `20` on both sides.        |
 | `GTCD_PUBLIC_URL`       |    No    | Public dashboard URL for links in emails.                                                                   |
 | `SMTP_HOST`             |    No    | SMTP server. Email stays off until `SMTP_HOST` and `SMTP_FROM` are set.                                     |
 | `SMTP_PORT`             |    No    | Defaults to `587`, or `465` with `SMTP_SECURE=true`.                                                        |

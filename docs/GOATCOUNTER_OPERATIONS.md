@@ -16,8 +16,12 @@ was performed. Do not interpret the defaults below as measured recommendations.
 
 ## 1. Dashboard API demand
 
-gtcd retains its 280 ms outbound pacing, 30-second read cache, Redis shared cache,
-and coalescing of overlapping identical GETs. Health refreshes now share one
+gtcd paces outbound calls to `GOATCOUNTER_API_RATE` a second with a 12% margin
+(280 ms apart at GoatCounter's default of 4, 56 ms at the 20 that Compose and
+Kubernetes give the bundled instance through `-ratelimit api:20/1`), and keeps
+its 30-second read cache, Redis shared cache and coalescing of overlapping
+identical GETs. Raise both sides together; a gtcd rate above GoatCounter's
+brings 429 pauses that are slower than the lower rate. Health refreshes now share one
 background operation and start at most once per minute per process, including
 after failures. Transient retries can still produce several upstream attempts.
 The health endpoint remains nonblocking with respect to GoatCounter and reports

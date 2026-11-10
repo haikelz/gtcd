@@ -30,6 +30,15 @@ if [[ ! "$REDIS_PASSWORD" =~ ^[A-Za-z0-9]{16,}$ ]]; then
   exit 1
 fi
 
+# API calls a second: the in-cluster GoatCounter's -ratelimit and gtcd's pacing
+# (goatcounter.yaml, deployment.yaml). Set 4 for an external GoatCounter whose
+# limit you cannot raise, such as goatcounter.com.
+export GOATCOUNTER_API_RATE="${GOATCOUNTER_API_RATE:-20}"
+if [[ ! "$GOATCOUNTER_API_RATE" =~ ^[1-9][0-9]*$ ]]; then
+  echo "GOATCOUNTER_API_RATE must be a whole number of requests a second." >&2
+  exit 1
+fi
+
 # Refuse to replace an ephemeral Redis pod before its state has been migrated.
 # See docs/REDIS_STATE.md; this check runs before any cluster mutations.
 if kubectl get deployment redis >/dev/null 2>&1; then

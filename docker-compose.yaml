@@ -22,6 +22,15 @@ services:
     # See docs/GOATCOUNTER_OPERATIONS.md#goatcounter-image-pin.
     image: arp242/goatcounter:2.7.0@sha256:791df3317bf5ce379511181a4802aaf29127a318b372d4fe39ec59e1c5af44be
     restart: unless-stopped
+    # The image's default command plus the API limit; gtcd below paces itself
+    # to the same GOATCOUNTER_API_RATE (GoatCounter's own default is 4).
+    command:
+      [
+        "serve",
+        "-automigrate",
+        "-ratelimit",
+        "api:${GOATCOUNTER_API_RATE:-20}/1",
+      ]
     expose:
       - "8080"
     networks:
@@ -63,6 +72,7 @@ services:
     env_file: .env
     environment:
       GOATCOUNTER_URL: ${GOATCOUNTER_URL:-http://goatcounter:8080}
+      GOATCOUNTER_API_RATE: ${GOATCOUNTER_API_RATE:-20}
       # Must carry the password from secrets/redis.conf, e.g.
       # redis://:<REDIS_PASSWORD>@redis:6379 (scripts/setup.sh writes it).
       REDIS_URL: ${REDIS_URL:?Set REDIS_URL in .env with the password from secrets/redis.conf}
