@@ -7,6 +7,7 @@ import { PathFilterLimitError } from "./filter.js";
 import type {
   CountTotalResponse,
   GoatCounterUser,
+  HitStat,
   HitsResponse,
   RefsResponse,
   StatsDetailPage,
@@ -39,6 +40,26 @@ function normalizeStatName(
   }
 
   return normalizeName(name);
+}
+
+/** A stats row as GoatCounter sends it: 2.7 omits the id it cannot attribute. */
+type UpstreamHitStat = Omit<HitStat, "id"> & { readonly id?: string };
+type UpstreamStatsResponse = Omit<StatsResponse, "stats"> & {
+  readonly stats?: readonly UpstreamHitStat[];
+};
+
+/**
+ * GoatCounter 2.7 sends direct visits in toprefs without an id. Every row gets
+ * a string id, empty when GoatCounter sent none, so nothing links to it.
+ */
+function normalizeStats(
+  page: StatsPage,
+  stats: readonly UpstreamHitStat[] | undefined
+): HitStat[] {
+  return (stats ?? []).map((item) => {
+    const id = item.id ?? "";
+    return { ...item, id, name: normalizeStatName(page, id, item.name) };
+  });
 }
 
 const STATS_PAGES: readonly StatsPage[] = [
@@ -192,7 +213,7 @@ export async function getStats(
     return { stats: [], more: false };
   }
 
-  const res = await gcFetch<StatsResponse>(
+  const res = await gcFetch<UpstreamStatsResponse>(
     `/api/v0/stats/${page}`,
     {},
     {
@@ -205,13 +226,7 @@ export async function getStats(
     options
   );
 
-  return {
-    ...res,
-    stats: (res.stats || []).map((item) => ({
-      ...item,
-      name: normalizeStatName(page, item.id, item.name),
-    })),
-  };
+  return { ...res, stats: normalizeStats(page, res.stats) };
 }
 
 export async function getStatsDetail(
@@ -228,7 +243,7 @@ export async function getStatsDetail(
     return { stats: [], more: false };
   }
 
-  const res = await gcFetch<StatsResponse>(
+  const res = await gcFetch<UpstreamStatsResponse>(
     `/api/v0/stats/${page}/${encodeURIComponent(id)}`,
     {},
     {
@@ -241,13 +256,7 @@ export async function getStatsDetail(
     options
   );
 
-  return {
-    ...res,
-    stats: (res.stats || []).map((item) => ({
-      ...item,
-      name: normalizeStatName(page, item.id, item.name),
-    })),
-  };
+  return { ...res, stats: normalizeStats(page, res.stats) };
 }
 
 export async function getPaths(

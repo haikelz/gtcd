@@ -64,6 +64,18 @@ for (const report of ["browsers", "pages"]) {
   );
 }
 
+test("referrers leave direct visits unlinked", async ({ page }) => {
+  await signIn(page);
+
+  await page.goto("/dashboard/referrers");
+  const chart = page.getByRole("list", { name: "Breakdown chart" });
+  // Direct visits come without an id, so there is no detail page to open.
+  await expect(chart.getByText("Unknown", { exact: true })).toBeVisible();
+  await expect(
+    chart.getByRole("button", { name: /^Explore Unknown/ })
+  ).toHaveCount(0);
+});
+
 test("the paths report streams its list", async ({ page }) => {
   await signIn(page);
 

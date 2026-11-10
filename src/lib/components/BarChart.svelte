@@ -73,7 +73,8 @@
       </div>
     {/snippet}
     <li class="border-b border-border last:border-0">
-      {#if onItemClick}
+      <!-- Rows GoatCounter sends without an id, such as direct visits, have no detail page. -->
+      {#if onItemClick && item.id}
         <button
           type="button"
           class="w-full min-w-0 cursor-pointer text-left px-1.5 py-3 rounded-lg hover:bg-muted transition-colors"

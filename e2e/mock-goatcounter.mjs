@@ -327,6 +327,17 @@ http
       languages: ["English", "Indonesian", "German"],
       sizes: ["Desktop", "Mobile", "Tablet"],
     };
+    // Like GoatCounter 2.7: direct visits arrive without an id.
+    if (path === "/api/v0/stats/toprefs") {
+      return json(res, {
+        more: false,
+        stats: [
+          { id: "google.com", name: "google.com", count: 600, ref_scheme: "o" },
+          { id: "github.com", name: "github.com", count: 760, ref_scheme: "o" },
+          { name: "", count: 340, ref_scheme: "o" },
+        ],
+      });
+    }
     const names = Object.entries(categories).find(([category]) =>
       path.includes(category)
     )?.[1] ?? ["Chrome", "Safari", "Firefox"];
