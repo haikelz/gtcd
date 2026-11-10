@@ -327,13 +327,15 @@ http
       languages: ["English", "Indonesian", "German"],
       sizes: ["Desktop", "Mobile", "Tablet"],
     };
-    // Like GoatCounter 2.7: direct visits arrive without an id.
+    // Like GoatCounter 2.7: a referrer once per scheme (plain "o", campaign
+    // "c") and direct visits without an id.
     if (path === "/api/v0/stats/toprefs") {
       return json(res, {
         more: false,
         stats: [
           { id: "google.com", name: "google.com", count: 600, ref_scheme: "o" },
           { id: "github.com", name: "github.com", count: 760, ref_scheme: "o" },
+          { id: "google.com", name: "google.com", count: 380, ref_scheme: "c" },
           { name: "", count: 340, ref_scheme: "o" },
         ],
       });

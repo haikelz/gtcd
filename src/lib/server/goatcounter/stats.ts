@@ -49,17 +49,31 @@ type UpstreamStatsResponse = Omit<StatsResponse, "stats"> & {
 };
 
 /**
- * GoatCounter 2.7 sends direct visits in toprefs without an id. Every row gets
- * a string id, empty when GoatCounter sent none, so nothing links to it.
+ * GoatCounter 2.7 sends direct visits in toprefs without an id and lists a
+ * referrer once per scheme, plain and campaign-tagged. Every row gets a
+ * string id, empty when GoatCounter sent none so nothing links to it, and
+ * rows sharing an id merge into one, largest first.
+ * ponytail: merges within one page of results; a referrer split across a
+ * page boundary still shows on both pages.
  */
 function normalizeStats(
   page: StatsPage,
   stats: readonly UpstreamHitStat[] | undefined
 ): HitStat[] {
-  return (stats ?? []).map((item) => {
+  const rows: HitStat[] = [];
+  const byId = new Map<string, HitStat>();
+  for (const item of stats ?? []) {
     const id = item.id ?? "";
-    return { ...item, id, name: normalizeStatName(page, id, item.name) };
-  });
+    const seen = id ? byId.get(id) : undefined;
+    if (seen) {
+      seen.count += item.count;
+      continue;
+    }
+    const row = { ...item, id, name: normalizeStatName(page, id, item.name) };
+    rows.push(row);
+    if (id) byId.set(id, row);
+  }
+  return rows.sort((a, b) => b.count - a.count);
 }
 
 const STATS_PAGES: readonly StatsPage[] = [
