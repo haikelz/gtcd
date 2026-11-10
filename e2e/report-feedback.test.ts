@@ -83,6 +83,19 @@ test("referrers merge GoatCounter's per-scheme rows and leave direct visits unli
   ).toHaveCount(0);
 });
 
+test("a GoatCounter error says GoatCounter answered, not that it is down", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await signIn(page);
+
+  await page.goto("/dashboard/reports/campaigns/launch");
+  await expect(
+    page.getByText("GoatCounter answered with an error.", { exact: false })
+  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("GoatCounter is not responding")).toHaveCount(0);
+});
+
 test("the paths report streams its list", async ({ page }) => {
   await signIn(page);
 

@@ -352,6 +352,11 @@ export function reportLoadError(
     });
   }
   if (isRateLimited(cause)) return translate(locale, "common.rateLimited");
+  // A 500 is GoatCounter answering with an error; 502-504 and timeouts mean
+  // it did not answer at all.
+  if (cause instanceof UpstreamHttpError && cause.status === 500) {
+    return translate(locale, "common.upstreamError");
+  }
   if (isUnavailable(cause)) {
     return translate(locale, "common.upstreamUnavailable");
   }

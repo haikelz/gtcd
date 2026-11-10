@@ -7,6 +7,8 @@ export default {
     "GoatCounter is limiting requests right now. Wait a few seconds, then retry.",
   "common.reportLoadFailed": "This report could not load",
   "common.retry": "Retry",
+  "common.upstreamError":
+    "GoatCounter answered with an error. Retry, and if it keeps failing, check GoatCounter's log.",
   "common.upstreamUnavailable":
     "GoatCounter is not responding. Retry in a moment.",
 } as const satisfies Record<`common.${string}`, string>;

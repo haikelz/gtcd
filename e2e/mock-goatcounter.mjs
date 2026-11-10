@@ -327,6 +327,12 @@ http
       languages: ["English", "Indonesian", "German"],
       sizes: ["Desktop", "Mobile", "Tablet"],
     };
+    // GoatCounter 2.7 parses a campaign detail id as a number and answers 500
+    // for a name, as an old bookmark would send.
+    if (path === "/api/v0/stats/campaigns/launch") {
+      res.writeHead(500, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ error: "unexpected error code" }));
+    }
     // Like GoatCounter 2.7: a referrer once per scheme (plain "o", campaign
     // "c") and direct visits without an id.
     if (path === "/api/v0/stats/toprefs") {

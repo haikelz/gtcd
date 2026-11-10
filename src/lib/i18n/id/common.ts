@@ -9,6 +9,8 @@ export default {
     "GoatCounter sedang membatasi permintaan. Tunggu beberapa detik, lalu coba lagi.",
   "common.reportLoadFailed": "Laporan ini gagal dimuat",
   "common.retry": "Coba lagi",
+  "common.upstreamError":
+    "GoatCounter menjawab dengan galat. Coba lagi; jika terus gagal, periksa log GoatCounter.",
   "common.upstreamUnavailable":
     "GoatCounter tidak merespons. Coba lagi sebentar lagi.",
 } satisfies Record<keyof typeof en, string>;
