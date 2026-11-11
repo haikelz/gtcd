@@ -1,18 +1,69 @@
+import { fail } from "@sveltejs/kit";
 import {
   isWidgetVisible,
+  type Locale,
   type WidgetId,
   widgetLimit,
 } from "$lib/dashboard-layout.js";
-import { previousRange } from "$lib/period.js";
+import { translate } from "$lib/i18n/index.js";
+import { previousRange, toDayString } from "$lib/period.js";
+import {
+  addAnnotation,
+  type Annotation,
+  deleteAnnotation,
+  isAnnotationDate,
+  isAnnotationId,
+  listAnnotations,
+  MAX_ANNOTATIONS,
+  normalizeAnnotationText,
+} from "$lib/server/annotations.js";
+import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import {
   getFilterFromUrl,
   resolveFilter,
 } from "$lib/server/goatcounter/filter.js";
+import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import type { HitsResponse } from "$lib/server/goatcounter/types.js";
 import { getDateRangeFromUrl, toDateRange } from "$lib/server/helpers.js";
 import { orNull } from "$lib/server/report-summary.js";
-import type { PageServerLoad } from "./$types";
+import type { Actions, PageServerLoad } from "./$types";
+
+type PeriodAnnotations = {
+  readonly error: string | null;
+  readonly notes: readonly Annotation[];
+};
+
+/**
+ * Chart notes for the period. Redis is the only source: when it cannot be
+ * read, the list shows an error instead of an empty or stale list.
+ */
+async function periodAnnotations(
+  siteId: number,
+  start: Date,
+  end: Date,
+  locale: Locale
+): Promise<PeriodAnnotations> {
+  try {
+    return {
+      error: null,
+      notes: await listAnnotations(
+        siteId,
+        toDayString(start),
+        toDayString(end)
+      ),
+    };
+  } catch (cause: unknown) {
+    console.error(
+      "Annotations unavailable:",
+      cause instanceof Error ? cause.message : cause
+    );
+    return {
+      error: translate(locale, "insights.notesUnavailable"),
+      notes: [],
+    };
+  }
+}
 
 /**
  * The overview streams every GoatCounter request: the page renders as soon as
@@ -23,11 +74,18 @@ import type { PageServerLoad } from "./$types";
  * with Retry instead of looking empty.
  */
 export const load: PageServerLoad = async ({ url, parent }) => {
-  const { dashboardLayout, preferences, vhost } = await parent();
+  const { dashboardLayout, preferences, site, vhost } = await parent();
   const { end, endWall, range, start, startWall } = getDateRangeFromUrl(
     url,
     preferences.timezone
   );
+  // Notes sit under the traffic chart; read them while the filter resolves.
+  const annotations: Promise<PeriodAnnotations> = isWidgetVisible(
+    dashboardLayout,
+    "traffic"
+  )
+    ? periodAnnotations(site.id, startWall, endWall, preferences.locale)
+    : Promise.resolve({ error: null, notes: [] });
   const requestOptions = { vhost };
   const prevWall = previousRange(startWall, endWall);
   const previous = toDateRange(
@@ -45,6 +103,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
 
     // Without a resolved filter no widget has data; the page shows only this.
     return {
+      annotations: { error: null, notes: [] } satisfies PeriodAnnotations,
       browsers: none,
       campaigns: none,
       comparison: { total: none, browsers: none, locations: none },
@@ -197,6 +256,7 @@ export const load: PageServerLoad = async ({ url, parent }) => {
   };
 
   return {
+    annotations: await annotations,
     browsers: widget(requests.browsers),
     campaigns: widget(requests.campaigns),
     comparison,
@@ -211,4 +271,88 @@ export const load: PageServerLoad = async ({ url, parent }) => {
     systems: widget(requests.systems),
     total: widget(requests.total),
   };
+};
+
+/**
+ * Admins add and delete chart notes. SvelteKit's origin check rejects
+ * cross-site POSTs here, as for every other form action.
+ */
+export const actions: Actions = {
+  addNote: async ({ locals, request }) => {
+    const admin = requireDashboardAdmin(locals.user);
+    const form = await request.formData();
+    const date = form.get("date");
+    const text = normalizeAnnotationText(form.get("text"));
+
+    if (!isAnnotationDate(date) || !text) {
+      return fail(400, {
+        action: "addNote",
+        message: translate(locals.locale, "insights.noteInvalid"),
+      });
+    }
+
+    const { site } = await getDashboardSiteContext(new URL(request.url));
+    let added: Annotation | null;
+    try {
+      added = await addAnnotation(site.id, {
+        createdBy: admin.email,
+        date,
+        text,
+      });
+    } catch (cause: unknown) {
+      console.error(
+        "Annotation not saved:",
+        cause instanceof Error ? cause.message : cause
+      );
+      return fail(503, {
+        action: "addNote",
+        message: translate(locals.locale, "insights.noteSaveFailed"),
+      });
+    }
+
+    if (!added) {
+      return fail(400, {
+        action: "addNote",
+        message: translate(locals.locale, "insights.noteLimit", {
+          max: MAX_ANNOTATIONS,
+        }),
+      });
+    }
+
+    return {
+      action: "addNote",
+      message: translate(locals.locale, "insights.noteAdded"),
+    };
+  },
+  deleteNote: async ({ locals, request }) => {
+    requireDashboardAdmin(locals.user);
+    const form = await request.formData();
+    const id = form.get("id");
+
+    if (!isAnnotationId(id)) {
+      return fail(400, {
+        action: "deleteNote",
+        message: translate(locals.locale, "insights.noteNotFound"),
+      });
+    }
+
+    const { site } = await getDashboardSiteContext(new URL(request.url));
+    try {
+      await deleteAnnotation(site.id, id);
+    } catch (cause: unknown) {
+      console.error(
+        "Annotation not deleted:",
+        cause instanceof Error ? cause.message : cause
+      );
+      return fail(503, {
+        action: "deleteNote",
+        message: translate(locals.locale, "insights.noteSaveFailed"),
+      });
+    }
+
+    return {
+      action: "deleteNote",
+      message: translate(locals.locale, "insights.noteDeleted"),
+    };
+  },
 };

@@ -361,6 +361,34 @@ export function seriesPoints(
 }
 
 /**
+ * The seriesPoints() index that covers a YYYY-MM-DD day: its first hour, its
+ * day, its week or its month. Null when the stats do not include the day.
+ */
+export function seriesIndexForDay(
+  stats: readonly HitListStat[],
+  group: Group,
+  day: string
+): number | null {
+  const index = stats.findIndex((stat) => stat.day === day);
+  if (index < 0) return null;
+
+  switch (group) {
+    case "hour":
+      return index * 24;
+    case "day":
+      return index;
+    case "week":
+      return Math.floor(index / 7);
+    case "month": {
+      const month = stats
+        .slice(0, index + 1)
+        .filter((stat) => stat.day.endsWith("-01")).length;
+      return month > 0 ? month - 1 : null;
+    }
+  }
+}
+
+/**
  * Shared Y-axis maximum for a list of per-path sparklines, so rows are
  * visually comparable like GoatCounter's dashboard charts.
  */

@@ -24,6 +24,8 @@
     AlertTitle,
   } from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import { Label } from "$lib/components/ui/label";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     Frame,
@@ -43,15 +45,19 @@
   import type { HitList } from "$lib/types";
   import {
     formatRangeLabel,
+    fromDayString,
     groupForRange,
     previousRange,
     rangeFromParams,
     statsScaleMax,
+    toDayString,
   } from "$lib/period.js";
-  import { wallClockNow } from "$lib/preferences";
+  import { formatDate, wallClockNow } from "$lib/preferences";
+  import type { SubmitFunction } from "@sveltejs/kit";
   import {
     ArrowUpRight,
     ChartNoAxesCombined,
+    CircleAlert,
     Clock,
     FileText,
     Globe,
@@ -63,9 +69,10 @@
     Monitor,
     SlidersHorizontal,
     Smartphone,
+    Trash2,
   } from "@lucide/svelte";
 
-  let { data } = $props();
+  let { data, form } = $props();
 
   const preferences = $derived(displayPreferences());
   const range = $derived(
@@ -133,6 +140,34 @@
     layout && widgetStyle(layout, "traffic") === "bar" ? "bar" : "line"
   );
   const pagesStyle = $derived(layout ? widgetStyle(layout, "pages") : "line");
+
+  const noteFailure = $derived(
+    (form?.action === "addNote" || form?.action === "deleteNote") &&
+      page.status >= 400
+      ? form.message
+      : null
+  );
+
+  // The toast follows the durable write; update() reloads the notes.
+  const noteSubmitted: SubmitFunction = () => {
+    return async ({ result, update }) => {
+      await update();
+      if (
+        result.type === "success" &&
+        typeof result.data?.message === "string"
+      ) {
+        showToast(result.data.message, "success");
+      }
+    };
+  };
+
+  function noteDate(day: string): string {
+    const date = fromDayString(day);
+
+    return date
+      ? formatDate(date, preferences.dateFormat, "full", preferences.locale)
+      : day;
+  }
 
   const technicalReports = $derived([
     {
@@ -440,13 +475,102 @@
           data={total?.stats ?? []}
           group={groups.group}
           height={280}
+          notes={data.annotations.notes}
           style={trafficStyle}
         />
       {:catch failure}
         <ErrorAlert message={failure.message} />
       {/await}
+      {@render notesSection()}
     </FramePanel>
   </Frame>
+{/snippet}
+
+{#snippet notesSection()}
+  <section
+    aria-labelledby="heading-notes"
+    class="mt-4 flex flex-col gap-3 border-t border-border pt-4"
+  >
+    <FrameTitle id="heading-notes" level={3}
+      >{t("insights.notesTitle")}</FrameTitle
+    >
+    {#if data.annotations.error}
+      <ErrorAlert message={data.annotations.error} />
+    {:else if data.annotations.notes.length === 0}
+      <p class="text-sm text-muted-foreground">{t("insights.notesEmpty")}</p>
+    {:else}
+      <ul class="m-0 flex list-none flex-col divide-y divide-border p-0">
+        {#each data.annotations.notes as note (note.id)}
+          <li class="flex items-center gap-3 py-1.5">
+            <time
+              class="w-24 shrink-0 text-xs text-muted-foreground tabular-nums"
+              datetime={note.date}>{noteDate(note.date)}</time
+            >
+            <p class="min-w-0 flex-1 text-sm break-words">{note.text}</p>
+            {#if data.isAdmin}
+              <form
+                action={dashboardHref("?/deleteNote", { view: true })}
+                method="POST"
+                use:enhance={noteSubmitted}
+              >
+                <input name="id" type="hidden" value={note.id} />
+                <Button
+                  aria-label={t("insights.deleteNote", { text: note.text })}
+                  size="icon-sm"
+                  title={t("insights.deleteNote", { text: note.text })}
+                  type="submit"
+                  variant="ghost"
+                >
+                  <Trash2 />
+                </Button>
+              </form>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    {#if data.isAdmin}
+      <form
+        action={dashboardHref("?/addNote", { view: true })}
+        class="flex flex-wrap items-end gap-2"
+        method="POST"
+        use:enhance={noteSubmitted}
+      >
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs" for="note-date">{t("insights.noteDate")}</Label
+          >
+          <Input
+            class="w-40"
+            defaultValue={toDayString(range.end)}
+            id="note-date"
+            name="date"
+            required
+            type="date"
+          />
+        </div>
+        <div class="flex min-w-48 flex-1 flex-col gap-1.5">
+          <Label class="text-xs" for="note-text">{t("insights.noteText")}</Label
+          >
+          <Input
+            id="note-text"
+            maxlength={140}
+            name="text"
+            placeholder={t("insights.notePlaceholder")}
+            required
+          />
+        </div>
+        <Button type="submit" variant="outline">
+          {t("insights.addNote")}
+        </Button>
+      </form>
+    {/if}
+    {#if noteFailure}
+      <Alert variant="destructive">
+        <CircleAlert />
+        <AlertTitle class="line-clamp-none">{noteFailure}</AlertTitle>
+      </Alert>
+    {/if}
+  </section>
 {/snippet}
 
 {#snippet hoursWidget()}

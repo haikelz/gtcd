@@ -42,6 +42,11 @@ test("durable mutations fail during outages and revoked grants stay revoked afte
     const sessions = await first.ssrLoadModule(
       "/src/lib/server/auth/session-store.ts"
     );
+    const annotations = await first.ssrLoadModule(
+      "/src/lib/server/annotations.ts"
+    );
+    const note = { createdBy: email, date: "2026-10-05", text: "Before" };
+    const saved = await annotations.addAnnotation(siteId, note);
     const original = await store.createShareLink(siteId);
     available = false;
     for (const socket of sockets) socket.destroy();
@@ -60,6 +65,12 @@ test("durable mutations fail during outages and revoked grants stay revoked afte
     await expect(store.resolveShareToken(original.token)).rejects.toThrow(
       "Storage is unavailable"
     );
+    await expect(annotations.listAnnotations(siteId)).rejects.toThrow(
+      "Storage is unavailable"
+    );
+    await expect(
+      annotations.addAnnotation(siteId, { ...note, text: "During" })
+    ).rejects.toThrow("Storage is unavailable");
     await sessions.createSession(email, email);
     expect(await sessions.getSession(email)).toEqual({ email });
 
@@ -68,6 +79,8 @@ test("durable mutations fail during outages and revoked grants stay revoked afte
       .poll(() => sessions.pingRedis(), { timeout: 25_000 })
       .toBe(true);
     expect(await store.resolveShareToken(original.token)).toBe(siteId);
+    // No outage write survives in process memory.
+    expect(await annotations.listAnnotations(siteId)).toEqual([saved]);
     await store.revokeShareLink(siteId);
     const replica = await second.ssrLoadModule(
       "/src/lib/server/share-store.ts"

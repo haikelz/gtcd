@@ -112,7 +112,8 @@ distinctions, baseline limitations and delivery consequences when shortening.
 - `StatCard`: compact Frame KPI tile with a `-light` trend Badge.
 - `AreaChart`, `DonutChart`, `BarChart`, `SparkLine`: chart tokens, SVG
   title/desc and sr-only tables. DonutChart caps at five segments to stay
-  within the palette.
+  within the palette. AreaChart marks dated notes with neutral markers and
+  names them in its data table.
 - `HourHeatmap`: weekday × hour grid on a stepped `--chart-1` scale with a
   legend. The image takes focus so arrow keys step through cells; its
   sr-only table repeats every value, as shares of the peak in fewer-numbers

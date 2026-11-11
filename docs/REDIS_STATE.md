@@ -1,12 +1,12 @@
 # Redis state and safe upgrades
 
-Redis holds saved views, layouts, share grants, subscriptions and delivery
-checkpoints as well as sessions and cache entries. Durable reads and writes
-fail closed during an outage: a layout that cannot be read renders defaults
-read-only and is never overwritten. Sessions, login counters and query caches
-may still use memory; that fallback never confirms a durable mutation or
-authorizes a public share. Logging out during an outage cannot confirm the
-Redis session is gone, so the logout is reported as failed.
+Redis holds saved views, layouts, share grants, chart notes, subscriptions and
+delivery checkpoints as well as sessions and cache entries. Durable reads and
+writes fail closed during an outage: a layout that cannot be read renders
+defaults read-only and is never overwritten. Sessions, login counters and query
+caches may still use memory; that fallback never confirms a durable mutation or
+authorizes a public share. Logging out during an outage cannot confirm the Redis
+session is gone, so the logout is reported as failed.
 
 The Compose setup and Kubernetes deployment scripts configure Redis 7 AOF with
 `appendfsync always`, disable periodic RDB snapshots (`save ""`), and use `/data`

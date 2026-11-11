@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { seriesPoints } from "$lib/period.js";
+  import { seriesIndexForDay, seriesPoints } from "$lib/period.js";
   import {
     ToggleGroup,
     ToggleGroupItem,
@@ -15,10 +15,18 @@
   import type { Group } from "$lib/period.js";
   import type { HitListStat } from "$lib/types";
 
+  type ChartNote = {
+    /** YYYY-MM-DD, matching a `day` in `data`. */
+    readonly date: string;
+    readonly text: string;
+  };
+
   type AreaChartProps = {
     readonly data: HitListStat[];
     readonly group?: Group;
     readonly height?: number;
+    /** Dated notes drawn as markers and listed in the data table. */
+    readonly notes?: readonly ChartNote[];
     /** GoatCounter's totals chart style. */
     readonly style?: "line" | "bar";
   };
@@ -27,6 +35,7 @@
     data,
     group = "day",
     height = 240,
+    notes = [],
     style = "line",
   }: AreaChartProps = $props();
 
@@ -136,6 +145,29 @@
     });
   });
   const hideNumbers = $derived(numbersHidden());
+
+  // Note texts per series point (a sparse array); several notes on one
+  // point share a marker.
+  const noteTexts = $derived.by(() => {
+    const texts: string[][] = [];
+    for (const note of notes) {
+      const index = seriesIndexForDay(data, group, note.date);
+      if (index === null || index >= series.length) continue;
+
+      (texts[index] ??= []).push(note.text);
+    }
+    return texts;
+  });
+  const markers = $derived(
+    noteTexts.flatMap((texts, index) => ({
+      index,
+      text: texts.join("\n"),
+      x:
+        style === "bar"
+          ? bars[index].x + bars[index].width / 2
+          : (index / Math.max(points.length - 1, 1)) * dims.chartWidth,
+    }))
+  );
 
   const xLabels = $derived.by(() => {
     const ticks = series
@@ -358,6 +390,31 @@
           />
         {/if}
 
+        <!-- Note markers: the hover title repeats the note; the data table
+             and the list under the chart carry it for everyone else. -->
+        {#each markers as marker (marker.index)}
+          <g>
+            <title>{marker.text}</title>
+            <line
+              x1={marker.x}
+              y1="0"
+              x2={marker.x}
+              y2={dims.chartHeight}
+              stroke="var(--muted-foreground)"
+              stroke-dasharray="3 3"
+              stroke-width="1"
+            />
+            <circle
+              cx={marker.x}
+              cy="-6"
+              r="4"
+              fill="var(--foreground)"
+              stroke="var(--card)"
+              stroke-width="2"
+            />
+          </g>
+        {/each}
+
         <!-- X labels -->
         {#each xLabels as label (label.x)}
           <text
@@ -414,6 +471,11 @@
               <th class="h-9 px-3 text-right font-medium" scope="col">
                 {t("charts.visits")}
               </th>
+              {#if noteTexts.length > 0}
+                <th class="h-9 px-3 text-left font-medium" scope="col">
+                  {t("insights.chartNote")}
+                </th>
+              {/if}
             </tr>
           </thead>
           <tbody>
@@ -428,6 +490,11 @@
                 <td class="px-3 py-1.5 text-right tabular-nums">
                   {formatCount(point.value)}
                 </td>
+                {#if noteTexts.length > 0}
+                  <td class="px-3 py-1.5">
+                    {noteTexts[i]?.join("; ") ?? ""}
+                  </td>
+                {/if}
               </tr>
             {/each}
           </tbody>
