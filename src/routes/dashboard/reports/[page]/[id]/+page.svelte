@@ -2,6 +2,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
+  import CsvDownload, { statCsvRows } from "$lib/components/CsvDownload.svelte";
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
@@ -70,12 +71,18 @@
   {#if detail.stats.length > 0}
     <Frame>
       <FrameHeader
-        class="flex-row flex-wrap items-baseline justify-between gap-3"
+        class="flex-row flex-wrap items-center justify-between gap-3"
       >
         <FrameTitle id="detail-report-heading">{label}</FrameTitle>
-        <FrameDescription class="text-xs">
-          {t("reports.entries", { count: detail.stats.length })}
-        </FrameDescription>
+        <div class="flex items-center gap-3">
+          <FrameDescription class="text-xs">
+            {t("reports.entries", { count: detail.stats.length })}
+          </FrameDescription>
+          <CsvDownload
+            report="{data.report.route}-{data.detailId}"
+            rows={statCsvRows(detail.stats, label)}
+          />
+        </div>
       </FrameHeader>
       <FramePanel aria-labelledby="detail-report-heading" role="region">
         <BarChart data={detail.stats} {label} maxItems={50} />

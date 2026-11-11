@@ -336,6 +336,20 @@ http
       res.writeHead(500, { "content-type": "application/json" });
       return res.end(JSON.stringify({ error: "unexpected error code" }));
     }
+    // Visitor-controlled names a spreadsheet would run as a formula.
+    if (path === "/api/v0/stats/campaigns/9") {
+      return json(res, {
+        more: false,
+        stats: [
+          {
+            id: "x",
+            name: '=HYPERLINK("https://example.invalid","x")',
+            count: 30,
+          },
+          { id: "y", name: "spring, sale", count: 10 },
+        ],
+      });
+    }
     // Like GoatCounter 2.7: a referrer once per scheme (plain "o", campaign
     // "c") and direct visits without an id.
     if (path === "/api/v0/stats/toprefs") {

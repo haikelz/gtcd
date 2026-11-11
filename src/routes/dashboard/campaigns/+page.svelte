@@ -3,6 +3,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
+  import CsvDownload, { statCsvRows } from "$lib/components/CsvDownload.svelte";
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
@@ -65,12 +66,18 @@
   {#if report.stats.length > 0}
     <Frame>
       <FrameHeader
-        class="flex-row flex-wrap items-baseline justify-between gap-3"
+        class="flex-row flex-wrap items-center justify-between gap-3"
       >
         <FrameTitle>{t("reports.campaignsReport")}</FrameTitle>
-        <FrameDescription class="text-xs">
-          {t("reports.entries", { count: report.stats.length })}
-        </FrameDescription>
+        <div class="flex items-center gap-3">
+          <FrameDescription class="text-xs">
+            {t("reports.entries", { count: report.stats.length })}
+          </FrameDescription>
+          <CsvDownload
+            report="campaigns"
+            rows={statCsvRows(report.stats, t("reports.campaignLabel"))}
+          />
+        </div>
       </FrameHeader>
       <FramePanel>
         <BarChart

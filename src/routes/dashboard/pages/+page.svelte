@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
+  import CsvDownload, { pageCsvRows } from "$lib/components/CsvDownload.svelte";
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
@@ -90,7 +91,23 @@
               })}
             </FrameDescription>
           </div>
-          <ScaleToggle />
+          <div class="flex flex-wrap items-center gap-2">
+            <ScaleToggle />
+            {#await data.comparison}
+              <CsvDownload
+                report="pages"
+                rows={pageCsvRows(report.hits.hits)}
+              />
+            {:then comparison}
+              <CsvDownload
+                report="pages"
+                rows={pageCsvRows(
+                  report.hits.hits,
+                  comparison?.status === "ready" ? comparison.diffs : undefined
+                )}
+              />
+            {/await}
+          </div>
         </FrameHeader>
         <FramePanel>
           <div

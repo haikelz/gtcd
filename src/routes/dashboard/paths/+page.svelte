@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
+  import CsvDownload, { pathCsvRows } from "$lib/components/CsvDownload.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import ErrorAlert from "$lib/components/ErrorAlert.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
@@ -53,14 +54,21 @@
   {#if report.paths.length > 0}
     <Frame>
       <FrameHeader
-        class="flex-row flex-wrap items-baseline justify-between gap-3"
+        class="flex-row flex-wrap items-center justify-between gap-3"
       >
         <FrameTitle id="path-directory-heading"
           >{t("reports.pathsList")}</FrameTitle
         >
-        <FrameDescription class="text-xs">
-          {t("reports.pathsOnPage", { count: report.paths.length })}
-        </FrameDescription>
+        <div class="flex items-center gap-3">
+          <FrameDescription class="text-xs">
+            {t("reports.pathsOnPage", { count: report.paths.length })}
+          </FrameDescription>
+          <CsvDownload
+            dated={false}
+            report="paths"
+            rows={pathCsvRows(report.paths)}
+          />
+        </div>
       </FrameHeader>
       <FramePanel aria-labelledby="path-directory-heading" role="region">
         <ul aria-label={t("reports.pathsList")} class="m-0 list-none p-0">

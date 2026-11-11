@@ -14,6 +14,7 @@ import admin from "./admin";
 import goals from "./goals";
 import sites from "./sites";
 import insights from "./insights";
+import tools from "./tools";
 import notifications from "./notifications";
 import audit from "./audit";
 
@@ -34,6 +35,7 @@ export default {
   ...goals,
   ...sites,
   ...insights,
+  ...tools,
   ...notifications,
   ...audit,
 };

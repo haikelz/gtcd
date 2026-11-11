@@ -3,6 +3,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
+  import CsvDownload, { statCsvRows } from "$lib/components/CsvDownload.svelte";
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import DonutChart from "$lib/components/DonutChart.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -78,12 +79,18 @@
     <div class="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Frame>
         <FrameHeader
-          class="flex-row flex-wrap items-baseline justify-between gap-3"
+          class="flex-row flex-wrap items-center justify-between gap-3"
         >
           <FrameTitle>{t("reports.browsersReport")}</FrameTitle>
-          <FrameDescription class="text-xs">
-            {t("reports.entries", { count: report.stats.length })}
-          </FrameDescription>
+          <div class="flex items-center gap-3">
+            <FrameDescription class="text-xs">
+              {t("reports.entries", { count: report.stats.length })}
+            </FrameDescription>
+            <CsvDownload
+              report="browsers"
+              rows={statCsvRows(report.stats, t("reports.browserLabel"))}
+            />
+          </div>
         </FrameHeader>
         <FramePanel>
           <BarChart

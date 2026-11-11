@@ -137,6 +137,8 @@ distinctions, baseline limitations and delivery consequences when shortening.
   `toLocaleString()` for report numbers.
 - `ThemeToggle`: DropdownMenu radio items; persists light, dark or system.
 - `ToastStack`: Alert on an opaque popover surface with a semantic icon color.
+- `CsvDownload`: outline Button in a report's FrameHeader; saves the rows on
+  screen, with shares only in "fewer numbers" mode.
 
 ## Operational and privacy states
 
