@@ -59,6 +59,44 @@ test("admin actions appear in the audit log, newest first", async ({
   expect(revokedAt).toBeGreaterThan(0);
 });
 
+test("non-admins cannot open the audit log or notification channels", async ({
+  page,
+}) => {
+  await signIn(page, `viewer-${randomUUID()}@example.invalid`);
+  await expect(page.getByRole("link", { name: "Audit log" })).toHaveCount(0);
+  for (const path of [
+    "/dashboard/audit",
+    "/dashboard/settings/notifications",
+  ]) {
+    const response = await page.goto(path);
+    expect(response?.status(), path).toBe(403);
+    await expect(
+      page.getByText("Administrator access is required.")
+    ).toBeVisible();
+  }
+  const response = await page.request.post(
+    "/dashboard/settings/notifications?/add",
+    {
+      form: {
+        alerts: "on",
+        direction: "either",
+        label: "Viewer",
+        minimum: "100",
+        threshold: "50",
+        type: "webhook",
+        url: "https://example.com/hook",
+      },
+      headers: {
+        accept: "application/json",
+        origin: new URL(page.url()).origin,
+        "x-sveltekit-action": "true",
+      },
+    }
+  );
+  expect(response.status()).toBe(403);
+  expect(await response.json()).toMatchObject({ type: "error" });
+});
+
 test("audit recording is bounded and never fails the action when Redis is down", async () => {
   test.setTimeout(60_000);
   const previous = process.env.REDIS_URL;

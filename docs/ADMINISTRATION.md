@@ -8,8 +8,8 @@ behind these features lives in [PRODUCT.md](../PRODUCT.md).
 - Every signed-in user can read reports, save views, change their own
   preferences and manage their own account security.
 - Emails listed in `GTCD_ADMIN_EMAILS` can also change site settings, run
-  exports, manage share links and users, tokens, imports and page data, and open
-  **Diagnostics**.
+  exports, manage share links, notification channels and users, tokens, imports
+  and page data, and open **Diagnostics** and the **Audit log**.
 - GoatCounter still enforces each user's own permissions on administration
   screens, so the allowlist never grants more than GoatCounter allows.
 
@@ -70,9 +70,19 @@ preferences and native email reports, which need GoatCounter's own SMTP setup.
   minimum baseline; checks start the day after you save a rule, and a zero or
   too-small baseline never alerts. Both go only to the signed-in account's
   email.
+- **Notification channels:** administrators send a site's alerts and summaries
+  to Slack, Discord, Telegram or a JSON webhook from **Settings →
+  Notifications**. Each channel has its own alert rule and summary frequency,
+  starts with the next period, and uses the language and number settings of
+  the administrator who added it. gtcd shows saved webhook URLs and bot tokens
+  masked. It sends only to public `https://` hosts: URLs with credentials, IP
+  literals and names that resolve to loopback, private, link-local, CGNAT,
+  multicast or cloud metadata addresses are refused, redirects count as
+  failures, and each request has 10 seconds. List internal receivers in
+  `GTCD_ALLOWED_WEBHOOKS` to allow them, over `http://` too.
 
 The server checks schedules every 15 minutes while it runs. Failed sends retry
-with backoff up to five times. A crash after the SMTP server accepts a message
+with backoff up to five times, for email and channels alike. A crash after the SMTP server accepts a message
 but before gtcd records it can send that email twice. Reports pause for anyone
 who hasn't signed in to gtcd for 90 days and resume at their next sign-in. See
 [scheduled delivery](REDIS_STATE.md#scheduled-delivery-semantics).
@@ -89,6 +99,13 @@ an IP after 20 when `ADDRESS_HEADER` is set.
 
 **Diagnostics** shows dependency status with timestamps, this process's request
 and cache counters, and scheduled delivery state.
+
+The **Audit log** lists who changed site settings, created sites, share links,
+exports and notification channels, submitted administration forms, and, for
+administrators, changed their own email reports, newest first. It records the
+form or item, never field values or secrets. gtcd keeps 90 days, at most 2,000
+entries. Recording is best effort: during a Redis outage the action still runs
+and the entry is lost, with an error in the server log.
 
 gtcd is a private application: every response carries
 `X-Robots-Tag: noindex, nofollow`, and shared reports use generic preview

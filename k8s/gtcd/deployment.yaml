@@ -107,6 +107,12 @@ spec:
                   name: gtcd-env
                   key: GTCD_PUBLIC_URL
                   optional: true
+            - name: GTCD_ALLOWED_WEBHOOKS
+              valueFrom:
+                secretKeyRef:
+                  name: gtcd-env
+                  key: GTCD_ALLOWED_WEBHOOKS
+                  optional: true
             # GoatCounter calls a second, matching goatcounter.yaml's -ratelimit.
             - name: GOATCOUNTER_API_RATE
               value: "${GOATCOUNTER_API_RATE}"

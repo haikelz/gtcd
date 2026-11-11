@@ -20,6 +20,8 @@ export default {
   "audit.unavailableTitle": "Audit log unavailable",
   "audit.unavailable":
     "Storage is unavailable, so the audit log cannot be read. Retry in a moment.",
+  "audit.actionChannelAdd": "Added notification channel",
+  "audit.actionChannelDelete": "Deleted notification channel",
   "audit.actionExportCreate": "Started export",
   "audit.actionNativeReveal": "Revealed API token",
   "audit.actionNativeSubmit": "Submitted administration form",

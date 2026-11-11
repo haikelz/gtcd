@@ -22,6 +22,8 @@ export default {
   "audit.unavailableTitle": "Log audit tidak tersedia",
   "audit.unavailable":
     "Penyimpanan tidak tersedia, jadi log audit tidak dapat dibaca. Coba lagi sebentar lagi.",
+  "audit.actionChannelAdd": "Menambah kanal notifikasi",
+  "audit.actionChannelDelete": "Menghapus kanal notifikasi",
   "audit.actionExportCreate": "Memulai ekspor",
   "audit.actionNativeReveal": "Menampilkan token API",
   "audit.actionNativeSubmit": "Mengirim formulir administrasi",

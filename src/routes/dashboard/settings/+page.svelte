@@ -926,6 +926,23 @@
         >
       </FramePanel>
     </Frame>
+    <Frame>
+      <FrameHeader>
+        <FrameTitle id="notifications-heading"
+          >{t("notifications.title")}</FrameTitle
+        >
+        <FrameDescription>
+          {t("notifications.settingsDescription")}
+        </FrameDescription>
+      </FrameHeader>
+      <FramePanel aria-labelledby="notifications-heading" role="region">
+        <Button
+          class="w-full"
+          href={dashboardHref(resolve("/dashboard/settings/notifications"))}
+          variant="outline">{t("notifications.open")}</Button
+        >
+      </FramePanel>
+    </Frame>
     {#if data.sites.length > 1}
       <Frame>
         <FrameHeader>

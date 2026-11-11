@@ -31,6 +31,8 @@ itself runs unchanged.
   overrides. English and Bahasa Indonesia.
 - **Sharing:** read-only report links with expiry, date-range and metric limits.
 - **Email:** scheduled summaries and daily traffic alerts over your SMTP server.
+- **Notifications:** the same alerts and summaries to Slack, Discord, Telegram
+  or a JSON webhook, plus an audit log of administrator actions.
 - **Administration:** site settings, exports, users, API tokens, two-factor
   setup, imports and page cleanup, without exposing the API token.
 - **Secure by default:** the API key never reaches the browser; login supports
@@ -156,6 +158,7 @@ Set these in `.env` or the container environment.
 | `GOATCOUNTER_VHOST`     |    No    | GoatCounter site hostname, sent as `Host`. `setup.sh` writes it; Kubernetes defaults it to `DOMAIN`.        |
 | `GOATCOUNTER_API_RATE`  |    No    | GoatCounter API calls a second. gtcd defaults to `4`; Compose and Kubernetes set `20` on both sides.        |
 | `GTCD_PUBLIC_URL`       |    No    | Public dashboard URL for links in emails.                                                                   |
+| `GTCD_ALLOWED_WEBHOOKS` |    No    | Hosts notification channels may reach on private addresses, comma-separated; they also accept `http://`.    |
 | `SMTP_HOST`             |    No    | SMTP server. Email stays off until `SMTP_HOST` and `SMTP_FROM` are set.                                     |
 | `SMTP_PORT`             |    No    | Defaults to `587`, or `465` with `SMTP_SECURE=true`.                                                        |
 | `SMTP_SECURE`           |    No    | `true` for implicit TLS; otherwise STARTTLS when offered.                                                   |

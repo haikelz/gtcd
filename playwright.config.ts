@@ -46,6 +46,9 @@ export default defineConfig({
         SMTP_USER: "",
         SMTP_PASSWORD: "",
         GTCD_ADMIN_EMAILS: "qa@example.com",
+        // Lets notification tests reach a receiver on localhost; 127.0.0.1
+        // and other private addresses stay refused.
+        GTCD_ALLOWED_WEBHOOKS: "localhost",
       },
       port: APP_PORT,
     },

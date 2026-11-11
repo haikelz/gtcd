@@ -8,6 +8,10 @@ import {
   stopReportScheduler,
 } from "$lib/server/email-reports.js";
 import { DurableStateUnavailable } from "$lib/server/durable-state.js";
+import {
+  startChannelScheduler,
+  stopChannelScheduler,
+} from "$lib/server/notification-channels.js";
 import { markScriptsForRocketLoader } from "$lib/server/rocket-loader.js";
 import type { Handle, HandleServerError, ServerInit } from "@sveltejs/kit";
 
@@ -22,10 +26,11 @@ export const init: ServerInit = () => {
   if (building) return;
 
   startReportScheduler();
+  startChannelScheduler();
   // adapter-node emits this after SIGTERM/SIGINT once in-flight requests have
   // finished. scripts/start.mjs holds the hard timeout.
   process.once("sveltekit:shutdown", async () => {
-    await stopReportScheduler();
+    await Promise.all([stopReportScheduler(), stopChannelScheduler()]);
     await closeRedis();
     process.exit(0);
   });

@@ -95,7 +95,7 @@ const FREQUENCY_TITLES: Record<
 };
 
 /** The recipient's gtcd language override, else GoatCounter's language. */
-async function recipientLocale(
+export async function recipientLocale(
   email: string,
   settings: unknown
 ): Promise<Locale> {
@@ -311,7 +311,7 @@ type Ranked = { readonly count: number; readonly name: string };
  * Build the email for one period and site, in the owner's display settings
  * and the recipient's language.
  */
-async function buildReport(
+export async function buildReport(
   frequency: Exclude<ReportFrequency, "never">,
   period: ReportPeriod,
   site: Site,
@@ -482,6 +482,69 @@ async function resolveSite(
   return site;
 }
 
+type TrafficAlertMessage = {
+  /** Empty when the recipient hides numbers. */
+  readonly counts: string;
+  readonly headline: string;
+  readonly locale: Locale;
+  readonly siteName: string;
+};
+
+/**
+ * The alert for one site and completed day in the recipient's display
+ * settings and language, or null when the rule does not fire.
+ */
+export async function buildTrafficAlert(
+  email: string,
+  rule: TrafficAlertRule,
+  siteId: number,
+  period: ReportPeriod,
+  settings: unknown
+): Promise<TrafficAlertMessage | null> {
+  const locale = await recipientLocale(email, settings);
+  const layout = await getDashboardLayout(email);
+  const preferences = applyDisplayOverrides(
+    toDisplayPreferences(settings),
+    layout.overrides
+  );
+  const site = await resolveSite(siteId, siteId, locale);
+  const options = { vhost: site.cname ?? getVhost() };
+  const [current, previous] = await Promise.all([
+    getTotal(
+      toZonedRFC3339(period.start, preferences.timezone),
+      toZonedRFC3339(period.end, preferences.timezone),
+      undefined,
+      options
+    ),
+    getTotal(
+      toZonedRFC3339(period.previousStart, preferences.timezone),
+      toZonedRFC3339(period.previousEnd, preferences.timezone),
+      undefined,
+      options
+    ),
+  ]);
+  const currentViews = current.total - current.total_events;
+  const previousViews = previous.total - previous.total_events;
+  const change = evaluateTrafficAlert(rule, currentViews, previousViews);
+  if (change === null) return null;
+
+  const date = formatDate(period.start, preferences.dateFormat, "full", locale);
+  return {
+    counts: preferences.fewerNumbers
+      ? ""
+      : translate(locale, "email.trafficCounts", {
+          current: formatNumber(currentViews, preferences.numberSeparator),
+          previous: formatNumber(previousViews, preferences.numberSeparator),
+        }),
+    headline: translate(locale, "email.trafficHeadline", {
+      change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
+      date,
+    }),
+    locale,
+    siteName: site.cname || site.code,
+  };
+}
+
 async function checkTrafficAlert(
   email: string,
   subscription: EmailReportSubscription,
@@ -502,7 +565,6 @@ async function checkTrafficAlert(
     "daily",
     localNow
   );
-  let locale: Locale = "en";
   const identity = deliveryIdentity([
     email,
     "alert",
@@ -513,57 +575,16 @@ async function checkTrafficAlert(
     email,
     identity,
     async (assertJobValid) => {
-      locale = await recipientLocale(email, settings);
-      const layout = await getDashboardLayout(email);
-      const preferences = applyDisplayOverrides(
-        toDisplayPreferences(settings),
-        layout.overrides
-      );
-      const site = await resolveSite(alert.siteId, alert.siteId, locale);
-      const options = { vhost: site.cname ?? getVhost() };
-      const [current, previous] = await Promise.all([
-        getTotal(
-          toZonedRFC3339(period.start, preferences.timezone),
-          toZonedRFC3339(period.end, preferences.timezone),
-          undefined,
-          options
-        ),
-        getTotal(
-          toZonedRFC3339(period.previousStart, preferences.timezone),
-          toZonedRFC3339(period.previousEnd, preferences.timezone),
-          undefined,
-          options
-        ),
-      ]);
-      const currentViews = current.total - current.total_events;
-      const previousViews = previous.total - previous.total_events;
-      const change = evaluateTrafficAlert(
+      const message = await buildTrafficAlert(
+        email,
         alert.rule,
-        currentViews,
-        previousViews
+        alert.siteId,
+        period,
+        settings
       );
 
-      if (change !== null) {
-        const siteName = site.cname || site.code;
-        const date = formatDate(
-          period.start,
-          preferences.dateFormat,
-          "full",
-          locale
-        );
-        const headline = translate(locale, "email.trafficHeadline", {
-          change: `${change > 0 ? "+" : ""}${change.toFixed(1)}%`,
-          date,
-        });
-        const counts = preferences.fewerNumbers
-          ? ""
-          : translate(locale, "email.trafficCounts", {
-              current: formatNumber(currentViews, preferences.numberSeparator),
-              previous: formatNumber(
-                previousViews,
-                preferences.numberSeparator
-              ),
-            });
+      if (message !== null) {
+        const { counts, headline, locale, siteName } = message;
         const manage = translate(locale, "email.manageFallback");
         const text = `${siteName}\n${headline}\n${counts}\n\n${manage}`;
         const latest = await getSubscription(email);
