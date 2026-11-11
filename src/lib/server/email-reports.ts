@@ -19,7 +19,9 @@ import {
   latestCompletedPeriod,
   type ReportFrequency,
   type ReportPeriod,
+  dayKey,
 } from "$lib/report-period.js";
+import { listAnnotations } from "$lib/server/annotations.js";
 import { lastLoginKey } from "$lib/server/auth/session.js";
 import { getDashboardLayout } from "$lib/server/dashboard-layout-store.js";
 import { getSites } from "$lib/server/goatcounter/admin.js";
@@ -341,6 +343,22 @@ export async function buildReport(
   ]);
 
   if (!total) throw new Error(tr("email.noTotals"));
+  // Chart notes are context: a summary still goes out when they cannot load.
+  const notes = await listAnnotations(
+    site.id,
+    dayKey(period.start),
+    dayKey(period.end)
+  ).catch(() => []);
+  const noteLines = notes.map((note) => {
+    const [year, month, day] = note.date.split("-").map(Number);
+    const date = formatDate(
+      new Date(year, month - 1, day),
+      preferences.dateFormat,
+      "short",
+      locale
+    );
+    return { date, text: note.text };
+  });
 
   const siteName = site.cname || site.code;
   const count = (value: number) =>
@@ -402,6 +420,13 @@ export async function buildReport(
     periodLabel,
     "",
     headline,
+    ...(noteLines.length
+      ? [
+          "",
+          tr("email.notes"),
+          ...noteLines.map((note) => `- ${note.date}: ${note.text}`),
+        ]
+      : []),
     ...sections.flatMap((section) => [
       "",
       section.title,
@@ -440,6 +465,16 @@ export async function buildReport(
 <p style="margin:0;font-size:12px;color:#696969">${escapeHtml(reportTitle)} · ${escapeHtml(periodLabel)}</p>
 <h1 style="margin:4px 0 0;font-size:18px">${escapeHtml(siteName)}</h1>
 <p style="margin:16px 0 0;font-size:24px;font-weight:600">${escapeHtml(headline)}</p>
+${
+  noteLines.length
+    ? `<h2 style="margin:24px 0 4px;font-size:14px">${escapeHtml(tr("email.notes"))}</h2><ul style="margin:0;padding-left:18px;font-size:14px">${noteLines
+        .map(
+          (note) =>
+            `<li style="padding:2px 0"><span style="color:#696969">${escapeHtml(note.date)}</span> ${escapeHtml(note.text)}</li>`
+        )
+        .join("")}</ul>`
+    : ""
+}
 ${sections
   .map(
     (section) =>

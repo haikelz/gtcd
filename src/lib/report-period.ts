@@ -55,7 +55,8 @@ function addDays(date: Date, days: number): Date {
   return day(date.getFullYear(), date.getMonth(), date.getDate() + days);
 }
 
-function dayKey(date: Date): string {
+/** The YYYY-MM-DD of a local date, as chart notes store it. */
+export function dayKey(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }

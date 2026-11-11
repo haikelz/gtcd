@@ -17,6 +17,7 @@ export default {
     "Ubah atau hentikan email ini di halaman Sesuaikan pada gtcd.",
   "email.manageUrl": "Ubah atau hentikan email ini: {url}",
   "email.noData": "Belum ada data",
+  "email.notes": "Catatan",
   "email.noTotals": "GoatCounter tidak mengembalikan total untuk laporan ini.",
   "email.openDashboard": "Buka dasbor",
   "email.openDashboardUrl": "Buka dasbor: {url}",

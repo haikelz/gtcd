@@ -15,6 +15,7 @@ export default {
     "Change or stop these emails on the gtcd Customize page.",
   "email.manageUrl": "Change or stop these emails: {url}",
   "email.noData": "No data",
+  "email.notes": "Notes",
   "email.noTotals": "GoatCounter did not return totals for the report.",
   "email.openDashboard": "Open the dashboard",
   "email.openDashboardUrl": "Open the dashboard: {url}",

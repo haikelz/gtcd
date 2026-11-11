@@ -244,10 +244,20 @@ test("scheduled summaries and daily alerts deliver through SMTP, deduplicate, re
       now.toISOString()
     );
 
+    // A chart note on the reported day appears in the summary.
+    const annotations = await vite.ssrLoadModule(
+      "/src/lib/server/annotations.ts"
+    );
+    await annotations.addAnnotation(1, {
+      createdBy: email,
+      date: "2040-04-02",
+      text: "Pricing page launched",
+    });
     await reports.updateSubscription(email, "daily", 1);
     await reports.sendDueReports(now);
     expect(messages).toHaveLength(2);
     expect(messages[1]).toContain("Daily report");
+    expect(messages[1]).toContain("Pricing page launched");
     // Simulate SMTP success with a lost subscription checkpoint.
     const state = await vite.ssrLoadModule("/src/lib/server/durable-state.ts");
     await state.updateDurableJson(
