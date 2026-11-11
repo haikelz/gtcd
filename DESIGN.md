@@ -142,6 +142,8 @@ distinctions, baseline limitations and delivery consequences when shortening.
 - `CommandPalette`: base-nova CommandDialog on Bits UI, opened by Cmd/Ctrl+K
   or the header button; destinations come from the sidebar groups. Selected
   items use `accent`, because the dark popover and `muted` share one grey.
+- `CampaignLinkBuilder`: Frame disclosed from the Campaigns header; ends in a
+  `CopyField`.
 
 ## Operational and privacy states
 

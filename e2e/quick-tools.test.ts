@@ -77,3 +77,25 @@ test("Ctrl/Cmd+K opens the command menu and Enter goes to the match", async ({
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
 });
+
+test("the campaign link builder tags the page URL", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/dashboard/campaigns");
+
+  const toggle = page.getByRole("button", { name: "Build a campaign link" });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await page
+    .getByRole("textbox", { name: "Page URL" })
+    .fill("https://example.com/pricing?plan=pro&utm_source=old#faq");
+  await expect(
+    page.getByText("Enter the page URL, source and campaign to get the link.")
+  ).toBeVisible();
+  await page.getByRole("textbox", { name: /^Source/ }).fill("newsletter");
+  await page.getByRole("textbox", { name: /^Medium/ }).fill("email");
+  await page.getByRole("textbox", { name: /^Campaign/ }).fill("spring sale");
+
+  await expect(page.getByRole("textbox", { name: "Tagged link" })).toHaveValue(
+    "https://example.com/pricing?plan=pro&utm_source=newsletter&utm_medium=email&utm_campaign=spring%20sale#faq"
+  );
+});

@@ -3,6 +3,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
+  import CampaignLinkBuilder from "$lib/components/CampaignLinkBuilder.svelte";
   import CsvDownload, { statCsvRows } from "$lib/components/CsvDownload.svelte";
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -12,6 +13,7 @@
   import ReportPagination from "$lib/components/ReportPagination.svelte";
   import ReportSkeleton from "$lib/components/ReportSkeleton.svelte";
   import SEO from "$lib/components/SEO.svelte";
+  import { Button } from "$lib/components/ui/button";
   import {
     Frame,
     FrameDescription,
@@ -19,11 +21,12 @@
     FramePanel,
     FrameTitle,
   } from "$lib/components/ui/frame";
-  import { Megaphone } from "@lucide/svelte";
+  import { Link, Megaphone } from "@lucide/svelte";
   import { t } from "$lib/display";
   import { SvelteURLSearchParams } from "svelte/reactivity";
 
   let { data } = $props();
+  let linkBuilderOpen = $state(false);
 
   function reportHref(offset: number): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
@@ -51,7 +54,24 @@
 <PageHeader
   description={t("reports.campaignsDescription")}
   title={t("reports.campaignsTitle")}
-/>
+>
+  {#snippet actions()}
+    <Button
+      aria-controls="campaign-link-builder"
+      aria-expanded={linkBuilderOpen}
+      onclick={() => (linkBuilderOpen = !linkBuilderOpen)}
+      variant="outline"
+    >
+      <Link data-icon="inline-start" />
+      {t("tools.linkOpen")}
+    </Button>
+  {/snippet}
+</PageHeader>
+
+<!-- Hidden rather than removed, so typed values survive closing it. -->
+<div class="mb-4" hidden={!linkBuilderOpen} id="campaign-link-builder">
+  <CampaignLinkBuilder />
+</div>
 
 <DashboardToolbar showFilter />
 

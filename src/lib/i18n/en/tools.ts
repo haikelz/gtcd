@@ -6,6 +6,22 @@ export default {
   "tools.csvPath": "Path",
   "tools.csvShare": "Share (%)",
   "tools.csvTitle": "Title",
+  "tools.linkCampaign": "Campaign",
+  "tools.linkContent": "Content",
+  "tools.linkHelp":
+    "GoatCounter's Campaigns report reads utm_campaign (or campaign), and utm_source becomes the referrer. GoatCounter 2.7 ignores utm_medium, utm_term and utm_content.",
+  "tools.linkIncomplete":
+    "Enter the page URL, source and campaign to get the link.",
+  "tools.linkMedium": "Medium",
+  "tools.linkOpen": "Build a campaign link",
+  "tools.linkReady": "Link ready.",
+  "tools.linkResult": "Tagged link",
+  "tools.linkSource": "Source",
+  "tools.linkTerm": "Term",
+  "tools.linkTitle": "Campaign link",
+  "tools.linkUrl": "Page URL",
+  "tools.linkUrlInvalid":
+    "Enter a full address that starts with http:// or https://.",
   "tools.paletteButton": "Search",
   "tools.paletteDescription":
     "Go to a report or page, switch site or pick a period.",
