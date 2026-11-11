@@ -4,6 +4,7 @@ import {
   getGoatCounterAdminUrl,
   requireDashboardAdmin,
 } from "$lib/server/auth/admin.js";
+import { recordAudit } from "$lib/server/audit-log.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
@@ -288,7 +289,7 @@ export async function load({ locals, url }) {
 
 export const actions = {
   createShareLink: async ({ locals, request }) => {
-    requireDashboardAdmin(locals.user);
+    const user = requireDashboardAdmin(locals.user);
 
     const form = await request.formData();
     const expiry = form.get("expiryDays");
@@ -331,6 +332,17 @@ export const actions = {
         message: translate(locals.locale, "share.invalidGrant"),
       });
     }
+    const audit = {
+      action: "share.create",
+      actor: user.email,
+      site: siteContext.site.id,
+      target:
+        typeof label === "string"
+          ? label.trim()
+          : typeof id === "string"
+            ? id
+            : "default",
+    };
     try {
       await createShareLink(siteContext.site.id, {
         expiryDays,
@@ -338,6 +350,7 @@ export const actions = {
         ...(typeof id === "string" ? { id } : {}),
       });
     } catch (cause) {
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(cause instanceof RangeError ? 400 : 503, {
         field: "share",
         message: translate(
@@ -348,10 +361,11 @@ export const actions = {
         ),
       });
     }
+    await recordAudit({ ...audit, outcome: "success" });
     return { shareLink: "created" };
   },
   revokeShareLink: async ({ locals, request }) => {
-    requireDashboardAdmin(locals.user);
+    const user = requireDashboardAdmin(locals.user);
 
     const siteContext = await getDashboardSiteContext(new URL(request.url));
     const form = await request.formData();
@@ -361,9 +375,16 @@ export const actions = {
         field: "share",
         message: translate(locals.locale, "share.invalidGrant"),
       });
+    const audit = {
+      action: "share.revoke",
+      actor: user.email,
+      site: siteContext.site.id,
+      target: id,
+    };
     try {
       await revokeShareLink(siteContext.site.id, id);
     } catch (cause) {
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(cause instanceof RangeError ? 400 : 503, {
         field: "share",
         message: translate(
@@ -374,6 +395,7 @@ export const actions = {
         ),
       });
     }
+    await recordAudit({ ...audit, outcome: "success" });
     return { shareLink: "revoked" };
   },
   sendTestVisit: async ({ locals, request }) => {
@@ -400,7 +422,7 @@ export const actions = {
     return { testVisit: true };
   },
   createSite: async ({ request, locals }) => {
-    requireDashboardAdmin(locals.user);
+    const user = requireDashboardAdmin(locals.user);
 
     const formData = await request.formData();
     const cname = parseSiteHostname(formData.get("cname"));
@@ -424,9 +446,16 @@ export const actions = {
     const currentUser = await stats.getMe();
     requireSiteCreatePermission(currentUser.token.permissions, locals.locale);
 
+    const audit = {
+      action: "site.create",
+      actor: user.email,
+      site: null,
+      target: cname,
+    };
     try {
       await admin.createSite({ cname, linkDomain: linkDomain.trim() });
     } catch (cause: unknown) {
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(400, {
         field: null,
         // GoatCounter's validation text (e.g. a taken cname) helps; client
@@ -443,10 +472,11 @@ export const actions = {
       });
     }
 
+    await recordAudit({ ...audit, outcome: "success" });
     throw redirect(303, `/dashboard/settings?created=${Date.now()}`);
   },
   update: async ({ request, locals }) => {
-    requireDashboardAdmin(locals.user);
+    const user = requireDashboardAdmin(locals.user);
 
     const formData = await request.formData();
     const siteId = parsePositiveInteger(formData.get("siteId"));
@@ -531,6 +561,12 @@ export const actions = {
       });
     }
 
+    const audit = {
+      action: "site.update",
+      actor: user.email,
+      site: siteContext.site.id,
+      target: cname,
+    };
     try {
       const site = await admin.getSite(siteContext.site.id);
       await admin.updateSite(siteContext.site.id, {
@@ -555,9 +591,11 @@ export const actions = {
     } catch (error) {
       const updateError = getSettingsUpdateError(error, locals.locale);
 
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(400, { ...updateError, values });
     }
 
+    await recordAudit({ ...audit, outcome: "success" });
     throw redirect(
       303,
       `/dashboard/settings?site=${siteContext.site.id}&updated=${Date.now()}`

@@ -30,6 +30,7 @@
     Megaphone,
     Monitor,
     PanelLeft,
+    ScrollText,
     Smartphone,
     Settings,
     Target,
@@ -152,6 +153,11 @@
         href: "/dashboard/diagnostics",
         icon: Monitor,
         label: t("diagnostics.title"),
+      },
+      {
+        href: "/dashboard/audit",
+        icon: ScrollText,
+        label: t("audit.title"),
       },
       {
         href: "/dashboard/admin/users",

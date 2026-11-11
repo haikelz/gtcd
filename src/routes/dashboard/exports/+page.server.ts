@@ -1,4 +1,5 @@
 import { error, fail, redirect } from "@sveltejs/kit";
+import { recordAudit } from "$lib/server/audit-log.js";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import * as admin from "$lib/server/goatcounter/admin.js";
 import * as stats from "$lib/server/goatcounter/stats.js";
@@ -145,7 +146,7 @@ export async function load({ locals, url }) {
 
 export const actions = {
   create: async ({ locals, request, url }) => {
-    requireDashboardAdmin(locals.user);
+    const user = requireDashboardAdmin(locals.user);
 
     const parsed = parseExportRequest(await request.formData(), locals.locale);
     if ("error" in parsed) {
@@ -161,6 +162,12 @@ export const actions = {
       });
     }
 
+    const audit = {
+      action: "export.create",
+      actor: user.email,
+      site: siteContext.site.id,
+      target: parsed.input.format,
+    };
     let job: ExportJob;
     try {
       if (
@@ -177,6 +184,7 @@ export const actions = {
         vhost: siteContext.vhost,
       });
     } catch (cause) {
+      await recordAudit({ ...audit, outcome: "failure" });
       if (cause instanceof UpstreamHttpError && cause.status === 429) {
         const waitMs = cause.retryAfterMs || EXPORT_INTERVAL_MS;
         await startExportCooldown(waitMs);
@@ -199,6 +207,7 @@ export const actions = {
         }
       );
     }
+    await recordAudit({ ...audit, outcome: "success" });
     await startExportCooldown(EXPORT_INTERVAL_MS);
     throw redirect(
       303,

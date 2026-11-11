@@ -1,0 +1,32 @@
+// English messages: audit. Keys are "audit.<name>"; {param} placeholders.
+export default {
+  "audit.title": "Audit log",
+  "audit.description":
+    "Administrator actions in gtcd, newest first. gtcd keeps 90 days, up to 2,000 entries.",
+  "audit.entries": "Actions",
+  "audit.pageOf": "Page {page} of {pages}",
+  "audit.caption": "Administrator actions; times in {timezone}",
+  "audit.time": "Time ({timezone})",
+  "audit.actor": "User",
+  "audit.action": "Action",
+  "audit.site": "Site",
+  "audit.target": "Target",
+  "audit.outcome": "Outcome",
+  "audit.success": "Succeeded",
+  "audit.failure": "Failed",
+  "audit.empty": "No actions recorded",
+  "audit.emptyDescription":
+    "Changes to sites, sharing, exports, notifications, reports and native administration appear here.",
+  "audit.unavailableTitle": "Audit log unavailable",
+  "audit.unavailable":
+    "Storage is unavailable, so the audit log cannot be read. Retry in a moment.",
+  "audit.actionExportCreate": "Started export",
+  "audit.actionNativeReveal": "Revealed API token",
+  "audit.actionNativeSubmit": "Submitted administration form",
+  "audit.actionReportAlert": "Changed traffic alert",
+  "audit.actionReportSchedule": "Changed email report",
+  "audit.actionShareCreate": "Created share link",
+  "audit.actionShareRevoke": "Revoked share link",
+  "audit.actionSiteCreate": "Created site",
+  "audit.actionSiteUpdate": "Updated site settings",
+} as const satisfies Record<`audit.${string}`, string>;

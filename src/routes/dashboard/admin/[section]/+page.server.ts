@@ -1,6 +1,7 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import type { Locale } from "$lib/dashboard-layout";
 import { type MessageKey, translate } from "$lib/i18n";
+import { recordAudit } from "$lib/server/audit-log.js";
 import {
   requireDashboardAdmin,
   isDashboardAdmin,
@@ -80,19 +81,29 @@ export const actions: Actions = {
     const account = authorize(locals, params.section);
     const context = await getDashboardSiteContext(url);
     const submitted = await request.formData();
+    // The section and which upstream form (its action path), never values.
+    const form = submitted.get("__reveal") ?? submitted.get("__action");
+    const audit = {
+      action: submitted.get("__reveal") ? "native.reveal" : "native.submit",
+      actor: account.email,
+      site: context.site.id,
+      target:
+        typeof form === "string" && /^[\w./-]{1,120}$/.test(form)
+          ? `${account.section} ${form}`
+          : account.section,
+    };
     try {
       if (submitted.get("__reveal")) {
         if (account.section !== "tokens")
           throw new NativeAdminError(400, "invalid");
-        return {
-          token: await revealNativeToken(
-            cookies,
-            account.email,
-            String(submitted.get("__reveal")),
-            context.vhost
-          ),
-          tokenId: String(submitted.get("__reveal")),
-        };
+        const token = await revealNativeToken(
+          cookies,
+          account.email,
+          String(submitted.get("__reveal")),
+          context.vhost
+        );
+        await recordAudit({ ...audit, outcome: "success" });
+        return { token, tokenId: String(submitted.get("__reveal")) };
       }
       const result = await submitNativeAdmin(
         cookies,
@@ -102,6 +113,12 @@ export const actions: Actions = {
         submitted,
         context.vhost
       );
+      await recordAudit({
+        ...audit,
+        outcome: result.page.messages.some((message) => message.error)
+          ? "failure"
+          : "success",
+      });
       if (
         account.section === "users" &&
         !result.page.messages.some((message) => message.error)
@@ -119,6 +136,7 @@ export const actions: Actions = {
       return { nativePage: result.page };
     } catch (cause) {
       if (!(cause instanceof NativeAdminError)) throw cause;
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(cause.status, { problem: feedback(cause, locals.locale) });
     }
   },

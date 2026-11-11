@@ -12,6 +12,8 @@ import {
 } from "$lib/dashboard-layout.js";
 import { translate } from "$lib/i18n/index.js";
 import { isReportFrequency } from "$lib/report-period.js";
+import { recordAudit } from "$lib/server/audit-log.js";
+import { isDashboardAdmin } from "$lib/server/auth/admin.js";
 import { saveDashboardLayout } from "$lib/server/dashboard-layout-store.js";
 import {
   getSubscription,
@@ -28,6 +30,18 @@ function safeReturnPath(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
 
   return /^\/dashboard(\/[a-z0-9/_-]*)?$/i.test(value) ? value : null;
+}
+
+/** Admins' own report changes go to the audit log; other users' do not. */
+async function auditReportChange(
+  email: string,
+  action: "report.alert" | "report.schedule",
+  site: number | null,
+  target: string
+): Promise<void> {
+  if (!isDashboardAdmin(email)) return;
+
+  await recordAudit({ action, actor: email, outcome: "success", site, target });
 }
 
 function requireEmail(locals: App.Locals): string {
@@ -240,6 +254,12 @@ export const actions = {
       });
     }
     await updateSubscription(email, frequency, context.site.id);
+    await auditReportChange(
+      email,
+      "report.schedule",
+      context.site.id,
+      frequency
+    );
 
     return {
       action: "saveEmailReport",
@@ -283,6 +303,12 @@ export const actions = {
         message: translate(locals.locale, "customize.alertSaveFailed"),
       });
     }
+    await auditReportChange(
+      email,
+      "report.alert",
+      enabled ? siteId : null,
+      enabled && rule ? `${rule.direction} ${rule.threshold}%` : "off"
+    );
 
     return {
       action: "saveTrafficAlert",
