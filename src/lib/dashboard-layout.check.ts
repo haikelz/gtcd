@@ -34,6 +34,11 @@ assert.equal(legacy.views[0].query, "range=month&filter=blog");
 assert.equal(legacy.widgets[0].id, "systems");
 assert.equal(legacy.widgets[0].hidden, true);
 assert.equal(legacy.widgets.length, DEFAULT_DASHBOARD_LAYOUT.widgets.length);
+// Widgets added later (busiest hours) join stored layouts visible.
+assert.equal(
+  legacy.widgets.find((widget) => widget.id === "hours")?.hidden,
+  false
+);
 assert.deepEqual(legacy.overrides, { fewerNumbers: null, locale: null });
 assert.equal(widgetLimit(legacy, "pages"), 6);
 assert.equal(widgetStyle(legacy, "traffic"), "line");
@@ -68,6 +73,11 @@ assert.equal(widgetLimit(imported, "referrers"), 10);
 assert.equal(
   imported.widgets.find((widget) => widget.id === "browsers")?.hidden,
   true
+);
+// GoatCounter has no busiest-hours widget, so importing cannot hide it.
+assert.equal(
+  imported.widgets.find((widget) => widget.id === "hours")?.hidden,
+  false
 );
 assert.equal(imported.defaultView, IMPORTED_VIEW_NAME);
 assert.equal(imported.views[0].query, "range=month&filter=blog&group=day");

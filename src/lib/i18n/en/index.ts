@@ -11,6 +11,7 @@ import email from "./email";
 import auth from "./auth";
 import diagnostics from "./diagnostics";
 import admin from "./admin";
+import insights from "./insights";
 
 export default {
   ...common,
@@ -26,4 +27,5 @@ export default {
   ...auth,
   ...diagnostics,
   ...admin,
+  ...insights,
 };

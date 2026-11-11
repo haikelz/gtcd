@@ -125,6 +125,19 @@ const WEEKDAYS: Record<Locale, readonly string[]> = {
   id: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
 };
 
+const WEEKDAYS_LONG: Record<Locale, readonly string[]> = {
+  en: [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ],
+  id: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+};
+
 /** A month name in the interface language, short ("Okt") or long ("Oktober"). */
 export function monthName(
   month: number,
@@ -132,6 +145,15 @@ export function monthName(
   variant: "short" | "long" = "short"
 ): string {
   return (variant === "long" ? MONTHS_LONG : MONTHS)[locale][month];
+}
+
+/** A weekday name (0 is Sunday) in the interface language, "Sen" or "Senin". */
+export function weekdayName(
+  day: number,
+  locale: Locale = "en",
+  variant: "short" | "long" = "short"
+): string {
+  return (variant === "long" ? WEEKDAYS_LONG : WEEKDAYS)[locale][day];
 }
 
 /** GoatCounter language tags ("id-ID", "en-GB") mapped to a gtcd locale. */

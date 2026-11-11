@@ -113,7 +113,8 @@ export const load: PageServerLoad = async ({ url, parent }) => {
       : null,
     sizes: needs("sizes") ? topStats("sizes") : null,
     systems: needs("systems") ? topStats("systems", limitFor("systems")) : null,
-    total: needs("kpis", "traffic")
+    // Busiest hours reuse the totals' hourly buckets.
+    total: needs("kpis", "traffic", "hours")
       ? stats.getTotal(start, end, includePaths, requestOptions)
       : null,
   };

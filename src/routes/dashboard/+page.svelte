@@ -7,6 +7,7 @@
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import DonutChart from "$lib/components/DonutChart.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
+  import HourHeatmap from "$lib/components/HourHeatmap.svelte";
   import PageRow from "$lib/components/PageRow.svelte";
   import ReportEmptyActions from "$lib/components/ReportEmptyActions.svelte";
   import ScaleToggle from "$lib/components/ScaleToggle.svelte";
@@ -51,6 +52,7 @@
   import {
     ArrowUpRight,
     ChartNoAxesCombined,
+    Clock,
     FileText,
     Globe,
     Languages,
@@ -276,6 +278,8 @@
         {@render pagesWidget()}
       {:else if widgetId === "locations"}
         {@render locationsWidget()}
+      {:else if widgetId === "hours"}
+        {@render hoursWidget()}
       {:else}
         {@const report = technicalReports.find(
           (entry) => entry.id === widgetId
@@ -438,6 +442,46 @@
           height={280}
           style={trafficStyle}
         />
+      {:catch failure}
+        <ErrorAlert message={failure.message} />
+      {/await}
+    </FramePanel>
+  </Frame>
+{/snippet}
+
+{#snippet hoursWidget()}
+  <Frame
+    aria-labelledby="heading-hours"
+    class="xl:col-span-8"
+    dense
+    spacing="default"
+    role="region"
+  >
+    <FrameHeader>
+      <FrameTitle id="heading-hours">{t("insights.hoursTitle")}</FrameTitle>
+      <FrameDescription class="text-xs">
+        {t("insights.hoursDescription", { timezone: preferences.timezone })}
+      </FrameDescription>
+    </FrameHeader>
+    <FramePanel>
+      {#await data.total}
+        <div class="flex flex-col gap-3" role="status">
+          <span class="sr-only">{t("insights.hoursLoading")}</span>
+          <Skeleton class="h-4 w-48" />
+          <Skeleton class="h-[174px] w-full" />
+        </div>
+      {:then total}
+        {#if total?.stats?.some((day) => day.hourly?.some(Boolean))}
+          <HourHeatmap data={total.stats} />
+        {:else}
+          <EmptyState
+            desc={t("overview.emptyAudienceDescription")}
+            icon={Clock}
+            title={t("insights.hoursEmpty")}
+          >
+            {#snippet actions()}<ReportEmptyActions />{/snippet}
+          </EmptyState>
+        {/if}
       {:catch failure}
         <ErrorAlert message={failure.message} />
       {/await}

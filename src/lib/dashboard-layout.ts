@@ -12,6 +12,7 @@ export const WIDGET_IDS = [
   "browsers",
   "pages",
   "locations",
+  "hours",
   "referrers",
   "campaigns",
   "systems",
@@ -25,6 +26,7 @@ export type WidgetId = (typeof WIDGET_IDS)[number];
 export const WIDGET_LABEL_KEYS = {
   browsers: "customize.widgetBrowsers",
   campaigns: "customize.widgetCampaigns",
+  hours: "insights.widgetHours",
   kpis: "customize.widgetKpis",
   languages: "customize.widgetLanguages",
   locations: "customize.widgetLocations",
@@ -61,6 +63,7 @@ type WidgetOptionSpec = {
 export const WIDGET_OPTION_SPECS: Record<WidgetId, WidgetOptionSpec> = {
   browsers: {},
   campaigns: { limit: { default: 6, max: 20, min: 1 } },
+  hours: {},
   kpis: {},
   languages: { limit: { default: 6, max: 20, min: 1 } },
   locations: { limit: { default: 6, max: 20, min: 1 } },
@@ -332,9 +335,12 @@ export function layoutFromGoatCounter(
       });
     }
 
-    // Widgets the user removed in GoatCounter start hidden here.
+    // Widgets the user removed in GoatCounter start hidden here; gtcd-only
+    // widgets, which GoatCounter cannot list, stay visible.
+    const goatCounterIds = new Set(Object.values(GOATCOUNTER_WIDGETS));
     widgets = normalizeWidgets(imported).map((widget) =>
-      imported.some((entry) => entry.id === widget.id)
+      imported.some((entry) => entry.id === widget.id) ||
+      !goatCounterIds.has(widget.id)
         ? widget
         : { ...widget, hidden: true }
     );

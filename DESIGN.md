@@ -113,6 +113,10 @@ distinctions, baseline limitations and delivery consequences when shortening.
 - `AreaChart`, `DonutChart`, `BarChart`, `SparkLine`: chart tokens, SVG
   title/desc and sr-only tables. DonutChart caps at five segments to stay
   within the palette.
+- `HourHeatmap`: weekday × hour grid on a stepped `--chart-1` scale with a
+  legend. The image takes focus so arrow keys step through cells; its
+  sr-only table repeats every value, as shares of the peak in fewer-numbers
+  mode.
 - `ErrorAlert`: the standard report load failure (destructive Alert with
   Retry). `EmptyState`: Empty primitive with icon, title, description and an optional `actions` snippet; pass the next step (clear filter, widen the period, set up tracking) whenever one exists.
 - Streaming: the overview loader returns each GoatCounter request as an
