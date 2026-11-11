@@ -31,6 +31,7 @@
     PanelLeft,
     Smartphone,
     Settings,
+    Target,
     X,
   } from "@lucide/svelte";
   import { onMount, tick } from "svelte";
@@ -67,6 +68,11 @@
           href: "/dashboard/paths",
           icon: FolderTree,
           label: t("shell.navPathDirectory"),
+        },
+        {
+          href: "/dashboard/goals",
+          icon: Target,
+          label: t("goals.nav"),
         },
       ],
     },

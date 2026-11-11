@@ -11,6 +11,7 @@ import email from "./email";
 import auth from "./auth";
 import diagnostics from "./diagnostics";
 import admin from "./admin";
+import goals from "./goals";
 import insights from "./insights";
 
 export default {
@@ -27,5 +28,6 @@ export default {
   ...auth,
   ...diagnostics,
   ...admin,
+  ...goals,
   ...insights,
 };
