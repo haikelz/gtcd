@@ -59,6 +59,44 @@ test("admin actions appear in the audit log, newest first", async ({
   expect(revokedAt).toBeGreaterThan(0);
 });
 
+test("goal and chart note changes appear in the audit log", async ({
+  page,
+}) => {
+  const goalPath = `audit-goal-${randomUUID().slice(0, 8)}`;
+  await signIn(page, "qa@example.com");
+
+  await page.goto("/dashboard/goals?site=1");
+  const manage = page.getByRole("region", { name: "Manage goals" });
+  await manage.getByLabel("Name", { exact: true }).fill("Audited goal");
+  await manage.getByLabel("Type", { exact: true }).selectOption("event");
+  await manage.getByLabel("Event name or page path").fill(goalPath);
+  await manage.getByRole("button", { name: "Add goal" }).click();
+  await expect(manage.getByRole("status")).toHaveText("Goal added.");
+
+  await page.goto("/dashboard?site=1&start=2026-10-01&end=2026-10-07");
+  const notes = page
+    .getByRole("region", { name: "Traffic over time" })
+    .getByRole("region", { name: "Notes" });
+  await notes.getByLabel("Date").fill("2026-10-03");
+  await notes
+    .getByLabel("Note", { exact: true })
+    .fill(`Audited note ${goalPath}`);
+  await notes.getByRole("button", { name: "Add note" }).click();
+  await expect(page.getByText("Note added.")).toBeVisible();
+
+  await page.goto("/dashboard/audit");
+  await expect(
+    page.getByRole("row").filter({ hasText: goalPath })
+  ).toContainText("Added goal");
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: "Added chart note" })
+      .filter({ hasText: "2026-10-03" })
+      .first()
+  ).toContainText("qa@example.com");
+});
+
 test("non-admins cannot open the audit log or notification channels", async ({
   page,
 }) => {

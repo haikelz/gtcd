@@ -13,6 +13,7 @@ import {
 import { translate } from "$lib/i18n";
 import { compareCount } from "$lib/overview-comparison.js";
 import { previousRange } from "$lib/period.js";
+import { recordAudit } from "$lib/server/audit-log.js";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import { DurableStateUnavailable } from "$lib/server/durable-state.js";
 import {
@@ -231,11 +232,18 @@ export const actions = {
     }
 
     const { site } = await getDashboardSiteContext(url);
+    const audit = {
+      action: "goal.create",
+      actor: admin.email,
+      site: site.id,
+      target: input.path,
+    };
     let result: Awaited<ReturnType<typeof addGoal>>;
     try {
       result = await addGoal(site.id, input, admin.email);
     } catch (cause) {
       if (!(cause instanceof DurableStateUnavailable)) throw cause;
+      await recordAudit({ ...audit, outcome: "failure" });
       return storageFailure(locals.locale);
     }
     if (result === "duplicate") {
@@ -251,10 +259,11 @@ export const actions = {
       });
     }
 
+    await recordAudit({ ...audit, outcome: "success" });
     return { saved: translate(locals.locale, "goals.created") };
   },
   rename: async ({ locals, request, url }) => {
-    requireDashboardAdmin(locals.user);
+    const admin = requireDashboardAdmin(locals.user);
 
     const form = await request.formData();
     const id = form.get("id");
@@ -266,11 +275,18 @@ export const actions = {
     }
 
     const { site } = await getDashboardSiteContext(url);
+    const renameAudit = {
+      action: "goal.rename",
+      actor: admin.email,
+      site: site.id,
+      target: name,
+    };
     let found: boolean;
     try {
       found = await renameGoal(site.id, id, name);
     } catch (cause) {
       if (!(cause instanceof DurableStateUnavailable)) throw cause;
+      await recordAudit({ ...renameAudit, outcome: "failure" });
       return storageFailure(locals.locale);
     }
     if (!found) {
@@ -279,10 +295,11 @@ export const actions = {
       });
     }
 
+    await recordAudit({ ...renameAudit, outcome: "success" });
     return { saved: translate(locals.locale, "goals.renamed") };
   },
   delete: async ({ locals, request, url }) => {
-    requireDashboardAdmin(locals.user);
+    const admin = requireDashboardAdmin(locals.user);
 
     const form = await request.formData();
     const id = form.get("id");
@@ -293,11 +310,18 @@ export const actions = {
     }
 
     const { site } = await getDashboardSiteContext(url);
+    const deleteAudit = {
+      action: "goal.delete",
+      actor: admin.email,
+      site: site.id,
+      target: id,
+    };
     let found: boolean;
     try {
       found = await deleteGoal(site.id, id);
     } catch (cause) {
       if (!(cause instanceof DurableStateUnavailable)) throw cause;
+      await recordAudit({ ...deleteAudit, outcome: "failure" });
       return storageFailure(locals.locale);
     }
     if (!found) {
@@ -306,6 +330,7 @@ export const actions = {
       });
     }
 
+    await recordAudit({ ...deleteAudit, outcome: "success" });
     return { saved: translate(locals.locale, "goals.deleted") };
   },
 };

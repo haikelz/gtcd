@@ -17,6 +17,7 @@ import {
   MAX_ANNOTATIONS,
   normalizeAnnotationText,
 } from "$lib/server/annotations.js";
+import { recordAudit } from "$lib/server/audit-log.js";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
 import {
   getFilterFromUrl,
@@ -292,6 +293,12 @@ export const actions: Actions = {
     }
 
     const { site } = await getDashboardSiteContext(new URL(request.url));
+    const audit = {
+      action: "note.add",
+      actor: admin.email,
+      site: site.id,
+      target: date,
+    };
     let added: Annotation | null;
     try {
       added = await addAnnotation(site.id, {
@@ -304,6 +311,7 @@ export const actions: Actions = {
         "Annotation not saved:",
         cause instanceof Error ? cause.message : cause
       );
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(503, {
         action: "addNote",
         message: translate(locals.locale, "insights.noteSaveFailed"),
@@ -319,13 +327,14 @@ export const actions: Actions = {
       });
     }
 
+    await recordAudit({ ...audit, outcome: "success" });
     return {
       action: "addNote",
       message: translate(locals.locale, "insights.noteAdded"),
     };
   },
   deleteNote: async ({ locals, request }) => {
-    requireDashboardAdmin(locals.user);
+    const admin = requireDashboardAdmin(locals.user);
     const form = await request.formData();
     const id = form.get("id");
 
@@ -337,6 +346,12 @@ export const actions: Actions = {
     }
 
     const { site } = await getDashboardSiteContext(new URL(request.url));
+    const audit = {
+      action: "note.delete",
+      actor: admin.email,
+      site: site.id,
+      target: id,
+    };
     try {
       await deleteAnnotation(site.id, id);
     } catch (cause: unknown) {
@@ -344,12 +359,14 @@ export const actions: Actions = {
         "Annotation not deleted:",
         cause instanceof Error ? cause.message : cause
       );
+      await recordAudit({ ...audit, outcome: "failure" });
       return fail(503, {
         action: "deleteNote",
         message: translate(locals.locale, "insights.noteSaveFailed"),
       });
     }
 
+    await recordAudit({ ...audit, outcome: "success" });
     return {
       action: "deleteNote",
       message: translate(locals.locale, "insights.noteDeleted"),
