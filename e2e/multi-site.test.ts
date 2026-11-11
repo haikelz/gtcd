@@ -44,7 +44,7 @@ async function submitAction(page: Page, button: string) {
   return request;
 }
 
-// The mock cannot tell sites apart by Host (Node's fetch drops that header),
+// The mock answers totals per Host but serves the rest alike for every site,
 // so these checks follow the site through the action URL, the server's
 // redirect and site-scoped upstream paths.
 test("exports, settings and test visits act on the selected second site", async ({

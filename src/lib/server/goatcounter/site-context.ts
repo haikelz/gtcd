@@ -66,8 +66,15 @@ export async function getDashboardSiteContext(
     preferences: toDisplayPreferences(currentUser.user.settings),
     site: toDashboardSite(selectedSite),
     sites: accessibleSites.map(toDashboardSite),
-    vhost: (selectedSite.cname ?? getVhost()) || undefined,
+    vhost: siteVhost(selectedSite),
   };
+}
+
+/** The Host GoatCounter selects this site by. */
+export function siteVhost(site: {
+  readonly cname?: string;
+}): string | undefined {
+  return (site.cname ?? getVhost()) || undefined;
 }
 
 export function siteSearchParams(site: DashboardSite): string {

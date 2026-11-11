@@ -12,6 +12,7 @@ import auth from "./auth";
 import diagnostics from "./diagnostics";
 import admin from "./admin";
 import goals from "./goals";
+import sites from "./sites";
 import insights from "./insights";
 
 export default {
@@ -29,5 +30,6 @@ export default {
   ...diagnostics,
   ...admin,
   ...goals,
+  ...sites,
   ...insights,
 };

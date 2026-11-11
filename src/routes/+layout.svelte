@@ -22,6 +22,7 @@
     FolderCog,
     Globe,
     Languages,
+    Layers,
     LayoutGrid,
     Link2,
     LogOut,
@@ -74,6 +75,12 @@
           icon: Target,
           label: t("goals.nav"),
         },
+        // Like the site switcher, listed only when there is more than one site.
+        ...(page.data.sites?.length > 1
+          ? ([
+              { href: "/dashboard/sites", icon: Layers, label: t("sites.nav") },
+            ] as const)
+          : []),
       ],
     },
     {

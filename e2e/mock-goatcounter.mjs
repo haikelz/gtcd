@@ -236,11 +236,14 @@ http
         new URL(req.url, "http://localhost").searchParams.get("start") ?? "";
       // Fixed future periods exercise scheduled alert delivery without a clock override.
       const scheduled = start.startsWith("2040-04-");
+      // The second site answers its own total, so per-site Host routing shows.
       const total = scheduled
         ? start.startsWith("2040-04-01")
           ? 100
           : 300
-        : 2080;
+        : req.headers.host === "journal.example"
+          ? 1040
+          : 2080;
       return json(res, {
         stats: series,
         total,

@@ -8,7 +8,11 @@
   type SparkLineProps = {
     readonly class?: string;
     readonly data: HitListStat[];
+    /** SVG <desc>; used with `label`. */
+    readonly description?: string;
     readonly group?: Group;
+    /** Exposes the chart as an image with this name; omit when decorative. */
+    readonly label?: string;
     readonly max?: number;
     readonly style?: "line" | "bar";
   };
@@ -16,7 +20,9 @@
   let {
     class: className = "",
     data,
+    description,
     group = "day",
+    label,
     max,
     style = "line",
   }: SparkLineProps = $props();
@@ -58,12 +64,18 @@
 </script>
 
 <svg
-  aria-hidden="true"
+  aria-hidden={label ? undefined : "true"}
+  aria-label={label}
   class={cn("h-7 w-28 shrink-0 lg:w-36", className)}
   focusable="false"
   preserveAspectRatio="none"
+  role={label ? "img" : undefined}
   viewBox="0 0 {width} {height}"
 >
+  {#if label}
+    <title>{label}</title>
+    {#if description}<desc>{description}</desc>{/if}
+  {/if}
   {#if style === "bar"}
     {#each bars as bar, i (i)}
       <rect
