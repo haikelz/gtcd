@@ -1,5 +1,55 @@
+import type { MessageKey } from "$lib/i18n";
+
 export type NativeSection =
   "users" | "tokens" | "security" | "imports" | "pages" | "preferences";
+
+/**
+ * Native-administration sections in menu order, shared by the section menu
+ * and the command menu. `admin` sections need a dashboard admin.
+ */
+export const NATIVE_SECTIONS = [
+  {
+    admin: true,
+    description: "admin.sectionUsersDescription",
+    id: "users",
+    title: "admin.sectionUsers",
+  },
+  {
+    admin: true,
+    description: "admin.sectionTokensDescription",
+    id: "tokens",
+    title: "admin.sectionTokens",
+  },
+  {
+    admin: false,
+    description: "admin.sectionSecurityDescription",
+    id: "security",
+    title: "admin.sectionSecurity",
+  },
+  {
+    admin: true,
+    description: "admin.sectionImportsDescription",
+    id: "imports",
+    title: "admin.sectionImports",
+  },
+  {
+    admin: true,
+    description: "admin.sectionPagesDescription",
+    id: "pages",
+    title: "admin.sectionPages",
+  },
+  {
+    admin: false,
+    description: "admin.sectionPreferencesDescription",
+    id: "preferences",
+    title: "admin.sectionPreferences",
+  },
+] as const satisfies readonly {
+  admin: boolean;
+  description: MessageKey;
+  id: NativeSection;
+  title: MessageKey;
+}[];
 
 export type NativeField = {
   name: string;

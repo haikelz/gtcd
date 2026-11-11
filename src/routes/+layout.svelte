@@ -4,6 +4,7 @@
   import { resolve } from "$app/paths";
   import { navigating, page } from "$app/state";
   import Brand from "$lib/components/Brand.svelte";
+  import CommandPalette from "$lib/components/CommandPalette.svelte";
   import ThemeToggle from "$lib/components/ThemeToggle.svelte";
   import ToastStack from "$lib/components/ToastStack.svelte";
   import { showToast } from "$lib/components/toast.js";
@@ -470,12 +471,13 @@
             </li>
           </ol>
         </nav>
+        <CommandPalette class="ml-auto" groups={navGroups} />
         {#if page.data.sites?.length > 1}
           <label class="sr-only" for="dashboard-site"
             >{t("shell.analyticsSite")}</label
           >
           <NativeSelect
-            class="ml-auto max-w-44"
+            class="max-w-44"
             id="dashboard-site"
             onchange={switchSite}
             size="sm"

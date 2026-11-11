@@ -42,3 +42,38 @@ test("a report downloads its rows on screen as CSV with formulas escaped", async
       '"spring, sale",10,25\r\n'
   );
 });
+
+test("Ctrl/Cmd+K opens the command menu and Enter goes to the match", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/dashboard/campaigns?range=month");
+  const dialog = page.getByRole("dialog", { name: "Command menu" });
+
+  // Typing in a text field keeps the shortcut.
+  await page.getByPlaceholder("Filter paths").focus();
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(dialog).toHaveCount(0);
+
+  await page.locator("#main-content").focus();
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("combobox")).toBeFocused();
+  await page.keyboard.type("browsers");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/dashboard\/browsers\?(.+&)?range=month/);
+  await expect(dialog).toBeHidden();
+
+  // The header button opens it too, and Escape hands focus back.
+  const trigger = page.getByRole("button", {
+    name: "Search reports and actions",
+  });
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("option", { name: "Last year" })
+  ).toHaveAttribute("href", /\/dashboard\/browsers\?(.+&)?range=year/);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});

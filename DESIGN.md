@@ -139,6 +139,9 @@ distinctions, baseline limitations and delivery consequences when shortening.
 - `ToastStack`: Alert on an opaque popover surface with a semantic icon color.
 - `CsvDownload`: outline Button in a report's FrameHeader; saves the rows on
   screen, with shares only in "fewer numbers" mode.
+- `CommandPalette`: base-nova CommandDialog on Bits UI, opened by Cmd/Ctrl+K
+  or the header button; destinations come from the sidebar groups. Selected
+  items use `accent`, because the dark popover and `muted` share one grey.
 
 ## Operational and privacy states
 

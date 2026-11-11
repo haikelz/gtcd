@@ -23,53 +23,17 @@
     AlertDescription,
   } from "$lib/components/ui/alert";
   import { t } from "$lib/display";
-  import type { NativeSection } from "$lib/native-admin";
+  import { NATIVE_SECTIONS, type NativeSection } from "$lib/native-admin";
   import type { PageProps } from "./$types";
 
   let { data, form }: PageProps = $props();
-  const sections: {
-    id: NativeSection;
-    title: string;
-    description: string;
-    admin: boolean;
-  }[] = $derived([
-    {
-      id: "users",
-      title: t("admin.sectionUsers"),
-      description: t("admin.sectionUsersDescription"),
-      admin: true,
-    },
-    {
-      id: "tokens",
-      title: t("admin.sectionTokens"),
-      description: t("admin.sectionTokensDescription"),
-      admin: true,
-    },
-    {
-      id: "security",
-      title: t("admin.sectionSecurity"),
-      description: t("admin.sectionSecurityDescription"),
-      admin: false,
-    },
-    {
-      id: "imports",
-      title: t("admin.sectionImports"),
-      description: t("admin.sectionImportsDescription"),
-      admin: true,
-    },
-    {
-      id: "pages",
-      title: t("admin.sectionPages"),
-      description: t("admin.sectionPagesDescription"),
-      admin: true,
-    },
-    {
-      id: "preferences",
-      title: t("admin.sectionPreferences"),
-      description: t("admin.sectionPreferencesDescription"),
-      admin: false,
-    },
-  ]);
+  const sections = $derived(
+    NATIVE_SECTIONS.map((section) => ({
+      ...section,
+      description: t(section.description),
+      title: t(section.title),
+    }))
+  );
   const selected = $derived(
     sections.find((section) => section.id === data.section) ?? sections[0]
   );
