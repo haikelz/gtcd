@@ -22,19 +22,20 @@
   const id = $props.id();
 
   const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-  // Sequential scale on the first chart token; level 0 means no visits.
+  // Sequential scale on the first chart token; level 0 means no visits. The
+  // dark chart-1 blue at 25% matched the muted grey, so dark starts at 40%.
   const LEVEL_FILLS = [
     "fill-muted",
-    "fill-chart-1/25",
-    "fill-chart-1/50",
-    "fill-chart-1/75",
+    "fill-chart-1/25 dark:fill-chart-1/40",
+    "fill-chart-1/50 dark:fill-chart-1/60",
+    "fill-chart-1/75 dark:fill-chart-1/80",
     "fill-chart-1",
   ] as const;
   const LEVEL_SWATCHES = [
     "bg-muted",
-    "bg-chart-1/25",
-    "bg-chart-1/50",
-    "bg-chart-1/75",
+    "bg-chart-1/25 dark:bg-chart-1/40",
+    "bg-chart-1/50 dark:bg-chart-1/60",
+    "bg-chart-1/75 dark:bg-chart-1/80",
     "bg-chart-1",
   ] as const;
   const LABEL_WIDTH = 40;

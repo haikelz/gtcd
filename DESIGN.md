@@ -115,9 +115,10 @@ distinctions, baseline limitations and delivery consequences when shortening.
   within the palette. AreaChart marks dated notes with neutral markers and
   names them in its data table.
 - `HourHeatmap`: weekday × hour grid on a stepped `--chart-1` scale with a
-  legend; rows start on the user's GoatCounter week start. The image takes
-  focus so arrow keys step through cells; its sr-only table repeats every
-  value, as shares of the peak in fewer-numbers mode.
+  legend; rows start on the user's GoatCounter week start. Dark mode starts
+  the scale at 40% because the dark blue at 25% matched `muted`. The image
+  takes focus so arrow keys step through cells; its sr-only table repeats
+  every value, as shares of the peak in fewer-numbers mode.
 - `ErrorAlert`: the standard report load failure (destructive Alert with
   Retry). `EmptyState`: Empty primitive with icon, title, description and an optional `actions` snippet; pass the next step (clear filter, widen the period, set up tracking) whenever one exists.
 - Streaming: the overview loader returns each GoatCounter request as an
