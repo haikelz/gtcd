@@ -1,6 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const PASSWORD = "correct-horse";
+const MOCK = `http://127.0.0.1:${process.env.TEST_MOCK_PORT ?? 5187}`;
+
+type LoggedRequest = { readonly path: string; readonly query: string };
 
 async function signIn(page: Page, email: string) {
   await page.goto("/login");
@@ -8,6 +11,20 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/dashboard/);
+}
+
+async function upstreamRequests(page: Page): Promise<LoggedRequest[]> {
+  return (await page.request.get(`${MOCK}/__requests`)).json();
+}
+
+/** Run `act`, then return the upstream requests it caused. */
+async function requestsDuring(
+  page: Page,
+  act: () => Promise<void>
+): Promise<LoggedRequest[]> {
+  const before = (await upstreamRequests(page)).length;
+  await act();
+  return (await upstreamRequests(page)).slice(before);
 }
 
 test("an admin adds a goal and sees its visitors, conversion rate and change", async ({
@@ -31,17 +48,36 @@ test("an admin adds a goal and sees its visitors, conversion rate and change", a
 
   try {
     // The mock serves /blog with 700 of 2,080 visitors in both periods.
-    await addGoal("Read the journal", "page", "blog/");
     const journal = report.getByRole("row", { name: /Read the journal/ });
-    await expect(journal.getByRole("rowheader")).toContainText("/blog");
-    await expect(journal.getByRole("cell").nth(0)).toHaveText("700");
-    await expect(journal.getByRole("cell").nth(1)).toHaveText("33.7%");
-    await expect(journal.getByRole("cell").nth(2)).toHaveText(
-      "Change compared to previous period: 0%"
-    );
+    const requests = await requestsDuring(page, async () => {
+      await addGoal("Read the journal", "page", "Blog/");
+      await expect(journal.getByRole("rowheader")).toContainText("/Blog");
+      await expect(journal.getByRole("cell").nth(0)).toHaveText("700");
+      await expect(journal.getByRole("cell").nth(1)).toHaveText("33.7%");
+      await expect(journal.getByRole("cell").nth(2)).toHaveText(
+        "Change compared to previous period: 0%"
+      );
+    });
     await expect(report).toContainText(
       /goal visitors divided by 2.080 visitors/
     );
+
+    // GoatCounter looks the goal up by its lower-case name in the stats
+    // call itself; no path IDs to go stale.
+    const goalHits = requests.filter(
+      (request) =>
+        request.path === "/api/v0/stats/hits" &&
+        new URLSearchParams(request.query)
+          .get("include_paths")
+          ?.split(",")
+          .includes("/blog")
+    );
+    expect(goalHits.length).toBeGreaterThan(0);
+    for (const request of goalHits) {
+      expect(new URLSearchParams(request.query).get("path_by_name")).toBe(
+        "true"
+      );
+    }
 
     // A path GoatCounter has not recorded yet counts 0, not an error.
     await addGoal("Upgrade clicked", "event", "upgrade-click");
@@ -64,6 +100,44 @@ test("an admin adds a goal and sees its visitors, conversion rate and change", a
         await remove.click();
         await expect(remove).toHaveCount(0);
       }
+    }
+  }
+});
+
+test("a goal path with a comma resumes its path scan on the next view", async ({
+  page,
+}) => {
+  await signIn(page, "qa@example.com");
+  await page.goto("/dashboard/goals?site=1");
+  const manage = page.getByRole("region", { name: "Manage goals" });
+  const report = page.getByRole("region", { name: "Goal conversions" });
+  const plan = report.getByRole("row", { name: /Annual plan/ });
+
+  try {
+    // GoatCounter splits names on commas, so this goal resolves through
+    // /api/v0/paths. The mock's newest path ID is 3, and none matches.
+    await manage.getByLabel("Name", { exact: true }).fill("Annual plan");
+    await manage.getByLabel("Type", { exact: true }).selectOption("event");
+    await manage.getByLabel("Event name or page path").fill("plan,annual");
+    await manage.getByRole("button", { name: "Add goal" }).click();
+    await expect(manage.getByRole("status")).toHaveText("Goal added.");
+    await expect(plan.getByRole("cell").nth(0)).toHaveText("0");
+
+    const requests = await requestsDuring(page, async () => {
+      await page.reload();
+      await expect(plan.getByRole("cell").nth(0)).toHaveText("0");
+    });
+    const scans = requests.filter(
+      (request) => request.path === "/api/v0/paths"
+    );
+    expect(
+      scans.map((request) => new URLSearchParams(request.query).get("after"))
+    ).toContain("3");
+  } finally {
+    const remove = manage.getByRole("button", { name: "Delete Annual plan" });
+    if (await remove.count()) {
+      await remove.click();
+      await expect(remove).toHaveCount(0);
     }
   }
 });

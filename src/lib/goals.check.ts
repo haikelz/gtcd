@@ -4,10 +4,12 @@ import {
   conversionRate,
   type Goal,
   goalVisitors,
+  isNamedGoalPath,
   normalizeGoalPath,
   parseGoalInput,
   parseGoalName,
   parseGoals,
+  visitorsByPathKey,
 } from "./goals.ts";
 
 // Paths are stored the way GoatCounter records hits, so they match.
@@ -55,29 +57,40 @@ assert.deepEqual(
 assert.deepEqual(parseGoals(undefined), []);
 assert.deepEqual(parseGoals({ goals: [signup] }), []);
 
-// GoatCounter matches path names without case; unknown paths count 0.
-const pathIds = new Map([["/signup", 7]]);
-const counts = new Map([[7, 700]]);
-assert.equal(
-  goalVisitors({ counts, goal: signup, pathIds, scanComplete: true }),
-  700
+// GoatCounter looks paths up by name unless its list parameters would split
+// them (commas, spaces) or SQLite's lower() would miss a letter (non-ASCII).
+for (const named of ["/signup", "/docs/a-b_c?q=1", "signup-click", "/%20"]) {
+  assert.equal(isNamedGoalPath(named), true, named);
+}
+for (const scanned of ["/a,b", "plan annual", "/café", ""]) {
+  assert.equal(isNamedGoalPath(scanned), false, scanned);
+}
+
+// Rows count per lower-case name, summed over paths that differ in case.
+const visitors = visitorsByPathKey([
+  { count: 600, path: "/Signup" },
+  { count: 100, path: "/signup" },
+  { count: 40, path: "signup-click" },
+]);
+assert.deepEqual(
+  [...visitors],
+  [
+    ["/signup", 700],
+    ["signup-click", 40],
+  ]
 );
+
+// Goals match without case; unknown paths count 0 and unscanned ones null.
+const none = new Set<string>();
+assert.equal(goalVisitors({ goal: signup, unresolved: none, visitors }), 700);
+const unseen = { ...signup, path: "/not-yet" };
+assert.equal(goalVisitors({ goal: unseen, unresolved: none, visitors }), 0);
 assert.equal(
   goalVisitors({
-    counts: new Map(),
-    goal: signup,
-    pathIds,
-    scanComplete: true,
+    goal: unseen,
+    unresolved: new Set(["/not-yet"]),
+    visitors,
   }),
-  0
-);
-const unseen = { ...signup, path: "/not-yet" };
-assert.equal(
-  goalVisitors({ counts, goal: unseen, pathIds, scanComplete: true }),
-  0
-);
-assert.equal(
-  goalVisitors({ counts, goal: unseen, pathIds, scanComplete: false }),
   null
 );
 

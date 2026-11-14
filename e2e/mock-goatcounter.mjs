@@ -265,12 +265,23 @@ http
         total_utc: total,
       });
     }
-    if (path.includes("/hits"))
+    if (path.includes("/hits")) {
+      // Like GoatCounter, names match lower(path) as sent, so gtcd must send
+      // them in lower case.
+      if (url.searchParams.get("path_by_name") === "true") {
+        const names = (url.searchParams.get("include_paths") ?? "").split(",");
+        const named = hits.filter((h) => names.includes(h.path.toLowerCase()));
+        return json(res, { hits: named, more: false, total: 2080 });
+      }
       return json(res, { hits, more: false, total: 2080 });
+    }
     if (path.includes("/paths")) {
+      const after = Number(url.searchParams.get("after") ?? 0);
       return json(res, {
         more: false,
-        paths: hits.map((h) => ({ id: h.path_id, ...h })),
+        paths: hits
+          .filter((h) => h.path_id > after)
+          .map((h) => ({ id: h.path_id, ...h })),
       });
     }
     if (path === "/api/v0/export" && req.method === "POST") {

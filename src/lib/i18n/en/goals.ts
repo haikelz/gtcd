@@ -47,7 +47,7 @@ export default {
   "goals.renamed": "Goal renamed.",
   "goals.reportTitle": "Goal conversions",
   "goals.scanIncomplete":
-    "This site has more than {limit} paths. Goals whose path was not among the first {limit} show no count.",
+    "Goals whose path has a comma, a space or a non-ASCII character show no count until gtcd finishes reading this site's paths. Reload to continue.",
   "goals.seoDescription": "Goal conversions for your GoatCounter site.",
   "goals.seoTitle": "Goals",
   "goals.storageLoadFailed":

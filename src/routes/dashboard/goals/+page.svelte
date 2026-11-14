@@ -30,11 +30,7 @@
     numbersHidden,
     t,
   } from "$lib/display";
-  import {
-    GOAL_NAME_MAX_LENGTH,
-    GOAL_PATH_MAX_LENGTH,
-    GOAL_PATH_SCAN_LIMIT,
-  } from "$lib/goals";
+  import { GOAL_NAME_MAX_LENGTH, GOAL_PATH_MAX_LENGTH } from "$lib/goals";
   import { Target } from "@lucide/svelte";
 
   let { data, form } = $props();
@@ -176,9 +172,7 @@
               {/if}
               {#if !report.scanComplete}
                 <p class="text-xs text-muted-foreground" role="status">
-                  {t("goals.scanIncomplete", {
-                    limit: formatCount(GOAL_PATH_SCAN_LIMIT),
-                  })}
+                  {t("goals.scanIncomplete")}
                 </p>
               {/if}
               {#await data.comparison then comparison}

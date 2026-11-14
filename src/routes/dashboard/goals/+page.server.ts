@@ -2,20 +2,25 @@ import { fail } from "@sveltejs/kit";
 import {
   conversionRate,
   type Goal,
-  GOAL_PATH_SCAN_LIMIT,
   goalPathKey,
   goalVisitors,
   isGoalId,
+  isNamedGoalPath,
   MAX_GOALS_PER_SITE,
   parseGoalInput,
   parseGoalName,
+  visitorsByPathKey,
 } from "$lib/goals.js";
 import { translate } from "$lib/i18n";
 import { compareCount } from "$lib/overview-comparison.js";
 import { previousRange } from "$lib/period.js";
 import { recordAudit } from "$lib/server/audit-log.js";
 import { requireDashboardAdmin } from "$lib/server/auth/admin.js";
-import { DurableStateUnavailable } from "$lib/server/durable-state.js";
+import {
+  DurableStateUnavailable,
+  readDurableJson,
+  updateDurableJson,
+} from "$lib/server/durable-state.js";
 import {
   addGoal,
   deleteGoal,
@@ -26,70 +31,158 @@ import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js
 import * as stats from "$lib/server/goatcounter/stats.js";
 import { getDateRangeFromUrl, toDateRange } from "$lib/server/helpers.js";
 
-// ponytail: goal paths resolve to GoatCounter path IDs by scanning
-// /api/v0/paths, 200 per call and cached 5 minutes, stopping once every goal
-// path is found: ceil(paths / 200) calls in the worst case. Past 10,000 paths
-// the scan stops and unfound goals show no count rather than a false 0; a new
-// path can take 5 minutes to appear. Upgrade path: store each goal's path ID
-// once it resolves.
+// Most goal paths go to GoatCounter by name, so path IDs never go stale when
+// GoatCounter purges, merges or expires paths.
+//
+// ponytail: a path GoatCounter cannot look up by name (see isNamedGoalPath)
+// resolves to a path ID by scanning /api/v0/paths, at most 10 pages of 200
+// per view. The scan resumes from Redis after the last path ID read; IDs only
+// grow, so once it reaches the newest path a view reads only paths added
+// since, one uncached call. A goal the stored scan never looked for starts it
+// over. Past 2,000 paths a new scan takes several views, and goals it has not
+// reached show no count meanwhile.
 const PATH_SCAN_PAGE_SIZE = 200;
-const PATH_CACHE_TTL_MS = 5 * 60_000;
+const PATH_SCAN_PAGES_PER_VIEW = 10;
+const PATH_SCAN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
-type GoalPaths = {
-  readonly complete: boolean;
+type StoredPathScan = {
+  /** The last path ID read; the next view resumes after it. */
+  readonly cursor: number;
   /** GoatCounter path IDs by goalPathKey. */
-  readonly ids: ReadonlyMap<string, number>;
+  readonly ids: Readonly<Record<string, number>>;
+  /** goalPathKeys the scan has looked for since it started over. */
+  readonly keys: readonly string[];
 };
 
-async function findGoalPaths(
-  goals: readonly Goal[],
-  vhost: string | undefined
-): Promise<GoalPaths> {
-  const wanted = new Set(goals.map((goal) => goalPathKey(goal.path)));
-  const ids = new Map<string, number>();
-  let after: number | undefined;
-  let scanned = 0;
+type GoalPathScan = {
+  readonly ids: readonly number[];
+  /** goalPathKeys the scan has not settled yet. */
+  readonly unresolved: ReadonlySet<string>;
+};
 
-  while (ids.size < wanted.size) {
-    const page = await stats.getPaths(PATH_SCAN_PAGE_SIZE, after, {
-      ttlMs: PATH_CACHE_TTL_MS,
-      vhost,
-    });
-    for (const path of page.paths) {
-      const key = goalPathKey(path.path);
-      if (wanted.has(key)) ids.set(key, path.id);
-    }
-
-    scanned += page.paths.length;
-    const last = page.paths.at(-1);
-    if (!page.more || !last) break;
-    if (scanned >= GOAL_PATH_SCAN_LIMIT) return { complete: false, ids };
-    after = last.id;
-  }
-
-  return { complete: true, ids };
+function pathScanKey(siteId: number): string {
+  return `goal-paths:site:${siteId}`;
 }
 
-/** Visitors per GoatCounter path ID: one stats call covers every goal. */
-async function pathVisitors(
-  paths: GoalPaths,
+function parsePathScan(value: unknown): StoredPathScan | null {
+  if (typeof value !== "object" || value === null) return null;
+
+  const { cursor, ids, keys } = value as Record<string, unknown>;
+  if (
+    typeof cursor !== "number" ||
+    !Number.isSafeInteger(cursor) ||
+    typeof ids !== "object" ||
+    ids === null ||
+    !Object.values(ids).every(Number.isSafeInteger) ||
+    !Array.isArray(keys) ||
+    !keys.every((key) => typeof key === "string")
+  ) {
+    return null;
+  }
+
+  return {
+    cursor,
+    ids: ids as Record<string, number>,
+    keys,
+  };
+}
+
+async function scanGoalPaths(
+  siteId: number,
+  goals: readonly Goal[],
+  vhost: string | undefined
+): Promise<GoalPathScan> {
+  const wanted = goals
+    .filter((goal) => !isNamedGoalPath(goal.path))
+    .map((goal) => goalPathKey(goal.path));
+  if (wanted.length === 0) return { ids: [], unresolved: new Set() };
+
+  // Redis is only a head start here: without it the scan starts over.
+  const stored = parsePathScan(
+    await readDurableJson(pathScanKey(siteId)).catch(() => undefined)
+  );
+  const resumed =
+    stored !== null && wanted.every((key) => stored.keys.includes(key));
+  const keys = resumed ? stored.keys : wanted;
+  const ids: Record<string, number> = resumed ? { ...stored.ids } : {};
+  let cursor = resumed ? stored.cursor : 0;
+  let complete = false;
+
+  for (let page = 0; page < PATH_SCAN_PAGES_PER_VIEW; page++) {
+    const result = await stats.getPaths(
+      PATH_SCAN_PAGE_SIZE,
+      cursor || undefined,
+      {
+        bypassCache: true,
+        vhost,
+      }
+    );
+    // A newer path with the same name replaces a purged or merged one.
+    for (const path of result.paths) {
+      const key = goalPathKey(path.path);
+      if (keys.includes(key)) ids[key] = path.id;
+    }
+
+    const last = result.paths.at(-1);
+    if (last) cursor = last.id;
+    if (!result.more || !last) {
+      complete = true;
+      break;
+    }
+  }
+
+  const next: StoredPathScan = { cursor, ids, keys };
+  if (JSON.stringify(next) !== JSON.stringify(stored)) {
+    // Best effort, like the read: a lost write repeats part of the scan.
+    await updateDurableJson(
+      pathScanKey(siteId),
+      () => next,
+      PATH_SCAN_TTL_SECONDS
+    ).catch(() => {});
+  }
+
+  return {
+    ids: wanted.flatMap((key) => (Object.hasOwn(ids, key) ? [ids[key]] : [])),
+    unresolved: new Set(
+      complete ? [] : wanted.filter((key) => !Object.hasOwn(ids, key))
+    ),
+  };
+}
+
+/**
+ * Visitors per goalPathKey in one period: one stats call for the goals
+ * GoatCounter looks up by name, one for the scanned path IDs.
+ */
+async function goalPathVisitors(
+  goals: readonly Goal[],
+  scan: GoalPathScan,
   start: string,
   end: string,
   vhost: string | undefined
-): Promise<Map<number, number>> {
-  const pathIds = [...paths.ids.values()];
-  if (pathIds.length === 0) return new Map();
+): Promise<Map<string, number>> {
+  const names = goals
+    .filter((goal) => isNamedGoalPath(goal.path))
+    .map((goal) => goalPathKey(goal.path));
+  const [named, scanned] = await Promise.all([
+    names.length > 0
+      ? stats.getHits(start, end, names.length, undefined, true, names, {
+          vhost,
+        })
+      : null,
+    scan.ids.length > 0
+      ? stats.getHits(
+          start,
+          end,
+          scan.ids.length,
+          undefined,
+          undefined,
+          scan.ids,
+          { vhost }
+        )
+      : null,
+  ]);
 
-  const hits = await stats.getHits(
-    start,
-    end,
-    pathIds.length,
-    undefined,
-    undefined,
-    pathIds,
-    { vhost }
-  );
-  return new Map(hits.hits.map((hit) => [hit.path_id, hit.count]));
+  return visitorsByPathKey([...(named?.hits ?? []), ...(scanned?.hits ?? [])]);
 }
 
 export async function load({ locals, parent, url }) {
@@ -135,33 +228,32 @@ export async function load({ locals, parent, url }) {
 
   const request = Promise.all([
     stats.getTotal(start, end, undefined, { vhost }),
-    findGoalPaths(goals, vhost).then(async (paths) => ({
-      counts: await pathVisitors(paths, start, end, vhost),
-      paths,
+    scanGoalPaths(site.id, goals, vhost).then(async (scan) => ({
+      scan,
+      visitors: await goalPathVisitors(goals, scan, start, end, vhost),
     })),
-  ]).then(([total, { counts, paths }]) => ({
-    paths,
+  ]).then(([total, { scan, visitors }]) => ({
     rows: listed.map((goal) => {
-      const visitors = goalVisitors({
-        counts,
+      const count = goalVisitors({
         goal,
-        pathIds: paths.ids,
-        scanComplete: paths.complete,
+        unresolved: scan.unresolved,
+        visitors,
       });
       return {
         goal,
-        rate: conversionRate(visitors, total.total),
-        visitors,
+        rate: conversionRate(count, total.total),
+        visitors: count,
       };
     }),
+    scan,
     total: total.total,
   }));
 
   // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = stats.streamReport(
-    request.then(({ paths, rows, total }) => ({
+    request.then(({ rows, scan, total }) => ({
       rows,
-      scanComplete: paths.complete,
+      scanComplete: scan.unresolved.size === 0,
       total,
     })),
     locals.locale,
@@ -170,7 +262,7 @@ export async function load({ locals, parent, url }) {
 
   // Optional, like the Pages report: a failed comparison keeps the counts.
   const comparison = request
-    .then(async ({ paths, rows }) => {
+    .then(async ({ rows, scan }) => {
       const prevWall = previousRange(startWall, endWall);
       const prev = toDateRange(
         "previous",
@@ -178,8 +270,9 @@ export async function load({ locals, parent, url }) {
         prevWall.end,
         preferences.timezone
       );
-      const previousCounts = await pathVisitors(
-        paths,
+      const previousVisitors = await goalPathVisitors(
+        goals,
+        scan,
         prev.start,
         prev.end,
         vhost
@@ -190,10 +283,9 @@ export async function load({ locals, parent, url }) {
         changes[goal.id] = compareCount(
           visitors,
           goalVisitors({
-            counts: previousCounts,
             goal,
-            pathIds: paths.ids,
-            scanComplete: paths.complete,
+            unresolved: scan.unresolved,
+            visitors: previousVisitors,
           })
         );
       }

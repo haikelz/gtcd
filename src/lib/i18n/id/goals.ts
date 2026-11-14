@@ -50,7 +50,7 @@ export default {
   "goals.renamed": "Nama sasaran diubah.",
   "goals.reportTitle": "Konversi sasaran",
   "goals.scanIncomplete":
-    "Situs ini memiliki lebih dari {limit} path. Sasaran yang path-nya tidak termasuk {limit} path pertama tidak dihitung.",
+    "Sasaran dengan koma, spasi, atau karakter non-ASCII pada path-nya belum dihitung sampai gtcd selesai membaca path situs ini. Muat ulang untuk melanjutkan.",
   "goals.seoDescription": "Konversi sasaran untuk situs GoatCounter Anda.",
   "goals.seoTitle": "Sasaran",
   "goals.storageLoadFailed":

@@ -116,7 +116,9 @@ export async function getMe(): Promise<GoatCounterUser> {
  * filter matched nothing, which short-circuits to an empty response — the
  * API omits empty parameters, so it cannot express "no paths" itself.
  */
-function includePathsParam(includePaths?: number[]): string | undefined {
+function includePathsParam(
+  includePaths?: readonly (number | string)[]
+): string | undefined {
   return includePaths && includePaths.length > 0
     ? includePaths.join(",")
     : undefined;
@@ -148,7 +150,8 @@ export async function getHits(
   limit?: number,
   excludePaths?: string,
   pathByName?: boolean,
-  includePaths?: number[],
+  /** Path IDs, or lower-case path names with pathByName. */
+  includePaths?: readonly (number | string)[],
   options?: GoatCounterRequestOptions
 ): Promise<HitsResponse> {
   if (includePaths && includePaths.length === 0) {

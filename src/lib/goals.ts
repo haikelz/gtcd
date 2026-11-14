@@ -26,8 +26,6 @@ export const MAX_GOALS_PER_SITE = 50;
 // GoatCounter's own limit for a path or event name.
 export const GOAL_PATH_MAX_LENGTH = 2048;
 
-/** Paths the goals report scans for goal paths before it stops. */
-export const GOAL_PATH_SCAN_LIMIT = 10_000;
 const GOAL_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -53,6 +51,27 @@ export function normalizeGoalPath(kind: GoalKind, path: string): string {
 /** GoatCounter keeps one path per site and lowercase name. */
 export function goalPathKey(path: string): string {
   return path.toLowerCase();
+}
+
+/**
+ * Whether GoatCounter can look the path up by name: its list parameters
+ * split on commas and spaces, and SQLite's lower() folds ASCII letters only.
+ */
+export function isNamedGoalPath(path: string): boolean {
+  return /^[\x21-\x7e]+$/.test(path) && !path.includes(",");
+}
+
+/** Visitors per goalPathKey, summed over paths that differ only by case. */
+export function visitorsByPathKey(
+  hits: readonly { readonly count: number; readonly path: string }[]
+): Map<string, number> {
+  const visitors = new Map<string, number>();
+  for (const hit of hits) {
+    const key = goalPathKey(hit.path);
+    visitors.set(key, (visitors.get(key) ?? 0) + hit.count);
+  }
+
+  return visitors;
 }
 
 export function parseGoalName(value: unknown): string | null {
@@ -114,25 +133,23 @@ export function parseGoals(value: unknown): Goal[] {
 
 /**
  * Visitors who reached a goal. A path GoatCounter has not recorded yet counts
- * 0; null means the path scan stopped before it could tell.
+ * 0; null means the path scan has not reached the goal's path yet.
  */
 export function goalVisitors({
-  counts,
   goal,
-  pathIds,
-  scanComplete,
+  unresolved,
+  visitors,
 }: {
-  /** Visitors per GoatCounter path ID. */
-  readonly counts: ReadonlyMap<number, number>;
   readonly goal: Pick<Goal, "path">;
-  /** GoatCounter path IDs by goalPathKey. */
-  readonly pathIds: ReadonlyMap<string, number>;
-  readonly scanComplete: boolean;
+  /** goalPathKeys the path scan could not settle yet. */
+  readonly unresolved: ReadonlySet<string>;
+  /** Visitors per goalPathKey. */
+  readonly visitors: ReadonlyMap<string, number>;
 }): number | null {
-  const pathId = pathIds.get(goalPathKey(goal.path));
-  if (pathId === undefined) return scanComplete ? 0 : null;
+  const key = goalPathKey(goal.path);
+  if (unresolved.has(key)) return null;
 
-  return counts.get(pathId) ?? 0;
+  return visitors.get(key) ?? 0;
 }
 
 /** Goal visitors as a percentage of all visitors; null without visitors. */
