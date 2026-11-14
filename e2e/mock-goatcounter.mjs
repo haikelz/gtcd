@@ -84,6 +84,8 @@ const meSettings = {
   twenty_four_hours: true,
   ...JSON.parse(process.env.MOCK_ME_SETTINGS || "{}"),
 };
+// The token reaches sites 1 and 2 only; site 3 answers GoatCounter's 403.
+const NO_ACCESS_HOST = "noaccess.example";
 // Method, path, query string and Host of each request, so tests can tell
 // which site a write went to and what a read asked for.
 const requestLog = [];
@@ -136,6 +138,14 @@ http
     if (path === "/api/v0/count" && req.method === "POST") {
       res.writeHead(202);
       return res.end();
+    }
+    if (req.headers.host === NO_ACCESS_HOST && path.startsWith("/api/v0/")) {
+      res.writeHead(403, { "content-type": "application/json" });
+      return res.end(
+        JSON.stringify({
+          error: "this token does not have access to this site",
+        })
+      );
     }
     if (STATS_DELAY_MS && path.includes("/stats/")) {
       await new Promise((resolve) => setTimeout(resolve, STATS_DELAY_MS));
@@ -228,7 +238,7 @@ http
 
     if (path.endsWith("/me")) {
       return json(res, {
-        token: { permissions: 255 },
+        token: { permissions: 255, sites: [1, 2] },
         user: {
           email: "qa@example.com",
           id: 1,
@@ -237,11 +247,16 @@ http
         },
       });
     }
+    // Like GoatCounter 2.7, a created site stays outside the token's sites.
+    if (path === "/api/v0/sites" && req.method === "PUT") {
+      return json(res, { ...site, id: 4, cname: "new.example", code: "new" });
+    }
     if (path.endsWith("/sites"))
       return json(res, {
         sites: [
           site,
           { ...site, id: 2, cname: "journal.example", code: "journal" },
+          { ...site, id: 3, cname: NO_ACCESS_HOST, code: "noaccess" },
         ],
       });
     if (path.includes("/sites/")) return json(res, site);

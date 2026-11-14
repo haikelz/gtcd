@@ -13,7 +13,8 @@ export interface GoatCounterUser {
     id: number;
     name: string;
     permissions: number;
-    sites: number;
+    /** Site IDs the token reaches; [-1] is every site, including new ones. */
+    sites: number[];
   };
   time: {
     Location: string;

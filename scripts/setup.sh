@@ -292,9 +292,11 @@ else
     2>&1 || warn "Token creation had warnings"
 
   # GoatCounter API requires 'stats' permission which the CLI doesn't expose.
-  # Set all permission bits (127) directly in the database.
+  # Set all permission bits (127) directly in the database, and every site
+  # including future ones ([-1]): GoatCounter never adds a site created through
+  # the API to an existing token.
   docker compose exec -T goatcounter goatcounter db query \
-    "UPDATE api_tokens SET permissions = '127' WHERE name = 'gtcd-dashboard'" \
+    "UPDATE api_tokens SET permissions = '127', sites = '[-1]' WHERE name = 'gtcd-dashboard'" \
     -format exec 2>/dev/null || true
 
   API_KEY=$(fetch_api_token)

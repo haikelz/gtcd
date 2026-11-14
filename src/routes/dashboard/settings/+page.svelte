@@ -9,6 +9,7 @@
   import type { MessageKey } from "$lib/i18n";
   import {
     Alert,
+    AlertAction,
     AlertDescription,
     AlertTitle,
   } from "$lib/components/ui/alert";
@@ -117,7 +118,14 @@
 
   $effect(() => {
     if (data.created && data.created !== lastUpdateId) {
-      showToast(t("settings.siteCreated"), "success");
+      showToast(
+        t(
+          data.tokenLimited
+            ? "settings.siteCreatedLimitedToken"
+            : "settings.siteCreated"
+        ),
+        "success"
+      );
       lastUpdateId = data.created;
     } else if (data.updated && data.updated !== lastUpdateId) {
       showToast(t("settings.saved"), "success");
@@ -198,6 +206,21 @@
     <AlertDescription>
       {form.field ? t("settings.reviewField") : form.message}
     </AlertDescription>
+  </Alert>
+{/if}
+
+{#if data.tokenLimited}
+  <Alert class="mb-4" role="status" variant="warning">
+    <TriangleAlert />
+    <AlertTitle>{t("settings.tokenLimitedTitle")}</AlertTitle>
+    <AlertDescription>{t("settings.tokenLimited")}</AlertDescription>
+    <AlertAction>
+      <Button
+        href={resolve("/dashboard/admin/[section]", { section: "tokens" })}
+        size="xs"
+        variant="outline">{t("settings.tokenLimitedAction")}</Button
+      >
+    </AlertAction>
   </Alert>
 {/if}
 

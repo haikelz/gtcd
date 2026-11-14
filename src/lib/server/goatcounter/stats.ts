@@ -330,6 +330,18 @@ function isUnavailable(cause: unknown): boolean {
   );
 }
 
+// GoatCounter 2.7 scopes a token to a site list (APIToken.ByToken) and
+// answers 403 with only this text, with no code to tell it from others.
+const NO_SITE_ACCESS = "this token does not have access to this site";
+
+function isOutsideTokenSites(cause: unknown): boolean {
+  return (
+    cause instanceof UpstreamHttpError &&
+    cause.status === 403 &&
+    cause.message === NO_SITE_ACCESS
+  );
+}
+
 /** A rate limit, timeout or outage: worth a retry, not worth showing raw. */
 export function isTransientUpstreamError(cause: unknown): boolean {
   return isRateLimited(cause) || isUnavailable(cause);
@@ -355,6 +367,9 @@ export function reportLoadError(
     });
   }
   if (isRateLimited(cause)) return translate(locale, "common.rateLimited");
+  if (isOutsideTokenSites(cause)) {
+    return translate(locale, "common.tokenSiteAccess");
+  }
   // A 500 is GoatCounter answering with an error; 502-504 and timeouts mean
   // it did not answer at all.
   if (cause instanceof UpstreamHttpError && cause.status === 500) {

@@ -113,6 +113,8 @@ export default {
   "settings.siteCreatePermission":
     "Membuat situs membutuhkan izin site-create pada token API GoatCounter. Berikan izin site-create ke GOATCOUNTER_API_KEY yang dikonfigurasi, lalu muat ulang.",
   "settings.siteCreated": "Situs dibuat.",
+  "settings.siteCreatedLimitedToken":
+    "Situs dibuat. Token API gtcd belum dapat membacanya. Ikuti peringatan token API di halaman ini.",
   "settings.siteNotManageable": "Situs ini tidak bisa dikelola di sini.",
   "settings.siteReadPermission":
     "Pengaturan membutuhkan izin site-read pada token API GoatCounter. Berikan izin site-read dan site-update ke GOATCOUNTER_API_KEY yang dikonfigurasi, lalu muat ulang.",
@@ -129,6 +131,11 @@ export default {
   "settings.testVisitSent":
     "Kunjungan uji terkirim. Dalam satu menit, kunjungan ini muncul sebagai event gtcd-connection-test.",
   "settings.title": "Pengaturan situs",
+  "settings.tokenLimited":
+    "Buat token untuk semua situs, termasuk situs yang dibuat nanti, di Administrasi → Token API, lalu pasang sebagai GOATCOUNTER_API_KEY.",
+  "settings.tokenLimitedAction": "Buka token API",
+  "settings.tokenLimitedTitle":
+    "Token API gtcd hanya menjangkau sebagian situs",
   "settings.unlimited": "Tanpa batas",
   "settings.visibility": "Visibilitas dasbor",
   "settings.visibilityPrivate": "Privat",

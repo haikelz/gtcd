@@ -109,6 +109,8 @@ export default {
   "settings.siteCreatePermission":
     "Creating a site needs the GoatCounter API token to have site-create permission. Grant site-create to the configured GOATCOUNTER_API_KEY, then reload.",
   "settings.siteCreated": "Site created.",
+  "settings.siteCreatedLimitedToken":
+    "Site created. gtcd's API token can't read it yet. Follow the API token warning on this page.",
   "settings.siteNotManageable": "This site cannot be managed here.",
   "settings.siteReadPermission":
     "Settings needs the GoatCounter API token to have site-read permission. Grant site-read and site-update to the configured GOATCOUNTER_API_KEY, then reload.",
@@ -126,6 +128,10 @@ export default {
   "settings.testVisitSent":
     "Test visit sent. It shows up as the event gtcd-connection-test within a minute.",
   "settings.title": "Site settings",
+  "settings.tokenLimited":
+    "Create a token for all sites, including future ones, under Administration → API tokens, and set it as GOATCOUNTER_API_KEY.",
+  "settings.tokenLimitedAction": "Open API tokens",
+  "settings.tokenLimitedTitle": "gtcd's API token reaches only some sites",
   "settings.unlimited": "Unlimited",
   "settings.visibility": "Dashboard visibility",
   "settings.visibilityPrivate": "Private",

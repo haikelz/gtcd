@@ -55,6 +55,15 @@ function hasPermission(permissions: number, permission: number): boolean {
   );
 }
 
+/**
+ * GoatCounter 2.7 never adds a new site to an existing token and cannot edit
+ * a token's sites, so only a token made for all sites ([-1]) reaches sites
+ * created later.
+ */
+function reachesSomeSites(sites: unknown): boolean {
+  return Array.isArray(sites) && !(sites.length === 1 && sites[0] === -1);
+}
+
 function requireSiteReadPermission(permissions: number, locale: Locale): void {
   if (!hasPermission(permissions, SITE_READ_PERMISSION)) {
     throw error(403, translate(locale, "settings.siteReadPermission"));
@@ -283,6 +292,7 @@ export async function load({ locals, url }) {
       SITE_CREATE_PERMISSION
     ),
     created: url.searchParams.get("created"),
+    tokenLimited: reachesSomeSites(currentUser.token.sites),
     updated: url.searchParams.get("updated"),
   };
 }

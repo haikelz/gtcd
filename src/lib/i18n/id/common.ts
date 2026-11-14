@@ -9,6 +9,8 @@ export default {
     "GoatCounter sedang membatasi permintaan. Tunggu beberapa detik, lalu coba lagi.",
   "common.reportLoadFailed": "Laporan ini gagal dimuat",
   "common.retry": "Coba lagi",
+  "common.tokenSiteAccess":
+    "Token API gtcd tidak dapat membaca situs ini. Admin dapat memperbaikinya lewat peringatan token API di Pengaturan.",
   "common.upstreamError":
     "GoatCounter menjawab dengan galat. Coba lagi; jika terus gagal, periksa log GoatCounter.",
   "common.upstreamUnavailable":
