@@ -104,7 +104,9 @@ export function latestCompletedPeriod(
     return span(frequency, start, lastDay, previousStart);
   }
 
-  // Weeks run Monday–Sunday; getDay() is 0 on Sunday.
+  // Weeks run Monday–Sunday; getDay() is 0 on Sunday. ponytail: ignores
+  // GoatCounter's "week starts on Sunday", which only the heatmap follows;
+  // pass the setting in here if Sunday-first users want those report weeks.
   const sinceMonday = (today.getDay() + 6) % 7;
   const thisMonday = addDays(today, -sinceMonday);
   const length = frequency === "weekly" ? 7 : 14;

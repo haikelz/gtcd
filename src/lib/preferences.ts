@@ -32,6 +32,8 @@ export type DisplayPreferences = {
   /** gtcd interface language: the user's override, else GoatCounter's. */
   readonly locale: Locale;
   readonly numberSeparator: string;
+  /** GoatCounter "week starts on Sunday"; weeks start on Monday otherwise. */
+  readonly sundayStartsWeek: boolean;
   readonly timezone: string;
   readonly twentyFourHours: boolean;
 };
@@ -44,6 +46,7 @@ export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
   language: "en-GB",
   locale: "en",
   numberSeparator: " ",
+  sundayStartsWeek: false,
   timezone: "UTC",
   twentyFourHours: false,
 };
@@ -236,6 +239,7 @@ export function toDisplayPreferences(
     numberSeparator:
       NUMBER_SEPARATORS[separatorCode] ??
       DEFAULT_DISPLAY_PREFERENCES.numberSeparator,
+    sundayStartsWeek: settings.sunday_starts_week === true,
     timezone: parseTimezone(settings.timezone),
     twentyFourHours: settings.twenty_four_hours === true,
   };

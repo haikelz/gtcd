@@ -46,6 +46,9 @@ test("the busiest-hours heatmap shows average visits by weekday and hour", async
   const table = widget.getByRole("table", {
     name: "Average visits by weekday and hour",
   });
+  // The mock's GoatCounter week starts on Monday.
+  await expect(table.getByRole("rowheader").first()).toHaveText("Monday");
+  await expect(table.getByRole("rowheader").last()).toHaveText("Sunday");
   const monday = table.getByRole("row").filter({
     has: page.getByRole("rowheader", { name: "Monday", exact: true }),
   });

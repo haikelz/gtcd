@@ -69,6 +69,24 @@ const kolkata = busiestHours(
 );
 assert.equal(kolkata[1][16], 5);
 
+// GoatCounter's "week starts on Sunday" puts Sunday on row 0 and Monday on
+// row 1, also for an hour a DST shift carries over: Saturday 24 Oct 2026 was
+// still CEST in Berlin, so its bucket 23 belongs to Sunday 00:00.
+const sundayFirst = busiestHours(
+  [
+    { day: "2026-11-08", hourly: hourly({ 10: 2 }) },
+    { day: "2026-11-09", hourly: hourly({ 14: 6 }) },
+    { day: "2026-10-24", hourly: hourly({ 23: 3 }) },
+  ],
+  "Europe/Berlin",
+  WINTER,
+  0
+);
+assert.equal(sundayFirst[0][10], 2);
+assert.equal(sundayFirst[1][14], 6);
+assert.equal(sundayFirst[0][0], 3);
+assert.equal(sundayFirst[6][23], 0);
+
 // Malformed days and missing hourly arrays contribute nothing.
 const sparse = busiestHours(
   [{ day: "not-a-day", hourly: hourly({ 1: 9 }) }, { day: "2026-11-09" }],

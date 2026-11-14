@@ -21,10 +21,6 @@
 
   const id = $props.id();
 
-  // Rows run Monday to Sunday; JavaScript numbers weekdays from Sunday.
-  // ponytail: ignores GoatCounter's sunday_starts_week setting; read it
-  // through DisplayPreferences if Sunday-first users ask.
-  const ROW_WEEKDAYS = [1, 2, 3, 4, 5, 6, 0] as const;
   const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
   // Sequential scale on the first chart token; level 0 means no visits.
   const LEVEL_FILLS = [
@@ -51,7 +47,12 @@
 
   const preferences = $derived(displayPreferences());
   const hideNumbers = $derived(numbersHidden());
-  const grid = $derived(busiestHours(data, preferences.timezone));
+  // Rows follow GoatCounter's week start; JavaScript numbers weekdays from
+  // Sunday.
+  const firstWeekday = $derived(preferences.sundayStartsWeek ? 0 : 1);
+  const grid = $derived(
+    busiestHours(data, preferences.timezone, Date.now(), firstWeekday)
+  );
   const max = $derived(Math.max(0, ...grid.flat()));
   const busiest = $derived.by((): Cell => {
     for (let row = 0; row < grid.length; row++) {
@@ -71,7 +72,7 @@
   }
 
   function weekday(row: number, variant: "short" | "long" = "short"): string {
-    return weekdayName(ROW_WEEKDAYS[row], preferences.locale, variant);
+    return weekdayName((firstWeekday + row) % 7, preferences.locale, variant);
   }
 
   function hourLabel(hour: number): string {

@@ -28,7 +28,7 @@ Run the narrowest applicable command first, then the relevant complete boundary 
 - `pnpm build` for the production bundle.
 - `pnpm test:e2e` for the Playwright smoke tests against the build and `e2e/mock-goatcounter.mjs`. Build first, install Chromium with `pnpm exec playwright install chromium`, and set `TEST_REDIS_URL` to an isolated Redis 7 instance; see [local verification](REDIS_STATE.md#local-verification) for defaults and ports. Never point fixture tests at production Redis.
 - `MOCK_MODERN_EXPORTS=true pnpm exec playwright test exports.test.ts` for the modern JSON-export fixture in addition to the default compatibility run.
-- `MOCK_ME_SETTINGS='{"timezone":"ID.Asia/Jakarta"}' TEST_MOCK_PORT=5188 pnpm exec playwright test timezone.test.ts` for a user east of UTC. `MOCK_ME_SETTINGS` merges JSON into the mock's `/me` user settings; the separate mock port keeps a `/me` that an earlier run cached in Redis out of it.
+- `MOCK_ME_SETTINGS='{"timezone":"ID.Asia/Jakarta","sunday_starts_week":true}' TEST_MOCK_PORT=5188 pnpm exec playwright test timezone.test.ts` for a user east of UTC whose week starts on Sunday. `MOCK_ME_SETTINGS` merges JSON into the mock's `/me` user settings; the separate mock port keeps a `/me` that an earlier run cached in Redis out of it.
 - `pnpm test:perf` for the isolated authenticated fixture benchmark; see [performance setup and limitations](PERFORMANCE.md#run-the-authenticated-fixture-benchmark).
 - `pnpm dev` or `pnpm preview` plus the relevant browser flow when a UI or route changes.
 

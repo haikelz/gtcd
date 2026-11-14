@@ -18,8 +18,8 @@ export type HourlyStat = {
 };
 
 /**
- * Seven rows, Monday first, of 24 hourly averages: visits in that hour
- * divided by how often the weekday occurs in the period.
+ * Seven rows, from the week's first day, of 24 hourly averages: visits in
+ * that hour divided by how often the weekday occurs in the period.
  */
 export type HourGrid = readonly (readonly number[])[];
 
@@ -56,19 +56,21 @@ function offsetReader(timezone: string): (instant: number) => number {
   };
 }
 
-/** Monday-first weekday index of a UTC-normalized date. */
-function weekdayIndex(date: Date): number {
-  return (date.getUTCDay() + 6) % 7;
+/** Row of a UTC-normalized date in a week starting on `firstWeekday`. */
+function weekdayIndex(date: Date, firstWeekday: number): number {
+  return (date.getUTCDay() - firstWeekday + 7) % 7;
 }
 
 /**
  * Average visits per weekday and hour in `timezone`, from GoatCounter's
- * per-day hourly buckets.
+ * per-day hourly buckets. `firstWeekday` is JavaScript's number for the first
+ * row's weekday: 1 Monday, or 0 Sunday when GoatCounter's week starts then.
  */
 export function busiestHours(
   stats: readonly HourlyStat[],
   timezone: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  firstWeekday: 0 | 1 = 1
 ): HourGrid {
   const offsetAt = offsetReader(timezone);
   const applied = wholeHours(offsetAt(now));
@@ -90,13 +92,13 @@ export function busiestHours(
     const shift =
       wholeHours(offsetAt(midnight + (12 - applied) * HOUR_MS)) - applied;
 
-    occurrences[weekdayIndex(new Date(midnight))] += 1;
+    occurrences[weekdayIndex(new Date(midnight), firstWeekday)] += 1;
     for (let hour = 0; hour < 24; hour++) {
       const visits = stat.hourly?.[hour] ?? 0;
       if (!visits) continue;
 
       const local = new Date(midnight + (hour + shift) * HOUR_MS);
-      sums[weekdayIndex(local)][local.getUTCHours()] += visits;
+      sums[weekdayIndex(local, firstWeekday)][local.getUTCHours()] += visits;
     }
   }
 

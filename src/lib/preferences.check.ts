@@ -71,9 +71,14 @@ assert.deepEqual(
     language: "en-GB",
     locale: "en",
     numberSeparator: ",",
+    sundayStartsWeek: false,
     timezone: "Asia/Jakarta",
     twentyFourHours: true,
   }
+);
+assert.equal(
+  toDisplayPreferences({ sunday_starts_week: true }).sundayStartsWeek,
+  true
 );
 assert.equal(toDisplayPreferences({ number_format: 999 }).numberSeparator, " ");
 assert.equal(toDisplayPreferences(null).dateFormat, "2 Jan ’06");
