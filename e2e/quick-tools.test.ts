@@ -43,6 +43,30 @@ test("a report downloads its rows on screen as CSV with formulas escaped", async
   );
 });
 
+test("the Pages CSV has the columns the list shows, without shares", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/dashboard/pages?start=2026-10-01&end=2026-10-07");
+  // The mock answers the previous period alike: every page changed 0%.
+  await expect(
+    page.getByTitle("Change compared to previous period")
+  ).toHaveCount(3);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download CSV" }).click(),
+  ]);
+  const csv = await readFile(await download.path(), "utf8");
+
+  expect(csv).toBe(
+    "\uFEFFPath,Title,Visits,Change (%)\r\n" +
+      "/,Home,980,0\r\n" +
+      "/blog,Journal,700,0\r\n" +
+      "/docs,Docs,400,0\r\n"
+  );
+});
+
 test("Ctrl/Cmd+K opens the command menu and Enter goes to the match", async ({
   page,
 }) => {

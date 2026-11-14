@@ -39,18 +39,19 @@
     ];
   }
 
-  /** Pages rows; the change column appears once the comparison loaded. */
+  /**
+   * Pages rows, without a share column because the list shows none; the
+   * change column appears once the comparison loaded.
+   */
   export function pageCsvRows(
     hits: readonly HitList[],
     diffs?: Readonly<Record<number, number | null>>
   ): CsvRow[] {
     const counts = !numbersHidden();
-    const total = hits.reduce((sum, hit) => sum + hit.count, 0);
     const header = [
       t("tools.csvPath"),
       t("tools.csvTitle"),
       ...(counts ? [t("reports.visits")] : []),
-      t("tools.csvShare"),
       ...(diffs ? [t("tools.csvChange")] : []),
     ];
 
@@ -60,7 +61,6 @@
         hit.path,
         hit.title,
         ...(counts ? [hit.count] : []),
-        sharePercent(hit.count, total),
         ...(diffs ? [changePercent(diffs[hit.path_id])] : []),
       ]),
     ];
