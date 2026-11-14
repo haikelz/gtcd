@@ -5,7 +5,8 @@
 - **Package Manager**: pnpm
 - **Styling**: Tailwind CSS v4, ReUI design system (shadcn base-nova recipes ported to Svelte with Bits UI); see `DESIGN.md`
 - **Runtime**: Node.js 26 (`@sveltejs/adapter-node`; Node 20 is EOL — bump deliberately, together with the Dockerfile)
-- **State & Caching**: Redis 7 (`ioredis`) for durable preferences, grants and delivery jobs; process-local fallback only for sessions and query caching. See `docs/REDIS_STATE.md`.
+- **State & Caching**: Redis 7 (`ioredis`) for durable preferences, grants, goals, chart notes, notification channels and delivery jobs, plus a best-effort audit log; process-local fallback only for sessions and query caching. See `docs/REDIS_STATE.md`.
+- **Routes beyond the reports**: `/dashboard/goals`, `/dashboard/sites` (more than one site), `/dashboard/audit` and `/dashboard/settings/notifications` (admins).
 - **Containerization & Orchestration**: Docker (multi-stage non-root, `node:26-alpine`), Kubernetes (envsubst-templated manifests + `k8s/deploy-k8s.sh`)
 
 ---
@@ -46,7 +47,8 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 - **API Secret Isolation**: The client browser never receives `GOATCOUNTER_API_KEY`. All GoatCounter API traffic is routed through the SvelteKit backend (`src/lib/server/goatcounter/`).
 - **Dynamic Secrets**: Secrets must be loaded via `$env/dynamic/private` with `process.env` fallback to ensure zero build-time secret requirements inside container pipelines.
 - **Session Layer**: HTTP-only, `SameSite=Lax` cookies authenticate against Redis (`src/lib/server/auth/session-store.ts`). When Redis is unavailable, the service degrades gracefully to an in-memory session store rather than halting.
-- **Durable State**: Preferences, share mutations and delivery jobs require Redis. Public shares fail closed when grants cannot be verified. Do not substitute session fallback for durable operations.
+- **Durable State**: Preferences, share mutations, goals, chart notes, notification channels and delivery jobs require Redis. Public shares fail closed when grants cannot be verified. Do not substitute session fallback for durable operations. The audit log (`src/lib/server/audit-log.ts`) is best effort: recording never blocks or fails the action.
+- **Outbound Webhooks**: Notification channels send only through `src/lib/server/webhook-request.ts`: HTTPS to public addresses, checked by `src/lib/server/webhook-target.ts` against the address actually connected (no DNS rebinding), redirects refused, 10s per request, secrets shown masked. `GTCD_ALLOWED_WEBHOOKS` is the only way to reach internal hosts.
 - **Native Administration**: Native-admin forms use the signed-in user's server-held GoatCounter session, allowlisted routes and CSRF intents. Preserve upstream authorization; the shared API token must not elevate personal administration actions.
 - **Login Guard**: Failed logins are counted per email and, only when `ADDRESS_HEADER` is set, per client IP (`src/lib/server/auth/login-guard.ts`). GoatCounter's TOTP login token stays server-side in the pending-MFA store; never send it to the browser.
 - **CSP**: `kit.csp` in `vite.config.ts` owns the Content Security Policy with per-request nonces; `script-src` must not regain `'unsafe-inline'`. Inline scripts in `app.html` carry `nonce="%sveltekit.nonce%"`.
@@ -66,14 +68,14 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 ### 4. GoatCounter Deployment Facts
 
 - Keep GTCD application variables separate from GoatCounter configuration; unsupported `GOATCOUNTER_*` variables can cause upstream startup errors. The Kubernetes manifest supplies `GOATCOUNTER_DB`; verify the deployed version and database path before changing it. Site/user/token bootstrap uses CLI commands (`db create site`, `db create apitoken`), automated by `scripts/setup.sh` or documented in `k8s/gtcd/.env.example`.
-- The stats API requires a `stats` permission bit the CLI cannot set; after `db create apitoken`, permissions are set to all bits (`127`) via `db query "UPDATE api_tokens SET permissions='127' ..."`.
+- The stats API requires a `stats` permission bit the CLI cannot set; after `db create apitoken`, permissions are set to all bits (`127`) via `db query "UPDATE api_tokens SET permissions='127' ..."`. GoatCounter scopes each token to a site list it cannot edit later and never adds sites created through the API; set `sites='[-1]'` (all sites, including future ones) in the same update, or gtcd cannot read sites it creates.
 - Use a site vhost with 2+ DNS labels (`stats.localhost` locally, the real domain in production) and align request Host routing with it. A single-site domain warning alone does not establish lost hits; verify site selection, tracking persistence and multi-site behavior before diagnosing data loss.
 - GoatCounter persists hits asynchronously (`hit_stats` fills within ~a minute) and filters non-browser User-Agents; don't validate tracking with `curl`/`wget` alone.
 
 ### 5. Delivery Schemes
 
 - **Docker Compose**: Caddy (TLS, `/count`, `/counter/*` and legacy `/admin/*` → GoatCounter, rest → gtcd) + GoatCounter + Redis + gtcd; `scripts/setup.sh` generates the Caddyfile and `.env`. The legacy prefix is not a complete native-admin interface; use GTCD's personal-session bridge.
-- **Kubernetes** (`k8s/`): envsubst-templated manifests (`${DOMAIN}`, `${IMAGE}`) applied by `k8s/deploy-k8s.sh` — kubectl-created Secret `gtcd-env` (GoatCounter URL/key, admin settings, `REDIS_PASSWORD`; `REDIS_URL` is built in the Deployment from `REDIS_PASSWORD` and the in-cluster service) plus Secret `redis-config` holding `redis.conf`, ordered apply, rollout restart. Shared assets in `k8s/shared/` (cert-manager ClusterIssuer, Traefik `security-headers` middleware).
+- **Kubernetes** (`k8s/`): envsubst-templated manifests (`${DOMAIN}`, `${IMAGE}`) applied by `k8s/deploy-k8s.sh` — kubectl-created Secret `gtcd-env` (GoatCounter URL/key, admin settings, `REDIS_PASSWORD`; `REDIS_URL` is built in the Deployment from `REDIS_PASSWORD` and the in-cluster service) plus Secret `redis-config` holding `redis.conf`, ordered apply, rollout restart. Shared assets in `k8s/shared/` (cert-manager ClusterIssuer, Traefik `security-headers` middleware). `GTCD_ALLOWED_WEBHOOKS` rides in `gtcd-env`; the optional Secret `goatcounter-geoip` feeds the `geoipupdate` init container that downloads the GeoLite2 City database into `/data/goatcounter-data`, never GoatCounter's own `GOATCOUNTER_*` environment.
 - The current Ingress does not reference Traefik Middleware. The shared middleware manifest is optional; security headers are supplied by the application. Cert-manager absence is warned about, not repaired automatically.
 - `REDIS_URL` unset or empty makes the app fall back to `localhost:6379`, which doesn't exist in-cluster — sessions would die; keep it set or hardcoded.
 - Redis requires a password loaded from `redis.conf` (`redis-server /run/secrets/redis.conf`): Compose mounts `secrets/redis.conf` (gitignored, written by `scripts/setup.sh`), Kubernetes mounts the `redis-config` Secret. `REDIS_URL` must carry the same password; a mismatch silently drops sessions to the in-memory fallback.
@@ -84,7 +86,7 @@ Use [docs/WORKFLOW.md](docs/WORKFLOW.md) for repository work shapes, canonical v
 
 - Charts must supply accessible representations: SVG `<title>`, `<desc>`, `role="img"`, and a companion screen-reader table (`.sr-only`).
 - Interactive metrics use semantic ARIA attributes (`role="meter"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`).
-- Color contrast, focus-visible outlines (`--color-primary`), and keyboard shortcuts (`Cmd+B` / `Ctrl+B` for sidebar toggle) must comply with accessibility guidelines.
+- Color contrast, focus-visible outlines (`--color-primary`), and keyboard shortcuts (`Cmd+B` / `Ctrl+B` for sidebar toggle, `Cmd+K` on Mac / `Ctrl+K` elsewhere for the command menu) must comply with accessibility guidelines.
 - Responsive breakpoints: Mobile drawer (<1024px) and collapsible desktop sidebar (>=1024px) with preference persistence in `localStorage`.
 
 <!-- graft:start -->
