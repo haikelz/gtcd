@@ -47,19 +47,20 @@ test("an admin adds a goal and sees its visitors, conversion rate and change", a
   }
 
   try {
-    // The mock serves /blog with 700 of 2,080 visitors in both periods.
+    // The mock serves /blog with 700 visitors in both periods, of 2,080
+    // visitors and 42 event visitors: 2,038 page visits.
     const journal = report.getByRole("row", { name: /Read the journal/ });
     const requests = await requestsDuring(page, async () => {
       await addGoal("Read the journal", "page", "Blog/");
       await expect(journal.getByRole("rowheader")).toContainText("/Blog");
       await expect(journal.getByRole("cell").nth(0)).toHaveText("700");
-      await expect(journal.getByRole("cell").nth(1)).toHaveText("33.7%");
+      await expect(journal.getByRole("cell").nth(1)).toHaveText("34.3%");
       await expect(journal.getByRole("cell").nth(2)).toHaveText(
         "Change compared to previous period: 0%"
       );
     });
     await expect(report).toContainText(
-      /goal visitors divided by 2.080 visitors/
+      /goal visitors divided by 2.038 page visits/
     );
 
     // GoatCounter looks the goal up by its lower-case name in the stats

@@ -13,9 +13,9 @@ export default {
   "goals.deleteLabel": "Hapus {name}",
   "goals.deleted": "Sasaran dihapus.",
   "goals.denominator":
-    "Tingkat konversi adalah pengunjung sasaran dibagi {total} pengunjung dalam periode ini.",
+    "Tingkat konversi adalah pengunjung sasaran dibagi {total} kunjungan halaman dalam periode ini.",
   "goals.description":
-    "Pengunjung yang mencapai event atau halaman, dan porsinya dari semua pengunjung.",
+    "Pengunjung yang mencapai event atau halaman, dan porsinya dari kunjungan halaman.",
   "goals.duplicate": "Sasaran untuk event atau halaman ini sudah ada.",
   "goals.emptyAdmin":
     "Tambahkan event atau halaman di bawah untuk menghitung siapa yang mencapainya.",

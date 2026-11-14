@@ -232,22 +232,26 @@ export async function load({ locals, parent, url }) {
       scan,
       visitors: await goalPathVisitors(goals, scan, start, end, vhost),
     })),
-  ]).then(([total, { scan, visitors }]) => ({
-    rows: listed.map((goal) => {
-      const count = goalVisitors({
-        goal,
-        unresolved: scan.unresolved,
-        visitors,
-      });
-      return {
-        goal,
-        rate: conversionRate(count, total.total),
-        visitors: count,
-      };
-    }),
-    scan,
-    total: total.total,
-  }));
+  ]).then(([total, { scan, visitors }]) => {
+    const pageVisits = total.total - total.total_events;
+
+    return {
+      rows: listed.map((goal) => {
+        const count = goalVisitors({
+          goal,
+          unresolved: scan.unresolved,
+          visitors,
+        });
+        return {
+          goal,
+          rate: conversionRate(count, pageVisits),
+          visitors: count,
+        };
+      }),
+      scan,
+      total: pageVisits,
+    };
+  });
 
   // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = stats.streamReport(

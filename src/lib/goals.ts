@@ -152,12 +152,15 @@ export function goalVisitors({
   return visitors.get(key) ?? 0;
 }
 
-/** Goal visitors as a percentage of all visitors; null without visitors. */
+/**
+ * Goal visitors as a percentage of page visits (GoatCounter's total less its
+ * event visitors); null without page visits.
+ */
 export function conversionRate(
   goalVisitors: number | null,
-  totalVisitors: number
+  pageVisits: number
 ): number | null {
-  if (goalVisitors === null || !(totalVisitors > 0)) return null;
+  if (goalVisitors === null || !(pageVisits > 0)) return null;
 
-  return (goalVisitors / totalVisitors) * 100;
+  return (goalVisitors / pageVisits) * 100;
 }

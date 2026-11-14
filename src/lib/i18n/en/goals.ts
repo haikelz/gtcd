@@ -12,9 +12,9 @@ export default {
   "goals.deleteLabel": "Delete {name}",
   "goals.deleted": "Goal deleted.",
   "goals.denominator":
-    "Conversion rate is goal visitors divided by {total} visitors in the period.",
+    "Conversion rate is goal visitors divided by {total} page visits in the period.",
   "goals.description":
-    "Visitors who reached an event or page, and their share of all visitors.",
+    "Visitors who reached an event or page, and their share of page visits.",
   "goals.duplicate": "A goal for this event or page already exists.",
   "goals.emptyAdmin": "Add an event or page below to count who reaches it.",
   "goals.emptyTitle": "No goals yet",

@@ -94,11 +94,12 @@ assert.equal(
   null
 );
 
-// Conversion is goal visitors over all visitors in the period.
-assert.equal(conversionRate(700, 2080)?.toFixed(2), "33.65");
-assert.equal(conversionRate(0, 2080), 0);
+// Conversion is goal visitors over page visits (total less event visitors).
+assert.equal(conversionRate(700, 2080 - 42)?.toFixed(2), "34.35");
+assert.equal(conversionRate(0, 2038), 0);
 assert.equal(conversionRate(5, 0), null);
-assert.equal(conversionRate(null, 2080), null);
+assert.equal(conversionRate(5, 40 - 42), null);
+assert.equal(conversionRate(null, 2038), null);
 assert.equal(conversionRate(5, Number.NaN), null);
 
 console.log("goals: all checks passed");
