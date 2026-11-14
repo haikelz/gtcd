@@ -67,19 +67,28 @@ test("the Pages CSV has the columns the list shows, without shares", async ({
   );
 });
 
-test("Ctrl/Cmd+K opens the command menu and Enter goes to the match", async ({
+test("Ctrl/Cmd+K opens the command menu from anywhere and Enter goes to the match", async ({
   page,
 }) => {
   await signIn(page);
   await page.goto("/dashboard/campaigns?range=month");
   const dialog = page.getByRole("dialog", { name: "Command menu" });
+  const filter = page.getByPlaceholder("Filter paths");
 
-  // Typing in a text field keeps the shortcut.
-  await page.getByPlaceholder("Filter paths").focus();
+  // Typing in a text field does not keep the shortcut from opening it.
+  await filter.focus();
   await page.keyboard.press("ControlOrMeta+k");
-  await expect(dialog).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 
-  await page.locator("#main-content").focus();
+  // A Mac takes only Cmd+K, so Ctrl+K keeps its text-editing meaning; other
+  // systems take only Ctrl+K. Had the other modifier opened the menu, the
+  // next press would close it again.
+  await filter.focus();
+  await page.keyboard.press(
+    process.platform === "darwin" ? "Control+k" : "Meta+k"
+  );
   await page.keyboard.press("ControlOrMeta+k");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("combobox")).toBeFocused();

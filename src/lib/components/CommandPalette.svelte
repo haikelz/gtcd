@@ -52,7 +52,8 @@
   const PAGING_PARAMS = ["start", "end", "offset", "cursor", "exclude"];
 
   let open = $state(false);
-  let shortcut = $state("Ctrl K");
+  // Read in the browser only; server rendering assumes Ctrl.
+  let isMac = $state(false);
 
   // ponytail: a page counts as a report when a sidebar report group links to
   // it, so Paths, which has no period, also takes the period it is given.
@@ -138,28 +139,19 @@
     return dashboardHref(`${url.pathname}${url.search}`);
   }
 
-  // Ctrl/Cmd+K stays with a text field the user is typing in.
-  function isTyping(target: EventTarget | null): boolean {
-    return (
-      target instanceof HTMLElement &&
-      (target.isContentEditable ||
-        target.matches(
-          "textarea, input:not([type=checkbox], [type=radio], [type=button], [type=submit], [type=reset])"
-        ))
-    );
-  }
-
+  // Works in text fields too. A Mac takes only Cmd+K, so Ctrl+K keeps its
+  // text-editing meaning there (delete to the end of the line).
   function handleShortcut(event: KeyboardEvent) {
-    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k")
-      return;
-    if (!open && isTyping(event.target)) return;
+    if (!(isMac ? event.metaKey : event.ctrlKey)) return;
+    if (event.key.toLowerCase() !== "k") return;
 
     event.preventDefault();
     open = !open;
   }
 
   onMount(() => {
-    if (/Mac|iPhone|iPad/.test(navigator.userAgent)) shortcut = "⌘K";
+    // Reduced user agents keep the platform token, e.g. "Macintosh".
+    isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
   });
 </script>
 
@@ -170,7 +162,7 @@
     {#snippet child({ props })}
       <Button
         {...props}
-        aria-keyshortcuts="Control+K Meta+K"
+        aria-keyshortcuts={isMac ? "Meta+K" : "Control+K"}
         aria-label={t("tools.paletteLabel")}
         class={cn("text-muted-foreground", className)}
         size="sm"
@@ -181,7 +173,7 @@
         <kbd
           aria-hidden="true"
           class="hidden h-5 items-center rounded-sm border border-border bg-muted px-1 font-sans text-xs md:inline-flex"
-          >{shortcut}</kbd
+          >{isMac ? "⌘K" : "Ctrl K"}</kbd
         >
       </Button>
     {/snippet}
