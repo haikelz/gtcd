@@ -97,6 +97,56 @@ test("goal and chart note changes appear in the audit log", async ({
   ).toContainText("qa@example.com");
 });
 
+test("a viewer's Preferences stay out of the audit log; Security changes do not", async ({
+  page,
+}) => {
+  // "active-*@native.example" signs in with a GoatCounter session, as a
+  // viewer: GTCD_ADMIN_EMAILS names only qa@example.com.
+  const email = `active-${randomUUID()}@native.example`;
+  const since = Date.now();
+  const redis = new Redis(testRedisUrl());
+  try {
+    await signIn(page, email);
+    await page.goto("/dashboard/admin/preferences");
+    const [saved] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.request().method() === "POST" &&
+          new URL(response.url()).pathname === "/dashboard/admin/preferences"
+      ),
+      page.getByRole("button", { name: "Submit", exact: true }).click(),
+    ]);
+    expect(await saved.json()).toMatchObject({ type: "success" });
+
+    // Refused submissions: the failure path records too, when it records.
+    const headers = {
+      accept: "application/json",
+      origin: new URL(page.url()).origin,
+      "x-sveltekit-action": "true",
+    };
+    for (const section of ["preferences", "security"]) {
+      const refused = await page.request.post(`/dashboard/admin/${section}`, {
+        form: { __action: "/user/change-password" },
+        headers,
+      });
+      expect(await refused.json(), section).toMatchObject({ type: "failure" });
+    }
+
+    const entries = (await redis.zrangebyscore("audit-log", since, "+inf"))
+      .map((member) => JSON.parse(member))
+      .filter((entry) => entry.actor === email);
+    expect(entries).toEqual([
+      expect.objectContaining({
+        action: "native.submit",
+        outcome: "failure",
+        target: "security /user/change-password",
+      }),
+    ]);
+  } finally {
+    await redis.quit();
+  }
+});
+
 test("non-admins cannot open the audit log or notification channels", async ({
   page,
 }) => {

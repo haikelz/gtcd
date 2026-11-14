@@ -83,6 +83,10 @@ export const actions: Actions = {
     const submitted = await request.formData();
     // The section and which upstream form (its action path), never values.
     const form = submitted.get("__reveal") ?? submitted.get("__action");
+    // Every admin submission and anyone's Security changes; a viewer's own
+    // Preferences stay out of the audit log.
+    const isAudited =
+      isDashboardAdmin(account.email) || account.section === "security";
     const audit = {
       action: submitted.get("__reveal") ? "native.reveal" : "native.submit",
       actor: account.email,
@@ -102,7 +106,7 @@ export const actions: Actions = {
           String(submitted.get("__reveal")),
           context.vhost
         );
-        await recordAudit({ ...audit, outcome: "success" });
+        if (isAudited) await recordAudit({ ...audit, outcome: "success" });
         return { token, tokenId: String(submitted.get("__reveal")) };
       }
       const result = await submitNativeAdmin(
@@ -113,12 +117,13 @@ export const actions: Actions = {
         submitted,
         context.vhost
       );
-      await recordAudit({
-        ...audit,
-        outcome: result.page.messages.some((message) => message.error)
-          ? "failure"
-          : "success",
-      });
+      if (isAudited)
+        await recordAudit({
+          ...audit,
+          outcome: result.page.messages.some((message) => message.error)
+            ? "failure"
+            : "success",
+        });
       if (
         account.section === "users" &&
         !result.page.messages.some((message) => message.error)
@@ -136,7 +141,7 @@ export const actions: Actions = {
       return { nativePage: result.page };
     } catch (cause) {
       if (!(cause instanceof NativeAdminError)) throw cause;
-      await recordAudit({ ...audit, outcome: "failure" });
+      if (isAudited) await recordAudit({ ...audit, outcome: "failure" });
       return fail(cause.status, { problem: feedback(cause, locals.locale) });
     }
   },
