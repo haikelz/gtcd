@@ -157,6 +157,9 @@ Set these in `.env` or the container environment.
 | `GOATCOUNTER_ADMIN_URL` |    No    | Public GoatCounter URL, used for password-reset and secret-site links.                                      |
 | `GOATCOUNTER_VHOST`     |    No    | GoatCounter site hostname, sent as `Host`. `setup.sh` writes it; Kubernetes defaults it to `DOMAIN`.        |
 | `GOATCOUNTER_API_RATE`  |    No    | GoatCounter API calls a second. gtcd defaults to `4`; Compose and Kubernetes set `20` on both sides.        |
+| `GOATCOUNTER_GEODB`     |    No    | Compose, for GoatCounter: `maxmind:<account_id>:<license_key>` loads the City database for regions.         |
+| `MAXMIND_ACCOUNT_ID`    |    No    | Kubernetes, for `deploy-k8s.sh`: with `MAXMIND_LICENSE_KEY`, the City database for regions.                 |
+| `MAXMIND_LICENSE_KEY`   |    No    | MaxMind GeoLite license key. See [regional reporting](docs/GOATCOUNTER_OPERATIONS.md#regional-reporting).   |
 | `GTCD_PUBLIC_URL`       |    No    | Public dashboard URL for links in emails.                                                                   |
 | `GTCD_ALLOWED_WEBHOOKS` |    No    | Hosts notification channels may reach on private addresses, comma-separated; they also accept `http://`.    |
 | `SMTP_HOST`             |    No    | SMTP server. Email stays off until `SMTP_HOST` and `SMTP_FROM` are set.                                     |

@@ -68,7 +68,10 @@ site and token first, as described in
 The script creates the `gtcd-env` Secret and a `redis-config` Secret holding
 `requirepass` (gtcd builds `REDIS_URL` from the same `REDIS_PASSWORD`), applies
 GoatCounter, Redis and gtcd in dependency order, and restarts the deployment so
-pods read the current Secret. The setup includes:
+pods read the current Secret. With `MAXMIND_ACCOUNT_ID` and
+`MAXMIND_LICENSE_KEY` set, it also creates the `goatcounter-geoip` Secret for
+[regional reporting](GOATCOUNTER_OPERATIONS.md#regional-reporting). The setup
+includes:
 
 - non-root containers (UID 1000, dropped capabilities, read-only root
   filesystem, `RuntimeDefault` seccomp);

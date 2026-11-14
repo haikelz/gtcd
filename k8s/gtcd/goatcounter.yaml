@@ -27,6 +27,52 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        # Refreshes MaxMind's GeoLite2 City database on every pod start so
+        # GoatCounter can record regions. Optional: without the
+        # goatcounter-geoip Secret, or when MaxMind is unreachable, it logs and
+        # exits 0, and GoatCounter keeps the last database or its built-in
+        # Countries one. geoipupdate writes a temporary file and renames it; a
+        # 0-byte .mmdb would stop serve, so the command deletes those. Keep the
+        # command free of dollar signs: deploy-k8s.sh renders with envsubst.
+        # See docs/GOATCOUNTER_OPERATIONS.md#regional-reporting.
+        - name: geoipupdate
+          image: maxmindinc/geoipupdate:v8.0.0@sha256:51e70dd6f16cd3e4d845ac02d09940b10772a75b9d741427d235a78570923c1d
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - >-
+              mkdir -p /data/goatcounter-data &&
+              timeout 120 geoipupdate -v -d /data/goatcounter-data
+              || echo 'GeoIP update skipped';
+              find /data/goatcounter-data -name '*.mmdb' -size 0 -delete;
+              exit 0
+          env:
+            - name: GEOIPUPDATE_EDITION_IDS
+              value: GeoLite2-City
+          # GEOIPUPDATE_ACCOUNT_ID and GEOIPUPDATE_LICENSE_KEY, created by
+          # deploy-k8s.sh from MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY.
+          envFrom:
+            - secretRef:
+                name: goatcounter-geoip
+                optional: true
+          volumeMounts:
+            - name: goatcounter-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       containers:
         - name: goatcounter
           # Pinned release (multi-arch index digest); -automigrate below
@@ -35,6 +81,10 @@ spec:
           # See docs/GOATCOUNTER_OPERATIONS.md#goatcounter-image-pin.
           image: arp242/goatcounter:2.7.0@sha256:791df3317bf5ce379511181a4802aaf29127a318b372d4fe39ec59e1c5af44be
           imagePullPolicy: IfNotPresent
+          # serve uses the first *.mmdb in ./goatcounter-data (the init
+          # container's download) and otherwise its built-in Countries
+          # database. GOATCOUNTER_DB is absolute, so nothing else moves.
+          workingDir: /data
           ports:
             - containerPort: 8080
               name: http

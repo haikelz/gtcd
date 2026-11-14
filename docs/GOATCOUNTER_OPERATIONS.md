@@ -128,6 +128,8 @@ peak traffic; a single `top` sample is not a sizing study. Avoid sharing raw log
 or configuration containing tokens, IPs, or visitor data.
 
 Current Kubernetes requests/limits remain 50m/300m CPU and 64Mi/256Mi memory.
+With the City database for [regional reporting](#regional-reporting), about
+60 MB of it is memory-mapped inside that limit.
 Compose has no explicit CPU/memory caps. No measurements justify changing them
 yet. Raise CPU limits only when throttling correlates with processing/query delay;
 size memory with measured peak headroom, including SQLite/cgo and filesystem
@@ -208,6 +210,55 @@ Before applying the pin to an existing installation, or changing it later:
    `-ratelimit api2:15000/3600` to the `serve` arguments, just above the 14,400
    an hour that gtcd's pacing allows one process, and keep the per-second `api`
    limit.
+
+## Regional reporting
+
+GoatCounter records a visitor's region (state or province) only with a MaxMind
+City database. Its built-in database covers countries. Both recipes fetch
+GeoLite2 City with a free [MaxMind GeoLite account](https://www.maxmind.com/en/geolite2/signup)
+and a license key from its **Manage license keys** page.
+
+**Kubernetes.** Set `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` in
+`k8s/.env`. `deploy-k8s.sh` stores them in the `goatcounter-geoip` Secret, never
+as `GOATCOUNTER_*` variables, which make `serve` exit. On each pod start the
+`geoipupdate` init container (MaxMind's image, pinned by digest) downloads the
+database into `/data/goatcounter-data` on the PVC; GoatCounter runs in `/data`
+and loads the first `*.mmdb` there.
+
+- Updates happen only on a pod restart, since GoatCounter reads the file once at
+  start: `kubectl rollout restart deployment/goatcounter`. `Recreate` means a
+  brief outage. New keys also need this restart; a Secret change restarts
+  nothing.
+- The init container gives up after 120 seconds and always exits 0. Without the
+  Secret, with a rejected key or with MaxMind unreachable, GoatCounter keeps the
+  last downloaded database, or its built-in Countries one. Read
+  `kubectl logs deployment/goatcounter -c geoipupdate`, and check that
+  GoatCounter's startup log shows `geoip.type = GeoLite2-City`.
+- Removing the keys from `k8s/.env` leaves the Secret in place;
+  `kubectl delete secret goatcounter-geoip` stops the downloads, and GoatCounter
+  keeps using the last file.
+- Memory: about 60 MB of the City database is memory-mapped, counted as page
+  cache inside GoatCounter's 256Mi limit. Watch its working set after turning
+  this on and raise the limit only if usage shows the need. The 1 GiB PVC also
+  holds a temporary copy during each download.
+
+**Compose.** Set `GOATCOUNTER_GEODB=maxmind:<account_id>:<license_key>` in
+`.env` and recreate GoatCounter with `docker compose up -d goatcounter`.
+GoatCounter downloads the database itself when it starts and its copy is missing
+or over a week old. A failed download stops GoatCounter, and Compose restarts it
+in a loop until you fix or clear the value.
+
+**Site settings.** Turn on **Region** under Settings → Data to collect. You keep
+regions only for the countries in **Countries with regional reporting**: a blank
+list means every country, and GoatCounter's default list is `US, RU, CN`. Other
+countries record the country alone. Pageviews recorded earlier keep what they
+had.
+
+Checked against the v2.7.0 binary with MaxMind's City test database: GoatCounter
+loads `goatcounter-data/*.mmdb` from its working directory, falls back to the
+built-in Countries database without one, and refuses to start on a 0-byte
+`.mmdb`, which the init container therefore deletes. The real GeoLite2 City
+download needs a MaxMind key and was not run.
 
 ## Rollout and recovery
 

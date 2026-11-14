@@ -113,6 +113,19 @@ kubectl create secret generic "$secret_name" \
   "${literal_args[@]}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+# GoatCounter's geoipupdate init container reads this optional Secret to fetch
+# the GeoLite2 City database. Never pass these as GOATCOUNTER_* variables:
+# serve exits on ones it does not know.
+if [[ -n "${MAXMIND_ACCOUNT_ID:-}" && -n "${MAXMIND_LICENSE_KEY:-}" ]]; then
+  echo "  Creating/updating Secret 'goatcounter-geoip'..."
+  kubectl create secret generic goatcounter-geoip \
+    --from-literal=GEOIPUPDATE_ACCOUNT_ID="$MAXMIND_ACCOUNT_ID" \
+    --from-literal=GEOIPUPDATE_LICENSE_KEY="$MAXMIND_LICENSE_KEY" \
+    --dry-run=client -o yaml | kubectl apply -f -
+else
+  echo "  MAXMIND_ACCOUNT_ID/MAXMIND_LICENSE_KEY not both set - skipping Secret 'goatcounter-geoip'."
+fi
+
 # Redis loads requirepass from this Secret, mounted as /run/secrets/redis.conf.
 # The checksum annotation restarts Redis only when the config changes, so a
 # routine deploy does not drop every session. maxmemory stays well under the
