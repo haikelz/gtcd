@@ -76,8 +76,16 @@ const exportJobs = new Map();
 // Export request bodies, so tests can check which fields gtcd sent.
 const exportBodies = [];
 const modernExports = process.env.MOCK_MODERN_EXPORTS === "true";
-// Method, path and Host of each request, so tests can tell which site a
-// write went to.
+// JSON merged into the /me user settings, for a separate run such as
+// MOCK_ME_SETTINGS='{"timezone":"ID.Asia/Jakarta"}'. A per-test switch would
+// not work: gtcd caches /me for 30 seconds, in memory and in Redis.
+const meSettings = {
+  timezone: "UTC",
+  twenty_four_hours: true,
+  ...JSON.parse(process.env.MOCK_ME_SETTINGS || "{}"),
+};
+// Method, path, query string and Host of each request, so tests can tell
+// which site a write went to and what a read asked for.
 const requestLog = [];
 
 // Login security fixtures (e2e/login-security.test.ts), chosen by email:
@@ -93,13 +101,19 @@ const nativePrefChecks = new Map();
 
 http
   .createServer(async (req, res) => {
-    const path = new URL(req.url, "http://localhost").pathname;
+    const url = new URL(req.url, "http://localhost");
+    const path = url.pathname;
     if (path === "/__metrics") {
       return json(res, Object.fromEntries(requestCounts));
     }
     if (path === "/__requests") return json(res, requestLog);
     if (path === "/__export-bodies") return json(res, exportBodies);
-    requestLog.push({ host: req.headers.host, method: req.method, path });
+    requestLog.push({
+      host: req.headers.host,
+      method: req.method,
+      path,
+      query: url.search,
+    });
     requestCounts.set(path, (requestCounts.get(path) ?? 0) + 1);
     if (path === "/status")
       // Like the official Docker image, which reports "<commit>_<commit time>"
@@ -218,7 +232,7 @@ http
         user: {
           email: "qa@example.com",
           id: 1,
-          settings: { timezone: "UTC", twenty_four_hours: true },
+          settings: meSettings,
           site: 1,
         },
       });

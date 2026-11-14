@@ -1,8 +1,8 @@
 import { fromDayString, presetRange } from "$lib/period.js";
-import { toZonedRFC3339, wallClockNow } from "$lib/preferences.js";
+import { toUtcRFC3339, wallClockNow } from "$lib/preferences.js";
 
 export type DateRange = {
-  /** RFC 3339 boundaries for the GoatCounter API. */
+  /** RFC 3339 UTC boundaries for the GoatCounter API. */
   readonly end: string;
   /** Wall-clock boundaries in the user's timezone, for further calendar math. */
   readonly endWall: Date;
@@ -38,7 +38,16 @@ export function getDateRangeFromUrl(url: URL, timezone = "UTC"): DateRange {
   return toDateRange("custom", start, end, timezone);
 }
 
-/** Convert wall-clock boundaries to API strings in `timezone`. */
+/**
+ * Convert wall-clock boundaries in `timezone` to the UTC instants GoatCounter
+ * reads, as its own dashboard sends them.
+ *
+ * ponytail: GoatCounter then regroups hours by the user's current whole-hour
+ * offset. Half-hour zones round to the next hour, and a range crossing a DST
+ * change shifts by today's offset, so there `total` can differ from the sum
+ * of the daily counts by an hour. Fixing that needs GoatCounter itself to
+ * group by zone.
+ */
 export function toDateRange(
   range: string,
   startWall: Date,
@@ -46,10 +55,10 @@ export function toDateRange(
   timezone: string
 ): DateRange {
   return {
-    end: toZonedRFC3339(endWall, timezone),
+    end: toUtcRFC3339(endWall, timezone),
     endWall,
     range,
-    start: toZonedRFC3339(startWall, timezone),
+    start: toUtcRFC3339(startWall, timezone),
     startWall,
   };
 }

@@ -4,9 +4,9 @@
  *
  * Calendar math works on "wall-clock" dates: `Date` objects whose local
  * fields (year…second) hold the time as read on a clock in the user's
- * timezone. Only the final API boundary converts them to an instant with
- * that timezone's offset, so ranges match GoatCounter's own dashboard no
- * matter which timezone the server or browser runs in.
+ * timezone. Only the final API boundary converts them to a UTC instant
+ * through that timezone's offset, so ranges match GoatCounter's own dashboard
+ * no matter which timezone the server or browser runs in.
  */
 
 import type { Locale } from "./dashboard-layout";
@@ -324,10 +324,11 @@ function offsetMinutes(timezone: string, instant: number): number {
 }
 
 /**
- * Format a wall-clock date as RFC 3339 with `timezone`'s offset at that
- * moment, e.g. "2026-10-04T00:00:00+07:00".
+ * The instant a wall-clock date in `timezone` names, as RFC 3339 in UTC:
+ * midnight on 2026-10-04 in Jakarta is "2026-10-03T17:00:00Z". GoatCounter
+ * drops an offset from the range it reads, so only UTC keeps the instant.
  */
-export function toZonedRFC3339(wall: Date, timezone: string): string {
+export function toUtcRFC3339(wall: Date, timezone: string): string {
   const wallAsUtc = Date.UTC(
     wall.getFullYear(),
     wall.getMonth(),
@@ -340,14 +341,10 @@ export function toZonedRFC3339(wall: Date, timezone: string): string {
   // wall time read as UTC and the real instant.
   const firstGuess = offsetMinutes(timezone, wallAsUtc);
   const offset = offsetMinutes(timezone, wallAsUtc - firstGuess * 60_000);
-  const sign = offset >= 0 ? "+" : "-";
-  const absolute = Math.abs(offset);
 
-  return (
-    `${wall.getFullYear()}-${pad(wall.getMonth() + 1)}-${pad(wall.getDate())}` +
-    `T${pad(wall.getHours())}:${pad(wall.getMinutes())}:${pad(wall.getSeconds())}` +
-    `${sign}${pad(Math.floor(absolute / 60))}:${pad(absolute % 60)}`
-  );
+  return new Date(wallAsUtc - offset * 60_000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, "Z");
 }
 
 /** Group digits with the user's thousands separator. */

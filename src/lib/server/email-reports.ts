@@ -10,7 +10,7 @@ import {
   formatDate,
   formatNumber,
   toDisplayPreferences,
-  toZonedRFC3339,
+  toUtcRFC3339,
   wallClockNow,
 } from "$lib/preferences.js";
 import {
@@ -325,15 +325,15 @@ export async function buildReport(
   const preferences = toDisplayPreferences(settings);
   const options = { vhost: site.cname ?? getVhost() };
   const range = {
-    end: toZonedRFC3339(period.end, preferences.timezone),
-    start: toZonedRFC3339(period.start, preferences.timezone),
+    end: toUtcRFC3339(period.end, preferences.timezone),
+    start: toUtcRFC3339(period.start, preferences.timezone),
   };
   const summary = loadReportSummary(range, options, 5);
   const [total, previousTotal, hits, referrers, locations] = await Promise.all([
     summary.total,
     getTotal(
-      toZonedRFC3339(period.previousStart, preferences.timezone),
-      toZonedRFC3339(period.previousEnd, preferences.timezone),
+      toUtcRFC3339(period.previousStart, preferences.timezone),
+      toUtcRFC3339(period.previousEnd, preferences.timezone),
       undefined,
       options
     ).catch(() => null),
@@ -546,14 +546,14 @@ export async function buildTrafficAlert(
   const options = { vhost: site.cname ?? getVhost() };
   const [current, previous] = await Promise.all([
     getTotal(
-      toZonedRFC3339(period.start, preferences.timezone),
-      toZonedRFC3339(period.end, preferences.timezone),
+      toUtcRFC3339(period.start, preferences.timezone),
+      toUtcRFC3339(period.end, preferences.timezone),
       undefined,
       options
     ),
     getTotal(
-      toZonedRFC3339(period.previousStart, preferences.timezone),
-      toZonedRFC3339(period.previousEnd, preferences.timezone),
+      toUtcRFC3339(period.previousStart, preferences.timezone),
+      toUtcRFC3339(period.previousEnd, preferences.timezone),
       undefined,
       options
     ),

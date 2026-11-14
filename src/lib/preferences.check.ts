@@ -9,7 +9,7 @@ import {
   formatNumber,
   parseTimezone,
   toDisplayPreferences,
-  toZonedRFC3339,
+  toUtcRFC3339,
   wallClockNow,
   applyDisplayOverrides,
   localeFromLanguage,
@@ -20,21 +20,36 @@ assert.equal(parseTimezone(".UTC"), "UTC");
 assert.equal(parseTimezone("Not/AZone"), "UTC");
 assert.equal(parseTimezone(undefined), "UTC");
 
-// Midnight in Jakarta is 17:00 UTC the day before.
+// GoatCounter drops an offset, so ranges go out as UTC instants. Midnight in
+// Jakarta is 17:00 UTC the day before.
 const jakartaMidnight = new Date(2026, 9, 4, 0, 0, 0);
 assert.equal(
-  toZonedRFC3339(jakartaMidnight, "Asia/Jakarta"),
-  "2026-10-04T00:00:00+07:00"
+  toUtcRFC3339(jakartaMidnight, "Asia/Jakarta"),
+  "2026-10-03T17:00:00Z"
+);
+assert.equal(
+  toUtcRFC3339(new Date(2026, 9, 4, 23, 59, 59, 999), "Asia/Jakarta"),
+  "2026-10-04T16:59:59Z"
 );
 
 // New York switches from EDT (-04:00) to EST (-05:00) on 2026-11-01.
 assert.equal(
-  toZonedRFC3339(new Date(2026, 9, 31, 23, 59, 59), "America/New_York"),
-  "2026-10-31T23:59:59-04:00"
+  toUtcRFC3339(new Date(2026, 9, 31, 23, 59, 59), "America/New_York"),
+  "2026-11-01T03:59:59Z"
 );
 assert.equal(
-  toZonedRFC3339(new Date(2026, 10, 1, 12, 0, 0), "America/New_York"),
-  "2026-11-01T12:00:00-05:00"
+  toUtcRFC3339(new Date(2026, 10, 1, 12, 0, 0), "America/New_York"),
+  "2026-11-01T17:00:00Z"
+);
+
+assert.equal(
+  toUtcRFC3339(new Date(2026, 9, 4, 0, 0, 0), "UTC"),
+  "2026-10-04T00:00:00Z"
+);
+// Kolkata is +05:30 all year.
+assert.equal(
+  toUtcRFC3339(new Date(2026, 9, 4, 0, 0, 0), "Asia/Kolkata"),
+  "2026-10-03T18:30:00Z"
 );
 
 // 2026-10-03T20:30Z is already Oct 4 in Jakarta.

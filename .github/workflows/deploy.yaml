@@ -52,6 +52,9 @@ jobs:
       - run: pnpm exec playwright install --with-deps --only-shell chromium
       - run: pnpm test:e2e
       - run: MOCK_MODERN_EXPORTS=true pnpm exec playwright test exports.test.ts
+      # A user east of UTC. Its own mock port keeps the previous runs' /me,
+      # cached in Redis for 30 seconds, out of this one.
+      - run: MOCK_ME_SETTINGS='{"timezone":"ID.Asia/Jakarta"}' TEST_MOCK_PORT=5188 pnpm exec playwright test timezone.test.ts
       - run: pnpm test:perf
 
   image:
