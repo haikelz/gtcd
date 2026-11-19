@@ -32,9 +32,12 @@ FROM ${NODE_IMAGE} AS runtime
 
 WORKDIR /app
 
+# BODY_SIZE_LIMIT: native imports accept files up to 8 MiB; adapter-node's
+# default of 512K would refuse them before gtcd sees the request.
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    BODY_SIZE_LIMIT=10M
 
 LABEL org.opencontainers.image.title="gtcd" \
       org.opencontainers.image.description="Self-hosted analytics dashboard for GoatCounter" \

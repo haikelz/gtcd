@@ -173,7 +173,7 @@ Set these in `.env` or the container environment.
 | `ADDRESS_HEADER`        |    No    | Header carrying the client IP for the per-IP login limit; `cf-connecting-ip` behind Cloudflare.             |
 | `XFF_DEPTH`             |    No    | Trusted proxies in front of gtcd when `ADDRESS_HEADER` is `x-forwarded-for`; defaults to `1`.               |
 | `COOKIE_SECURE`         |    No    | Force the session cookie's `Secure` flag; by default it follows the request protocol.                       |
-| `BODY_SIZE_LIMIT`       |    No    | Raise to `10M` to allow native imports up to 8 MiB.                                                         |
+| `BODY_SIZE_LIMIT`       |    No    | Request body limit. The image sets `10M`, enough for native imports up to 8 MiB; adapter-node's is `512K`.  |
 | `PORT`                  |    No    | Server port; defaults to `3000`.                                                                            |
 | `NODE_ENV`              |    No    | Defaults to `production`.                                                                                   |
 

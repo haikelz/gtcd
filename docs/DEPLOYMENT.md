@@ -139,9 +139,9 @@ step migrates Redis or rolls back a failed rollout.
   (account and site lists); `setup.sh` writes it and the Kubernetes script
   defaults it to `DOMAIN`. Requests go through `node:http`, because Node's
   `fetch` drops a custom Host.
-- Native imports accept files up to 8 MiB. Set `BODY_SIZE_LIMIT=10M` for gtcd
-  (adapter-node defaults to 512 KiB) and allow the same request size at the
-  reverse proxy.
+- Native imports accept files up to 8 MiB. The image sets `BODY_SIZE_LIMIT=10M`
+  (adapter-node defaults to 512 KiB); outside the image, set it yourself, and
+  allow the same request size at the reverse proxy.
 
 These settings are not wired into every deployment template; check the
 container environment before relying on them.
