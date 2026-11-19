@@ -15,12 +15,22 @@ import {
 import { markScriptsForRocketLoader } from "$lib/server/rocket-loader.js";
 import type { Handle, HandleServerError, ServerInit } from "@sveltejs/kit";
 
-export const handleError: HandleServerError = ({ error }) => ({
-  message:
-    error instanceof DurableStateUnavailable
-      ? error.message
-      : "An unexpected error occurred. Please retry.",
-});
+export const handleError: HandleServerError = ({ error, event, status }) => {
+  // Replacing SvelteKit's default handler also replaced its log line.
+  if (status !== 404) {
+    console.error(
+      `unexpected error on ${event.route.id ?? event.url.pathname}:`,
+      error
+    );
+  }
+
+  return {
+    message:
+      error instanceof DurableStateUnavailable
+        ? error.message
+        : "An unexpected error occurred. Please retry.",
+  };
+};
 
 export const init: ServerInit = () => {
   if (building) return;

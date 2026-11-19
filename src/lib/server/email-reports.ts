@@ -721,8 +721,12 @@ async function runDueReports(now: Date): Promise<void> {
           now,
           assertReadyToSend
         );
-      } catch {
+      } catch (cause) {
         failed = true;
+        console.error(
+          "email reports: traffic alert check failed:",
+          cause instanceof Error ? cause.message : cause
+        );
         const locale = await recipientLocale(email, me.user.settings);
         await updateDurableJson(subscriptionKey(email), (value) => {
           const latest = parseSubscription(value);
@@ -811,8 +815,12 @@ async function runDueReports(now: Date): Promise<void> {
             lastSentAt: now.toISOString(),
           };
         });
-      } catch {
+      } catch (cause) {
         failed = true;
+        console.error(
+          "email reports: report delivery failed:",
+          cause instanceof Error ? cause.message : cause
+        );
         await updateDurableJson(subscriptionKey(email), (value) => {
           const latest = parseSubscription(value);
           if (JSON.stringify(latest) !== expected) return latest;
