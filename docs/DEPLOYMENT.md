@@ -70,7 +70,9 @@ The script creates the `gtcd-env` Secret and a `redis-config` Secret holding
 GoatCounter, Redis and gtcd in dependency order, and restarts the deployment so
 pods read the current Secret. With `MAXMIND_ACCOUNT_ID` and
 `MAXMIND_LICENSE_KEY` set, it also creates the `goatcounter-geoip` Secret for
-[regional reporting](GOATCOUNTER_OPERATIONS.md#regional-reporting). The setup
+[regional reporting](GOATCOUNTER_OPERATIONS.md#regional-reporting), and with the
+`BACKUP_*` variables set, the `gtcd-backup` Secret and CronJob for
+[nightly backups](GOATCOUNTER_OPERATIONS.md#backups-and-restore). The setup
 includes:
 
 - non-root containers (UID 1000, dropped capabilities, read-only root

@@ -260,6 +260,74 @@ built-in Countries database without one, and refuses to start on a 0-byte
 `.mmdb`, which the init container therefore deletes. The real GeoLite2 City
 download needs a MaxMind key and was not run.
 
+## Backups and restore
+
+Kubernetes only; Compose installs have no scheduled backup (see
+[Database and storage](#2-database-and-storage) for a manual consistent copy).
+With `BACKUP_RESTIC_REPOSITORY`, `BACKUP_RESTIC_PASSWORD`,
+`BACKUP_S3_ACCESS_KEY_ID` and `BACKUP_S3_SECRET_ACCESS_KEY` in `k8s/.env`,
+`deploy-k8s.sh` creates the `gtcd-backup` Secret and CronJob
+(`k8s/gtcd/backup.yaml`). Every night at 03:30, cluster time, one pod:
+
+1. copies GoatCounter's database with `VACUUM INTO` over a read-only
+   connection, a consistent snapshot while `serve` keeps writing;
+2. takes a Redis snapshot with `redis-cli --rdb`;
+3. sends both to the bucket with restic, encrypted, keeping 14 daily and 8
+   weekly snapshots.
+
+**Bucket.** Create it first and give the key access to that bucket only. R2:
+`s3:https://<account_id>.r2.cloudflarestorage.com/<bucket>` with
+`BACKUP_S3_REGION=auto`; AWS: `s3:s3.amazonaws.com/<bucket>`; Backblaze B2 works
+through its S3 endpoint. Keep `BACKUP_RESTIC_PASSWORD` outside the cluster too:
+without it nobody can read the backups. They hold sessions and share tokens, so
+treat them as credentials. Removing the variables later leaves the CronJob in
+place; `kubectl delete cronjob gtcd-backup` stops it.
+
+**Checking runs.** Nothing alerts. `kubectl get jobs -l app=gtcd-backup` lists
+the last three successful and failed runs, and
+`kubectl logs job/<name> -c restic` shows a run's output. Start one now with
+`kubectl create job --from=cronjob/gtcd-backup gtcd-backup-now`. With the same
+`RESTIC_*` and `AWS_*` variables exported, `restic snapshots` lists them from
+any machine, and `restic restore latest --target ./restore` fetches the newest
+into `./restore/backup/`.
+
+**Restoring GoatCounter.** Stop it, copy the file over the database, and drop
+the old WAL files:
+
+```bash
+kubectl scale deployment/goatcounter --replicas=0
+kubectl run gc-restore --image=busybox:1.37 --restart=Never --overrides='{"spec":{"securityContext":{"runAsUser":1000,"runAsGroup":1000,"fsGroup":1000},"containers":[{"name":"gc-restore","image":"busybox:1.37","command":["sleep","3600"],"volumeMounts":[{"name":"data","mountPath":"/data"}]}],"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"goatcounter-data"}}]}}'
+kubectl wait --for=condition=Ready pod/gc-restore
+kubectl exec gc-restore -- rm -f /data/db.sqlite3-wal /data/db.sqlite3-shm
+kubectl cp restore/backup/goatcounter.sqlite3 gc-restore:/data/db.sqlite3
+kubectl delete pod gc-restore
+kubectl scale deployment/goatcounter --replicas=1
+```
+
+**Restoring Redis.** Redis loads its AOF instead of `dump.rdb` when AOF is on,
+so load the snapshot with AOF off, then let Redis write a new AOF from it:
+
+```bash
+kubectl scale deployment/gtcd deployment/redis --replicas=0
+kubectl run redis-restore --image=redis:7-alpine --restart=Never --overrides='{"spec":{"securityContext":{"runAsUser":999,"runAsGroup":999,"fsGroup":999},"containers":[{"name":"redis-restore","image":"redis:7-alpine","command":["sleep","3600"],"volumeMounts":[{"name":"data","mountPath":"/data"},{"name":"config","mountPath":"/run/secrets","readOnly":true}]}],"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"redis-data"}},{"name":"config","secret":{"secretName":"redis-config"}}]}}'
+kubectl wait --for=condition=Ready pod/redis-restore
+kubectl exec redis-restore -- sh -c 'mv /data/appendonlydir /data/appendonlydir.old 2>/dev/null; true'
+kubectl cp restore/backup/redis.rdb redis-restore:/data/dump.rdb
+kubectl exec redis-restore -- redis-server /run/secrets/redis.conf --appendonly no --daemonize yes
+kubectl exec redis-restore -- sh -c 'export REDISCLI_AUTH="$(sed -n "s/^requirepass //p" /run/secrets/redis.conf)"; redis-cli dbsize; redis-cli config set appendonly yes'
+```
+
+Repeat `redis-cli info persistence` in the same way until it shows
+`aof_rewrite_in_progress:0` and `aof_last_bgrewrite_status:ok`, then run
+`redis-cli shutdown`, delete the pod, and scale Redis and gtcd back to 1. Delete
+`/data/appendonlydir.old` once the restored data checks out.
+
+Rehearsed in Docker with the pinned images: three `VACUUM INTO` copies taken
+while `serve` stored hits passed `PRAGMA integrity_check` with no hits lost;
+restic backed up to an S3 endpoint and restored; the restored database served
+the same totals; and the Redis steps above kept every key across the AOF switch.
+The `kubectl` commands follow those steps but were not run against a cluster.
+
 ## Rollout and recovery
 
 For application changes, use the checks in [Repository Workflow](WORKFLOW.md#verification),

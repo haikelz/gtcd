@@ -160,6 +160,7 @@ Set these in `.env` or the container environment.
 | `GOATCOUNTER_GEODB`     |    No    | Compose, for GoatCounter: `maxmind:<account_id>:<license_key>` loads the City database for regions.         |
 | `MAXMIND_ACCOUNT_ID`    |    No    | Kubernetes, for `deploy-k8s.sh`: with `MAXMIND_LICENSE_KEY`, the City database for regions.                 |
 | `MAXMIND_LICENSE_KEY`   |    No    | MaxMind GeoLite license key. See [regional reporting](docs/GOATCOUNTER_OPERATIONS.md#regional-reporting).   |
+| `BACKUP_*`              |    No    | Kubernetes nightly backups to a bucket. See [backups](docs/GOATCOUNTER_OPERATIONS.md#backups-and-restore).  |
 | `GTCD_PUBLIC_URL`       |    No    | Public dashboard URL for links in emails.                                                                   |
 | `GTCD_ALLOWED_WEBHOOKS` |    No    | Hosts notification channels may reach on private addresses, comma-separated; they also accept `http://`.    |
 | `SMTP_HOST`             |    No    | SMTP server. Email stays off until `SMTP_HOST` and `SMTP_FROM` are set.                                     |

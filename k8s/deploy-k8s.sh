@@ -158,6 +158,40 @@ for resource in "${apply_order[@]}"; do
   [[ -f "$file" ]] && render_apply "$file"
 done
 
+# Nightly backups (gtcd/backup.yaml), once a bucket is configured. The keys
+# go through a 0600 temp file, so they never appear on a command line.
+backup_vars=(BACKUP_RESTIC_REPOSITORY BACKUP_RESTIC_PASSWORD BACKUP_S3_ACCESS_KEY_ID BACKUP_S3_SECRET_ACCESS_KEY)
+backup_ready=true
+for var in "${backup_vars[@]}" BACKUP_S3_REGION; do
+  if [[ "${!var:-}" == *$'\n'* ]]; then
+    echo "${var} must be a single line." >&2
+    exit 1
+  fi
+done
+for var in "${backup_vars[@]}"; do
+  [[ -n "${!var:-}" ]] || backup_ready=false
+done
+if [[ "$backup_ready" == true ]]; then
+  echo "  Creating/updating Secret 'gtcd-backup'..."
+  backup_env="$(mktemp)"
+  trap 'rm -f "$backup_env"' EXIT
+  {
+    printf 'RESTIC_REPOSITORY=%s\n' "$BACKUP_RESTIC_REPOSITORY"
+    printf 'RESTIC_PASSWORD=%s\n' "$BACKUP_RESTIC_PASSWORD"
+    printf 'AWS_ACCESS_KEY_ID=%s\n' "$BACKUP_S3_ACCESS_KEY_ID"
+    printf 'AWS_SECRET_ACCESS_KEY=%s\n' "$BACKUP_S3_SECRET_ACCESS_KEY"
+    if [[ -n "${BACKUP_S3_REGION:-}" ]]; then
+      printf 'AWS_DEFAULT_REGION=%s\n' "$BACKUP_S3_REGION"
+    fi
+  } > "$backup_env"
+  kubectl create secret generic gtcd-backup --from-env-file="$backup_env" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  rm -f "$backup_env"
+  render_apply "$APP_DIR/backup.yaml"
+else
+  echo "  BACKUP_* variables not all set - skipping nightly backups (gtcd/backup.yaml)."
+fi
+
 # A Secret update alone never restarts pods; roll so pods pick up the
 # current Secret values.
 echo "  Restarting deployment/gtcd to pick up current Secret..."

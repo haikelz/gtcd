@@ -1,0 +1,169 @@
+# Nightly backup of GoatCounter's SQLite database and Redis, pushed with
+# restic to the S3-compatible bucket in Secret gtcd-backup. deploy-k8s.sh
+# applies this file only when the BACKUP_* variables are set.
+# Restore steps: docs/GOATCOUNTER_OPERATIONS.md#backups-and-restore.
+#
+# ponytail: a failed run shows only in `kubectl get jobs -l app=gtcd-backup`
+# (the last three of each kind are kept); nothing alerts. Watch the bucket's
+# newest snapshot, or add an alert, if a silent week of failures matters.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gtcd-backup
+  labels:
+    app: gtcd-backup
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      labels:
+        app: gtcd-backup
+    spec:
+      # A retry gets a fresh pod, so VACUUM INTO never meets an old copy.
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: gtcd-backup
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          # goatcounter-data is ReadWriteOnce: run next to GoatCounter.
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app: goatcounter
+                  topologyKey: kubernetes.io/hostname
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
+          initContainers:
+            # A consistent copy while serve keeps writing. mode=ro: on a
+            # writable connection the CLI first upserts its language table,
+            # which could hold the lock past serve's 200 ms wait and drop a
+            # flush of hits; read-only, that upsert only logs an error.
+            - name: goatcounter
+              image: arp242/goatcounter:2.7.0@sha256:791df3317bf5ce379511181a4802aaf29127a318b372d4fe39ec59e1c5af44be
+              imagePullPolicy: IfNotPresent
+              args:
+                - db
+                - query
+                - "VACUUM INTO '/backup/goatcounter.sqlite3'"
+                - -format
+                - exec
+                - -db
+                - "sqlite+/data/db.sqlite3?mode=ro"
+              volumeMounts:
+                # Read-write: SQLite's WAL mode needs the -shm file.
+                - name: goatcounter-data
+                  mountPath: /data
+                - name: backup
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "32Mi"
+                limits:
+                  cpu: "300m"
+                  memory: "128Mi"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+            # A snapshot over the replication protocol: no Redis volume mount,
+            # and REDISCLI_AUTH keeps the password off the command line.
+            - name: redis
+              image: redis:7-alpine
+              imagePullPolicy: IfNotPresent
+              command:
+                ["redis-cli", "-h", "redis", "--rdb", "/backup/redis.rdb"]
+              env:
+                - name: REDISCLI_AUTH
+                  valueFrom:
+                    secretKeyRef:
+                      name: gtcd-env
+                      key: REDIS_PASSWORD
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "64Mi"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          containers:
+            # Creates the repository on its first run, then keeps 14 daily and
+            # 8 weekly snapshots.
+            - name: restic
+              image: restic/restic:0.19.1@sha256:136600b6ff6843d61d355f7f71f460a166429f35de6fd11b568fece3c9a4d510
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - >-
+                  restic cat config >/dev/null 2>&1 || restic init;
+                  restic backup --host gtcd /backup &&
+                  restic forget --keep-daily 14 --keep-weekly 8 --prune
+              env:
+                - name: RESTIC_CACHE_DIR
+                  value: /cache
+              envFrom:
+                - secretRef:
+                    name: gtcd-backup
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+                  readOnly: true
+                - name: cache
+                  mountPath: /cache
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: "20m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "256Mi"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: goatcounter-data
+              persistentVolumeClaim:
+                claimName: goatcounter-data
+            - name: backup
+              emptyDir:
+                sizeLimit: 2Gi
+            - name: cache
+              emptyDir: {}
+            - name: tmp
+              emptyDir: {}

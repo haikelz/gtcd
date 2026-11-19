@@ -86,7 +86,9 @@ the current recipient before closing Redis. `scripts/start.mjs` force-exits
 after 25 seconds, so a crash, a SIGKILL or a stuck run can still leave this gap.
 Redis outages stop delivery instead of switching to a process-local lock. AOF
 protects local restarts, but disk loss and restoring an old backup can still lose
-recent checkpoints. Back up regularly and review pending jobs after recovery.
+recent checkpoints. Back up regularly (Kubernetes can run the nightly restic
+job in [Backups and restore](GOATCOUNTER_OPERATIONS.md#backups-and-restore)) and
+review pending jobs after recovery.
 
 ## Local verification
 
