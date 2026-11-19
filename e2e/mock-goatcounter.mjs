@@ -93,11 +93,13 @@ const requestLog = [];
 // Login security fixtures (e2e/login-security.test.ts), chosen by email:
 // "flaky-mfa-*" gets a TOTP challenge whose first six code checks answer 503;
 // "throttled-*" gets GoatCounter's login rate limit (429); "race-mfa-*" gets a
-// TOTP challenge whose submissions are counted; "*@native.example" gets a
+// TOTP challenge whose submissions are counted; "race-login-*" password checks
+// are counted and answered slowly; "*@native.example" gets a
 // native session cookie, and /user/pref then accepts "active-*", rejects
 // "revoked-*" (removed in GoatCounter) and fails for "outage-*".
 const loginForwardedFor = new Map();
 const raceTotpAttempts = new Map();
+const racePasswordChecks = new Map();
 const flakyTotpChecks = new Map();
 const nativePrefChecks = new Map();
 
@@ -158,6 +160,11 @@ http
       if (email.startsWith("throttled-")) {
         res.writeHead(429, { "retry-after": "60" });
         return res.end("Rate limit exceeded");
+      }
+      if (email.startsWith("race-login-")) {
+        racePasswordChecks.set(email, (racePasswordChecks.get(email) ?? 0) + 1);
+        // Answer slowly so parallel sign-ins overlap.
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
       if (form.get("password") !== PASSWORD) return redirect(res, "/user/new");
       if (email.startsWith("flaky-mfa-")) {
@@ -231,6 +238,7 @@ http
         new URL(req.url, "http://localhost").searchParams.get("email") ?? "";
       return json(res, {
         forwardedFor: loginForwardedFor.get(email) ?? null,
+        passwordChecks: racePasswordChecks.get(email) ?? 0,
         prefChecks: nativePrefChecks.get(email) ?? 0,
         totpAttempts: raceTotpAttempts.get(`race:${email}`) ?? 0,
       });

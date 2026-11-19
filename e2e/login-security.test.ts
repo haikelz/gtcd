@@ -10,6 +10,7 @@ const REDIS_URL = testRedisUrl();
 
 type LoginSecurity = {
   readonly forwardedFor: string | null;
+  readonly passwordChecks: number;
   readonly prefChecks: number;
   readonly totpAttempts: number;
 };
@@ -116,6 +117,31 @@ test("parallel TOTP submissions cannot exceed the attempt cap", async ({
   expect(
     bodies.filter((body) => body.includes("That code is not valid.")).length
   ).toBeLessThanOrEqual(4);
+});
+
+test("parallel wrong passwords share the per-email limit", async ({ page }) => {
+  const email = `race-login-${randomUUID()}@example.com`;
+  await page.goto("/login");
+
+  const origin = new URL(page.url()).origin;
+  const responses = await Promise.all(
+    Array.from({ length: 10 }, () =>
+      page.request.post("/login?/login", {
+        form: { email, password: "not-the-password" },
+        headers: { origin, "x-sveltekit-action": "true" },
+      })
+    )
+  );
+  const bodies = await Promise.all(
+    responses.map((response) => response.text())
+  );
+
+  // Each try is counted before GoatCounter sees it, so overlapping tries
+  // cannot all pass a check that read the count before any failure landed.
+  expect((await upstream(email)).passwordChecks).toBeLessThanOrEqual(5);
+  expect(
+    bodies.filter((body) => body.includes("Too many sign-in attempts.")).length
+  ).toBeGreaterThanOrEqual(5);
 });
 
 test("a user removed in GoatCounter loses the gtcd session", async ({

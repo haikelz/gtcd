@@ -1,12 +1,12 @@
 import { getGoatCounterAdminUrl } from "$lib/server/auth/admin.js";
 import {
+  claimLoginAttempt,
   claimMfaAttempt,
   clearLoginFailures,
   clearMfa,
   clientIp,
   getPendingMfa,
-  isLoginLimited,
-  recordLoginFailure,
+  releaseLoginAttempt,
   releaseMfaAttempt,
   startMfa,
 } from "$lib/server/auth/login-guard.js";
@@ -71,16 +71,16 @@ export const actions: Actions = {
 
     const ip = clientIp(getClientAddress);
 
-    if (await isLoginLimited(email, ip)) {
-      return fail(429, {
-        error: translate(locals.locale, "auth.tooManyAttempts"),
-      });
-    }
-
     // Check the bot challenge before spending a GoatCounter login attempt.
     if (!(await verifyTurnstile(data.get("cf-turnstile-response")))) {
       return fail(400, {
         error: translate(locals.locale, "auth.challengeFailed"),
+      });
+    }
+
+    if (!(await claimLoginAttempt(email, ip))) {
+      return fail(429, {
+        error: translate(locals.locale, "auth.tooManyAttempts"),
       });
     }
 
@@ -90,15 +90,17 @@ export const actions: Actions = {
     if (!result.success) {
       switch (result.reason) {
         case "invalid_credentials":
-          await recordLoginFailure(email, ip);
+          // The claimed attempt stays counted as this failure.
           return fail(400, {
             error: translate(locals.locale, "auth.invalidCredentials"),
           });
         case "mfa_required":
-          // The password was right; the code step finishes the login.
+          // The password was right; the code step claims its own attempts.
+          await releaseLoginAttempt(email, ip);
           await startMfa(cookies, email, result.challenge, secure);
           return { mfa: true };
         case "unavailable":
+          await releaseLoginAttempt(email, ip);
           return fail(502, {
             error: translate(locals.locale, "auth.unavailable"),
           });
@@ -106,7 +108,7 @@ export const actions: Actions = {
     }
 
     // Authentication successful — create dashboard session
-    await clearLoginFailures(email);
+    await clearLoginFailures(email, ip);
     await createDashboardSession(cookies, result.user.email, secure);
     await saveNativeSession(cookies, {
       email: result.user.email,
@@ -132,8 +134,9 @@ export const actions: Actions = {
     }
 
     const ip = clientIp(getClientAddress);
+    const email = mfa.pending.email;
 
-    if (await isLoginLimited(mfa.pending.email, ip)) {
+    if (!(await claimLoginAttempt(email, ip))) {
       return fail(429, {
         error: translate(locals.locale, "auth.tooManyAttempts"),
       });
@@ -143,6 +146,8 @@ export const actions: Actions = {
     // an unavailable GoatCounter gives the try back below.
     const attemptsLeft = await claimMfaAttempt(mfa.id);
     if (attemptsLeft < 0) {
+      // GoatCounter never judged this code.
+      await releaseLoginAttempt(email, ip);
       await clearMfa(cookies, mfa.id);
       return fail(429, { error: translate(locals.locale, "auth.mfaExpired") });
     }
@@ -156,7 +161,7 @@ export const actions: Actions = {
     if (!result.success) {
       switch (result.reason) {
         case "invalid_code":
-          await recordLoginFailure(mfa.pending.email, ip);
+          // The claimed attempt stays counted as this failure.
           if (attemptsLeft === 0) await clearMfa(cookies, mfa.id);
           return fail(400, {
             error: translate(
@@ -165,12 +170,14 @@ export const actions: Actions = {
             ),
           });
         case "expired":
+          await releaseLoginAttempt(email, ip);
           await clearMfa(cookies, mfa.id);
           return fail(400, {
             error: translate(locals.locale, "auth.mfaExpired"),
           });
         case "unavailable":
           await releaseMfaAttempt(mfa.id);
+          await releaseLoginAttempt(email, ip);
           return fail(502, {
             error: translate(locals.locale, "auth.unavailable"),
           });
@@ -178,14 +185,14 @@ export const actions: Actions = {
     }
 
     await clearMfa(cookies, mfa.id);
-    await clearLoginFailures(mfa.pending.email);
+    await clearLoginFailures(email, ip);
     await createDashboardSession(
       cookies,
-      mfa.pending.email,
+      email,
       shouldUseSecureCookies(request.headers, url)
     );
     await saveNativeSession(cookies, {
-      email: mfa.pending.email,
+      email,
       cookies: result.nativeCookies,
     });
 

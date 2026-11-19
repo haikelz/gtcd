@@ -3,7 +3,6 @@ import {
   deleteKey,
   getJson,
   incrementCounter,
-  readCounter,
   setJson,
 } from "$lib/server/kv.js";
 import type { Cookies } from "@sveltejs/kit";
@@ -44,29 +43,53 @@ function limitKeys(email: string, ip: string | null) {
   };
 }
 
-/** True when this email or IP failed too often in the current window. */
-export async function isLoginLimited(
+/**
+ * Count one attempt before GoatCounter sees it. The counters are atomic, so
+ * parallel tries cannot all pass a check that read the count before any
+ * failure landed. False, with the attempt given back, once this email or IP
+ * failed too often in the current window. A wrong password or code keeps the
+ * count; every other outcome releases or clears it.
+ */
+export async function claimLoginAttempt(
   email: string,
   ip: string | null
 ): Promise<boolean> {
   const keys = limitKeys(email, ip);
-  if ((await readCounter(keys.email)) >= MAX_FAILURES_PER_EMAIL) return true;
-  return (
-    keys.ip !== null && (await readCounter(keys.ip)) >= MAX_FAILURES_PER_IP
-  );
+  const byEmail = await incrementCounter(keys.email, WINDOW_SECONDS);
+  const byIp = keys.ip ? await incrementCounter(keys.ip, WINDOW_SECONDS) : 0;
+  if (byEmail <= MAX_FAILURES_PER_EMAIL && byIp <= MAX_FAILURES_PER_IP) {
+    return true;
+  }
+
+  await releaseLoginAttempt(email, ip);
+  return false;
 }
 
-export async function recordLoginFailure(
+async function release(key: string): Promise<void> {
+  // A success that cleared the key meanwhile must not leave it below zero.
+  if ((await incrementCounter(key, WINDOW_SECONDS, -1)) < 0) {
+    await deleteKey(key);
+  }
+}
+
+/** Give back an attempt that was not a wrong password or code. */
+export async function releaseLoginAttempt(
   email: string,
   ip: string | null
 ): Promise<void> {
   const keys = limitKeys(email, ip);
-  await incrementCounter(keys.email, WINDOW_SECONDS);
-  if (keys.ip) await incrementCounter(keys.ip, WINDOW_SECONDS);
+  await release(keys.email);
+  if (keys.ip) await release(keys.ip);
 }
 
-export async function clearLoginFailures(email: string): Promise<void> {
-  await deleteKey(limitKeys(email, null).email);
+/** After a sign-in: forget the email's failures, give back the IP's try. */
+export async function clearLoginFailures(
+  email: string,
+  ip: string | null
+): Promise<void> {
+  const keys = limitKeys(email, ip);
+  await deleteKey(keys.email);
+  if (keys.ip) await release(keys.ip);
 }
 
 function isPendingMfa(value: unknown): value is PendingMfa {
