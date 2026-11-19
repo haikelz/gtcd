@@ -14,6 +14,8 @@ const REQUEST_TIMEOUT_MS = 15_000;
 // One budget per call across pacing, attempts and backoff, so an unreachable
 // GoatCounter cannot stall a page for a minute.
 const REQUEST_DEADLINE_MS = 20_000;
+// gcFetchRaw's ceiling for a body the caller streams on.
+const RAW_BODY_MAX_MS = 10 * 60_000;
 const MAX_RATE_LIMIT_WAIT_MS = 60_000;
 const CACHE_MAX_ENTRIES = 500; // Hard cap so unique query URLs cannot grow without bound.
 // ponytail: sizes count the JSON's UTF-16 characters, not bytes; a parsed body
@@ -618,14 +620,26 @@ export async function gcFetchRaw(
   const vhost = options.vhost ?? getVhost();
 
   counters.upstreamAttempts++;
+  // The request timeout ends once headers arrive: the caller may stream the
+  // body to a browser (export downloads) for far longer. One controller and
+  // plain timers: AbortSignal.any with AbortSignal.timeout kept test workers
+  // alive for the ceiling and once failed to abort a request at all.
+  // ponytail: a body that stalls holds its socket until RAW_BODY_MAX_MS.
+  const controller = new AbortController();
+  const timeOut = () =>
+    controller.abort(
+      new DOMException("The operation timed out.", "TimeoutError")
+    );
+  const headerTimer = setTimeout(
+    timeOut,
+    // The pacer may have spent part of the budget; stay inside the deadline.
+    Math.max(1, Math.min(REQUEST_TIMEOUT_MS, deadline - Date.now()))
+  );
   let response: Response;
   try {
     response = await upstreamFetch(url, {
       ...init,
-      // The pacer may have spent part of the budget; stay inside the deadline.
-      signal: AbortSignal.timeout(
-        Math.max(1, Math.min(REQUEST_TIMEOUT_MS, deadline - Date.now()))
-      ),
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         // The login form endpoint does not require an API token; only send the
@@ -638,7 +652,11 @@ export async function gcFetchRaw(
   } catch (cause) {
     lastUpstreamFailureAt = Date.now();
     throw cause;
+  } finally {
+    clearTimeout(headerTimer);
   }
+  // Unref'd: an idle ceiling must never keep the process alive.
+  setTimeout(timeOut, RAW_BODY_MAX_MS).unref();
 
   if (response.ok) lastUpstreamSuccessAt = Date.now();
   else lastUpstreamFailureAt = Date.now();

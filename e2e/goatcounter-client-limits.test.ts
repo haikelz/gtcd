@@ -103,3 +103,62 @@ test("GoatCounter writes are not replayed, a 429 pauses every request, and a hun
     });
   }
 });
+
+test("a raw response streams past the request timeout, but its headers must arrive within it", async () => {
+  test.setTimeout(60_000);
+  const keys = [
+    "GOATCOUNTER_URL",
+    "GOATCOUNTER_API_KEY",
+    "GOATCOUNTER_VHOST",
+    "REDIS_URL",
+  ] as const;
+  const previous = keys.map((key) => process.env[key]);
+  const upstream = createHttpServer((req, res) => {
+    if (req.url === "/hang") return;
+
+    // Like a large export download: the body outlasts the 15 s timeout.
+    res.writeHead(200, { "Content-Type": "text/csv" });
+    res.write("first,");
+    setTimeout(() => res.end("second"), 16_000);
+  });
+  await new Promise<void>((resolve) =>
+    upstream.listen(0, "127.0.0.1", resolve)
+  );
+  const address = upstream.address();
+  if (!address || typeof address === "string")
+    throw new Error("Missing test port");
+  process.env.GOATCOUNTER_URL = `http://127.0.0.1:${address.port}`;
+  process.env.GOATCOUNTER_API_KEY = "test-only";
+  // A vhost takes the node:http path, as production does.
+  process.env.GOATCOUNTER_VHOST = "stats.example.invalid";
+  process.env.REDIS_URL = "redis://127.0.0.1:1";
+  const server = await createServer({ server: { middlewareMode: true } });
+  try {
+    const client = await server.ssrLoadModule(
+      "/src/lib/server/goatcounter/client.ts"
+    );
+
+    const response = await client.gcFetchRaw("/slow-body");
+    expect(await response.text()).toBe("first,second");
+
+    const started = Date.now();
+    await expect(client.gcFetchRaw("/hang")).rejects.toMatchObject({
+      name: "TimeoutError",
+    });
+    expect(Date.now() - started).toBeLessThan(20_000);
+  } finally {
+    const sessions = await server.ssrLoadModule(
+      "/src/lib/server/auth/session-store.ts"
+    );
+    sessions.getRedis().disconnect();
+    await server.close();
+    upstream.closeAllConnections();
+    await new Promise<void>((resolve, reject) =>
+      upstream.close((error) => (error ? reject(error) : resolve()))
+    );
+    keys.forEach((key, i) => {
+      if (previous[i] === undefined) delete process.env[key];
+      else process.env[key] = previous[i];
+    });
+  }
+});
