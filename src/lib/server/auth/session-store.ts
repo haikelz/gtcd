@@ -145,9 +145,14 @@ export async function createSession(
   });
 }
 
+/**
+ * The session's owner; null when no store has it, "unavailable" when Redis
+ * could not be asked and memory does not have it either.
+ */
 export async function getSession(
   sessionId: string
-): Promise<{ email: string } | null> {
+): Promise<{ email: string } | "unavailable" | null> {
+  let redisAnswered = false;
   if (await pingRedis()) {
     try {
       const data = await getRedis().get(`${SESSION_PREFIX}${sessionId}`);
@@ -156,6 +161,7 @@ export async function getSession(
       }
       // Not in Redis: the session may have been created in memory while Redis
       // was still connecting or down, so check the fallback before failing.
+      redisAnswered = true;
     } catch (cause) {
       reportRedisFailure(cause);
     }
@@ -163,7 +169,7 @@ export async function getSession(
 
   // In-memory fallback
   const session = memorySessions.get(sessionId);
-  if (!session) return null;
+  if (!session) return redisAnswered ? null : "unavailable";
 
   if (Date.now() > session.expiresAt) {
     memorySessions.delete(sessionId);

@@ -20,6 +20,7 @@ test("Redis calls skip PING while healthy, unconfirmed logouts report failure, a
     );
     await sessions.pingRedis();
     return {
+      auth: await server.ssrLoadModule("/src/lib/server/auth/session.ts"),
       kv: await server.ssrLoadModule("/src/lib/server/kv.ts"),
       sessions,
     };
@@ -51,6 +52,17 @@ test("Redis calls skip PING while healthy, unconfirmed logouts report failure, a
     expect(await online.sessions.getSession(unconfirmed)).toEqual({
       email: "kv@example.invalid",
     });
+    // Redis may still hold a session it cannot be asked about, so the read
+    // says "unavailable" and the cookie stays for when Redis answers.
+    expect(await offline.sessions.getSession(unconfirmed)).toBe("unavailable");
+    const deleted: string[] = [];
+    const cookies = {
+      delete: (name: string) => deleted.push(name),
+      get: (name: string) =>
+        name === "dashboard_session" ? unconfirmed : undefined,
+    };
+    expect(await offline.auth.getDashboardSession(cookies)).toBeNull();
+    expect(deleted).toEqual([]);
     expect(await online.sessions.deleteSession(unconfirmed)).toBe(true);
 
     // During the cooldown, checks fail at once instead of waiting on a probe.

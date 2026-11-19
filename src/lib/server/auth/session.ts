@@ -95,6 +95,8 @@ export async function getDashboardSession(
   if (!sessionId) return null;
 
   const session = await getSession(sessionId);
+  // Redis may still hold the session: keep the cookie for when it answers.
+  if (session === "unavailable") return null;
   if (!session) {
     cookies.delete(COOKIE_NAME, { path: "/" });
     return null;
