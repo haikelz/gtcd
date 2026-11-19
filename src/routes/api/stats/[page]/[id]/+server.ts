@@ -6,7 +6,7 @@ import {
   isStatsPage,
 } from "$lib/server/goatcounter/stats.js";
 import { getDateRangeFromUrl } from "$lib/server/helpers.js";
-import { json } from "@sveltejs/kit";
+import { isHttpError, json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 export const GET: RequestHandler = async ({ params, locals, url }) => {
@@ -27,6 +27,10 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
     const detail = await getStatsDetail(params.page, params.id, start, end, 20);
     return json(detail);
   } catch (e: unknown) {
+    // A rejected date range says what to fix.
+    if (isHttpError(e)) {
+      return json({ error: e.body.message }, { status: e.status });
+    }
     // Upstream errors can name internal hosts; keep them in the server log.
     console.error("stats api:", e instanceof Error ? e.message : e);
 

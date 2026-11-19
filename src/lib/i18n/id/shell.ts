@@ -64,6 +64,7 @@ export default {
   "shell.openSidebar": "Buka sidebar navigasi",
   "shell.previous": "Sebelumnya",
   "shell.previousPage": "Halaman sebelumnya",
+  "shell.rangeTooLong": "Pilih rentang paling lama satu tahun.",
   "shell.reportDetail": "Detail laporan",
   "shell.reportFor": "Laporan untuk {range}",
   "shell.reportPagination": "Navigasi halaman laporan",

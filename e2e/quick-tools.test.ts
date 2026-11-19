@@ -132,3 +132,29 @@ test("the campaign link builder tags the page URL", async ({ page }) => {
     "https://example.com/pricing?plan=pro&utm_source=newsletter&utm_medium=email&utm_campaign=spring%20sale#faq"
   );
 });
+
+test("custom ranges stop at one year, in the toolbar and on the server", async ({
+  page,
+}) => {
+  await signIn(page);
+  // A year back across 29 February spans 367 days and still loads.
+  const leap = await page.goto(
+    "/dashboard/pages?start=2023-11-18&end=2024-11-18"
+  );
+  expect(leap?.status()).toBe(200);
+
+  const tooLong = await page.goto(
+    "/dashboard/pages?start=2024-01-01&end=2025-06-01"
+  );
+  expect(tooLong?.status()).toBe(400);
+  await expect(
+    page.getByText("Choose a range of at most one year.")
+  ).toBeVisible();
+
+  await page.goto("/dashboard/pages?start=2026-10-01&end=2026-10-07");
+  await page.getByLabel("Start date").fill("2024-01-01");
+  await expect(page.getByLabel("End date")).toHaveAccessibleDescription(
+    "Choose a range of at most one year."
+  );
+  await expect(page.getByRole("button", { name: "Apply" })).toBeDisabled();
+});

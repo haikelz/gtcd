@@ -31,9 +31,12 @@
   } from "$lib/components/ui/tooltip";
   import {
     formatRangeLabel,
+    fromDayString,
     groupForRange,
+    MAX_RANGE_DAYS,
     moveRange,
     presetRange,
+    rangeDays,
     rangeFromParams,
     toDayString,
   } from "$lib/period.js";
@@ -145,8 +148,16 @@
   let endDraft = $derived(toDayString(current.end));
   let filterDraft = $derived(filterValue);
 
+  // The server refuses ranges over a year; say so before Apply.
+  const rangeTooLong = $derived.by(() => {
+    const start = fromDayString(startDraft);
+    const end = fromDayString(endDraft);
+    return (
+      start !== null && end !== null && rangeDays(start, end) > MAX_RANGE_DAYS
+    );
+  });
   const datesInvalid = $derived(
-    !startDraft || !endDraft || startDraft > endDraft
+    !startDraft || !endDraft || startDraft > endDraft || rangeTooLong
   );
 
   function updateParams(
@@ -256,6 +267,8 @@
           >
           <label class="sr-only" for="range-end">{t("shell.endDate")}</label>
           <Input
+            aria-describedby={rangeTooLong ? "range-too-long" : undefined}
+            aria-invalid={rangeTooLong || undefined}
             bind:value={endDraft}
             class="w-36"
             id="range-end"
@@ -265,6 +278,11 @@
           <Button disabled={datesInvalid} type="submit" variant="outline">
             {t("shell.apply")}
           </Button>
+          {#if rangeTooLong}
+            <p class="w-full text-xs text-destructive" id="range-too-long">
+              {t("shell.rangeTooLong")}
+            </p>
+          {/if}
         </form>
         <div class="flex min-w-0 flex-wrap items-center gap-2">
           <span aria-hidden="true" class="text-xs text-muted-foreground">

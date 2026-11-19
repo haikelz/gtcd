@@ -1,5 +1,11 @@
-import { fromDayString, presetRange } from "$lib/period.js";
+import {
+  fromDayString,
+  MAX_RANGE_DAYS,
+  presetRange,
+  rangeDays,
+} from "$lib/period.js";
 import { toUtcRFC3339, wallClockNow } from "$lib/preferences.js";
+import { error } from "@sveltejs/kit";
 
 export type DateRange = {
   /** RFC 3339 UTC boundaries for the GoatCounter API. */
@@ -29,9 +35,13 @@ export function getDateRangeFromUrl(url: URL, timezone = "UTC"): DateRange {
 
   const start = startDate ? fromDayString(startDate) : null;
   const end = endDate ? fromDayString(endDate) : null;
-  if (!start || !end) throw new Error("Choose a valid start and end date.");
+  if (!start || !end) throw error(400, "Choose a valid start and end date.");
   if (start > end) {
-    throw new Error("The end date must be on or after the start date.");
+    throw error(400, "The end date must be on or after the start date.");
+  }
+  // A longer range can take more memory than gtcd's pod has.
+  if (rangeDays(start, end) > MAX_RANGE_DAYS) {
+    throw error(400, "Choose a range of at most one year.");
   }
 
   end.setHours(23, 59, 59, 999);
@@ -67,12 +77,12 @@ export function getOffsetFromUrl(url: URL): number {
   const value = url.searchParams.get("offset");
   if (!value) return 0;
   if (!/^\d+$/.test(value)) {
-    throw new Error("Choose a valid report page.");
+    throw error(400, "Choose a valid report page.");
   }
 
   const offset = Number(value);
   if (!Number.isSafeInteger(offset) || offset < 0) {
-    throw new Error("Choose a valid report page.");
+    throw error(400, "Choose a valid report page.");
   }
 
   return offset;

@@ -61,6 +61,7 @@ export default {
   "shell.openSidebar": "Open navigation sidebar",
   "shell.previous": "Previous",
   "shell.previousPage": "Previous page",
+  "shell.rangeTooLong": "Choose a range of at most one year.",
   "shell.reportDetail": "Report detail",
   "shell.reportFor": "Report for {range}",
   "shell.reportPagination": "Report pagination",

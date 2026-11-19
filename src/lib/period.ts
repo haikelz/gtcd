@@ -57,6 +57,21 @@ export function toDayString(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+/**
+ * The longest range in days, counting both ends: a year back from a date
+ * after 29 February spans 367, the `year` preset at its widest.
+ */
+export const MAX_RANGE_DAYS = 367;
+
+/** Whole days in a range, counting both ends. */
+export function rangeDays(start: Date, end: Date): number {
+  return (
+    Math.round(
+      (startOfDay(end).getTime() - startOfDay(start).getTime()) / DAY_MS
+    ) + 1
+  );
+}
+
 /** Parse a YYYY-MM-DD string as a local date; null when invalid. */
 export function fromDayString(s: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
@@ -244,10 +259,7 @@ export function previousRange(
   start: Date;
   end: Date;
 } {
-  const days =
-    Math.round(
-      (startOfDay(end).getTime() - startOfDay(start).getTime()) / DAY_MS
-    ) + 1;
+  const days = rangeDays(start, end);
   const prevEnd = endOfDay(addDays(startOfDay(start), -1));
   const prevStart = startOfDay(addDays(prevEnd, -(days - 1)));
   return { start: prevStart, end: prevEnd };
