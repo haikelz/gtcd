@@ -158,3 +158,28 @@ test("custom ranges stop at one year, in the toolbar and on the server", async (
   );
   await expect(page.getByRole("button", { name: "Apply" })).toBeDisabled();
 });
+
+test("Enter in a widget's Rows field saves the layout instead of resetting it", async ({
+  page,
+}) => {
+  // Its own account, so the changed layout cannot reach other tests.
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(`layout-${Date.now()}@example.com`);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  await page.goto("/dashboard/customize");
+  const rows = page.getByRole("spinbutton", { name: "Rows" }).first();
+  await rows.fill("7");
+  await rows.press("Enter");
+  await expect(page.getByText("Overview layout saved.")).toBeVisible();
+
+  await page.reload();
+  await expect(
+    page.getByRole("spinbutton", { name: "Rows" }).first()
+  ).toHaveValue("7");
+
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect(page.getByText("Overview layout reset.")).toBeVisible();
+});

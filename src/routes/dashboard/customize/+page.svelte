@@ -757,7 +757,8 @@
         </ol>
       </FramePanel>
       <FrameFooter class="flex-row justify-end gap-2">
-        <Button name="reset" type="submit" value="on" variant="ghost">
+        <!-- Reset submits its own form, so Enter in a field above saves. -->
+        <Button form="widgets-reset" type="submit" variant="ghost">
           <RotateCcw />
           {t("customize.reset")}
         </Button>
@@ -766,6 +767,15 @@
           {t("customize.saveLayout")}
         </Button>
       </FrameFooter>
+    </form>
+    <form
+      action={dashboardHref("?/saveWidgets")}
+      hidden
+      id="widgets-reset"
+      method="POST"
+      use:enhance={notifyAndUpdate}
+    >
+      <input name="reset" type="hidden" value="on" />
     </form>
   </Frame>
 </div>
