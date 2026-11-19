@@ -49,13 +49,21 @@ if kubectl get deployment redis >/dev/null 2>&1; then
   fi
 fi
 
-# render_apply
+# render_apply: substitute only the manifest's own ${NAME} placeholders, each
+# of which must be exported and non-empty. A bare envsubst would also rewrite
+# any other $NAME text in a manifest, and renders an unset variable as "".
 render_apply() {
-  if envsubst < "$1" | grep -q '\${'; then
-    echo "Rendered ${1} still contains unsubstituted variables. Check your env values." >&2
-    exit 1
-  fi
-  envsubst < "$1" | kubectl apply -f -
+  local names name list=""
+  names="$(grep -o '\${[A-Za-z_][A-Za-z0-9_]*}' "$1" | tr -d '${}' | sort -u || true)"
+  for name in $names; do
+    if [[ -z "$(printenv "$name" || true)" ]]; then
+      echo "${1} needs ${name}; set it in the shell or k8s/.env." >&2
+      exit 1
+    fi
+    list+="\${${name}} "
+  done
+  # Quoted even when empty: envsubst without an argument substitutes everything.
+  envsubst "$list" < "$1" | kubectl apply -f -
 }
 
 # Cluster prerequisites (skipped gracefully when CRDs are absent).
