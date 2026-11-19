@@ -81,6 +81,10 @@ test("client observations count memory/shared hits, deduplication, misses and 42
       };
       return;
     }
+    if (request.url === largePath) {
+      response.setHeader("Content-Type", "application/json");
+      return response.end(JSON.stringify({ pad: "x".repeat(300 * 1024) }));
+    }
     attempts++;
     response.setHeader("Content-Type", "application/json");
     if (attempts === 1) response.statusCode = 429;
@@ -99,6 +103,7 @@ test("client observations count memory/shared hits, deduplication, misses and 42
   process.env.GOATCOUNTER_API_KEY = "diagnostics-test-token";
   process.env.GOATCOUNTER_VHOST = "stats.example.invalid";
   const path = `/diagnostics-${randomUUID()}`;
+  const largePath = `${path}-large`;
   const sharedKey = `gc-cache:stats.example.invalid::${process.env.GOATCOUNTER_URL}${path}`;
   const first = await createServer({ server: { middlewareMode: true } });
   const second = await createServer({ server: { middlewareMode: true } });
@@ -141,6 +146,9 @@ test("client observations count memory/shared hits, deduplication, misses and 42
     expect(JSON.stringify(a.getClientDiagnostics())).not.toContain(
       "diagnostics-test-token"
     );
+    // Redis also holds durable state, so a large body stays out of it.
+    await a.gcFetch(largePath);
+    expect(await isolatedRedis.exists(`${sharedKey}-large`)).toBe(0);
     const health = await second.ssrLoadModule(
       "/src/routes/api/health/+server.ts"
     );

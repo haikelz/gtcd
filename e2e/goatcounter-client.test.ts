@@ -19,6 +19,9 @@ test("GoatCounter shares reads, bounds health probes, and retries only transient
     const count = (requests.get(path) ?? 0) + 1;
     requests.set(path, count);
     res.setHeader("Content-Type", "application/json");
+    if (path === "/large") {
+      return res.end(JSON.stringify({ count, pad: "x".repeat(2 * 1024 ** 2) }));
+    }
     if (path === "/forbidden") res.statusCode = 403;
     if (path === "/api/v0/me" && healthFails) res.statusCode = 403;
     if (["/400", "/401", "/404"].includes(path))
@@ -54,6 +57,10 @@ test("GoatCounter shares reads, bounds health probes, and retries only transient
     expect(reads).toEqual(Array.from({ length: 10 }, () => ({ count: 1 })));
     await client.gcFetch("/cached");
     expect(requests.get("/cached")).toBe(1);
+
+    // A body too large to keep in memory is fetched again.
+    await client.gcFetch("/large");
+    expect((await client.gcFetch("/large")).count).toBe(2);
 
     for (let i = 0; i < 10; i++) client.refreshUpstreamStatus();
     await expect.poll(() => requests.get("/api/v0/me")).toBeGreaterThan(0);

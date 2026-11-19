@@ -16,13 +16,23 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const REQUEST_DEADLINE_MS = 20_000;
 const MAX_RATE_LIMIT_WAIT_MS = 60_000;
 const CACHE_MAX_ENTRIES = 500; // Hard cap so unique query URLs cannot grow without bound.
+// ponytail: sizes count the JSON's UTF-16 characters, not bytes; a parsed body
+// takes roughly four times as much heap. A body too large to keep is fetched
+// again on the next view, still shared while in flight. 8 Mi characters keep
+// the cache near 30 MB inside gtcd's 128Mi pod.
+const CACHE_MAX_CHARS = 8 * 1024 * 1024;
+const CACHE_ENTRY_MAX_CHARS = 1024 * 1024;
+// Redis also holds durable state at a 64mb noeviction limit.
+const SHARED_CACHE_ENTRY_MAX_CHARS = 256 * 1024;
 
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
+  size: number;
 }
 
 const memoryCache = new Map<string, CacheEntry<unknown>>();
+let memoryCacheSize = 0;
 // Identical GETs that overlap (layout and page loads) share one upstream call.
 const inflightRequests = new Map<string, Promise<unknown>>();
 
@@ -43,7 +53,9 @@ const startedAt = Date.now();
 // spend GoatCounter's API budget on a query the first already answered.
 const SHARED_CACHE_PREFIX = "gc-cache:";
 
-async function readSharedCache<T>(cacheKey: string): Promise<T | undefined> {
+async function readSharedCache<T>(
+  cacheKey: string
+): Promise<{ data: T; size: number } | undefined> {
   if (!(await pingRedis())) return undefined;
 
   const raw = await getRedis()
@@ -53,7 +65,9 @@ async function readSharedCache<T>(cacheKey: string): Promise<T | undefined> {
       return null;
     });
   try {
-    return raw === null ? undefined : (JSON.parse(raw) as T);
+    return raw === null
+      ? undefined
+      : { data: JSON.parse(raw) as T, size: raw.length };
   } catch {
     return undefined;
   }
@@ -61,17 +75,13 @@ async function readSharedCache<T>(cacheKey: string): Promise<T | undefined> {
 
 async function writeSharedCache(
   cacheKey: string,
-  data: unknown,
+  json: string,
   ttlMs: number
 ): Promise<void> {
+  if (json.length > SHARED_CACHE_ENTRY_MAX_CHARS) return;
   if (!(await pingRedis())) return;
   try {
-    await getRedis().set(
-      SHARED_CACHE_PREFIX + cacheKey,
-      JSON.stringify(data),
-      "PX",
-      ttlMs
-    );
+    await getRedis().set(SHARED_CACHE_PREFIX + cacheKey, json, "PX", ttlMs);
   } catch (cause) {
     // The per-process cache still holds the value.
     reportRedisFailure(cause);
@@ -205,20 +215,44 @@ function pauseForRateLimit(response: Response, attempt: number): number {
   return waitMs;
 }
 
-function sweepCache(now: number): void {
-  if (memoryCache.size < CACHE_MAX_ENTRIES) return;
+// Every change to memoryCache goes through these two, so memoryCacheSize
+// stays the sum of its entries.
+function cacheDelete(key: string): void {
+  const entry = memoryCache.get(key);
+  if (!entry) return;
+  memoryCacheSize -= entry.size;
+  memoryCache.delete(key);
+}
+
+function cacheSet(
+  key: string,
+  data: unknown,
+  size: number,
+  ttlMs: number
+): void {
+  // Deleting first keeps Map order oldest-first for sweepCache.
+  cacheDelete(key);
+  if (size > CACHE_ENTRY_MAX_CHARS) return;
+
+  const now = Date.now();
+  sweepCache(now, size);
+  memoryCache.set(key, { data, expiresAt: now + ttlMs, size });
+  memoryCacheSize += size;
+}
+
+function sweepCache(now: number, incoming: number): void {
+  const fits = () =>
+    memoryCache.size < CACHE_MAX_ENTRIES &&
+    memoryCacheSize + incoming <= CACHE_MAX_CHARS;
+  if (fits()) return;
 
   for (const [key, entry] of memoryCache) {
-    if (entry.expiresAt <= now) memoryCache.delete(key);
+    if (entry.expiresAt <= now) cacheDelete(key);
   }
-
-  // Still full after removing expired entries: drop the oldest half.
-  if (memoryCache.size >= CACHE_MAX_ENTRIES) {
-    const keys = [...memoryCache.keys()].slice(
-      0,
-      Math.floor(CACHE_MAX_ENTRIES / 2)
-    );
-    for (const key of keys) memoryCache.delete(key);
+  // Still full after removing expired entries: drop the oldest.
+  for (const key of memoryCache.keys()) {
+    if (fits()) return;
+    cacheDelete(key);
   }
 }
 
@@ -312,6 +346,7 @@ function requireApiConfig(): { baseUrl: string; apiKey: string } {
 
 export function clearClientCache(): void {
   memoryCache.clear();
+  memoryCacheSize = 0;
   clearSharedCache().catch(() => {});
 }
 
@@ -411,6 +446,7 @@ export async function gcFetch<T>(
       counters.memoryHits++;
       return cached.data;
     }
+    if (cached) cacheDelete(cacheKey);
   }
 
   if (isGet && !options.bypassCache) {
@@ -428,12 +464,13 @@ export async function gcFetch<T>(
       const shared = await readSharedCache<T>(cacheKey);
       if (shared !== undefined) {
         counters.sharedHits++;
-        sweepCache(Date.now());
-        memoryCache.set(cacheKey, {
-          data: shared,
-          expiresAt: Date.now() + (options.ttlMs ?? DEFAULT_CACHE_TTL_MS),
-        });
-        return shared;
+        cacheSet(
+          cacheKey,
+          shared.data,
+          shared.size,
+          options.ttlMs ?? DEFAULT_CACHE_TTL_MS
+        );
+        return shared.data;
       }
       counters.misses++;
     }
@@ -519,18 +556,16 @@ async function requestWithRetry<T>(
         );
       }
 
-      const result = (await response.json()) as T;
+      // Text first, so the cache knows how large the body is.
+      const json = await response.text();
+      const result = JSON.parse(json) as T;
 
       lastUpstreamSuccessAt = Date.now();
 
       if (isGet) {
         const ttl = options.ttlMs ?? DEFAULT_CACHE_TTL_MS;
-        sweepCache(Date.now());
-        memoryCache.set(cacheKey, {
-          data: result,
-          expiresAt: Date.now() + ttl,
-        });
-        await writeSharedCache(cacheKey, result, ttl);
+        cacheSet(cacheKey, result, json.length, ttl);
+        await writeSharedCache(cacheKey, json, ttl);
       }
 
       return result;
