@@ -80,7 +80,7 @@ itself runs unchanged.
     <td><img src="docs/screenshots/traffic-id.png" alt="Traffic overview in Bahasa Indonesia"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form and a passed Cloudflare Turnstile check"></td>
+    <td><img src="docs/screenshots/login.png" alt="gtcd sign-in page with the GoatCounter account form"></td>
     <td><img src="docs/screenshots/login-mfa.png" alt="Two-factor step asking for the 6-digit code from an authenticator app"></td>
   </tr>
   <tr>
@@ -89,8 +89,9 @@ itself runs unchanged.
   </tr>
 </table>
 
-Captured from a local build against a synthetic GoatCounter; the numbers are
-illustrative.
+Captured by [`scripts/capture-screenshots.mjs`](scripts/capture-screenshots.mjs)
+from a local build against a real GoatCounter 2.7 seeded with synthetic visits;
+the numbers are illustrative.
 
 </details>
 
