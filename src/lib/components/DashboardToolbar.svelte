@@ -322,12 +322,12 @@
             <div class="relative">
               <Search
                 aria-hidden="true"
-                class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                class="pointer-events-none absolute top-1/2 left-3.5 size-3.5 -translate-y-1/2 text-muted-foreground"
               />
               <Input
                 autocomplete="off"
                 bind:value={filterDraft}
-                class="w-44 pl-8 sm:w-56"
+                class="w-44 pl-9 sm:w-56"
                 id="filter-paths"
                 maxlength={200}
                 name="filter"

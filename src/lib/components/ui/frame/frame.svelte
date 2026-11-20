@@ -8,7 +8,7 @@
    */
   export const frameVariants = tv({
     base: [
-      "relative flex min-w-0 flex-col gap-(--frame-gap) rounded-(--frame-radius) bg-muted/50 px-(--frame-px) py-(--frame-py)",
+      "relative flex min-w-0 flex-col gap-(--frame-gap) rounded-(--frame-radius) bg-field px-(--frame-px) py-(--frame-py)",
       "[--frame-radius:var(--radius-xl)]",
       "[--frame-gap:--spacing(0.75)] [--frame-px:--spacing(0.75)] [--frame-py:--spacing(0.75)] [--frame-panel-header-gap:0rem] [--frame-panel-footer-gap:--spacing(1)]",
       "[--frame-panel-px:var(--frame-panel-px-base)] [--frame-panel-py:var(--frame-panel-py-base)] [--frame-panel-header-px:var(--frame-panel-header-px-base)] [--frame-panel-header-py:var(--frame-panel-header-py-base)] [--frame-panel-footer-px:var(--frame-panel-footer-px-base)] [--frame-panel-footer-py:var(--frame-panel-footer-py-base)]",

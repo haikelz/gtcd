@@ -20,7 +20,7 @@
         destructive: "bg-destructive text-white",
         invert: "bg-invert text-invert-foreground",
         "primary-light":
-          "border-primary/10 bg-primary/10 text-primary dark:border-primary/25 dark:bg-primary/15 dark:text-primary",
+          "border-primary/10 bg-primary/10 text-primary-active dark:border-primary/25 dark:bg-primary/15 dark:text-chart-1",
         "warning-light":
           "border-warning/15 bg-warning/10 text-warning-foreground dark:border-warning/25 dark:bg-warning/15 dark:text-warning",
         "success-light":
@@ -57,7 +57,8 @@
       },
     },
     defaultVariants: {
-      radius: "default",
+      // Deviation from ReUI (DESIGN.md): pills, like the landing chips.
+      radius: "full",
       size: "default",
       variant: "default",
     },

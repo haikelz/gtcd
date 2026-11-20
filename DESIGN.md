@@ -22,27 +22,49 @@ When porting, keep the upstream class strings and variant names. Deviate only
 for Svelte/Bits UI mechanics or a documented reason, and record the reason in
 a comment next to the deviation.
 
+gtcd shares one visual identity with its landing page (`~/landing-page-gtcd`,
+its own `DESIGN.md`): the same light tokens, a dark set both use, Inter Tight
+display type, pill controls and deep-orange primary actions. ReUI supplies the
+structure and recipes; the landing page decides colour, type and shape. A
+change to a shared token belongs in both repositories.
+
 ## Tokens
 
-`src/app.css` owns every token. Values mirror the reui.io theme:
+`src/app.css` owns every token, under ReUI's names so the recipes keep
+working. Light values are the landing page's; dark values are shared with it.
 
-- Neutral surfaces: white canvas and cards, `#f5f5f5` muted, `#e5e5e5` borders.
-  Dark uses `#0a0a0a` canvas, `#171717` cards, `#262626` muted and 10% white
-  borders.
-- Primary is neutral (`#171717` light, `#e5e5e5` dark). It marks actions,
-  focus and selection, never data.
-- `--muted-foreground` is ReUI's `#696969`, darker than stock shadcn, for AA
-  contrast on small text.
+| Token (landing role)                                 | Light                                                            | Dark                                                   |
+| ---------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------ |
+| `--background` (canvas)                              | `#ffffff`                                                        | `#0a0a0a`                                              |
+| `--foreground` (ink text)                            | `#111111`                                                        | `#fafafa`                                              |
+| `--card` (white panel, mock)                         | `#ffffff`                                                        | `#171717`                                              |
+| `--field` (grey surround of a Frame)                 | `#f5f5f6`                                                        | `#111111`                                              |
+| `--popover`                                          | `#ffffff`                                                        | `#1c1c1c`                                              |
+| `--muted`, `--accent`, `--secondary` (hover surface) | `#f5f5f5`                                                        | `#222222`–`#262626`                                    |
+| `--muted-foreground` (violet-grey)                   | `#5c5c66` (6.6:1)                                                | `#a1a1aa` (7.7:1)                                      |
+| `--border` / `--border-strong` / `--input`           | `#e8e8e8` / `#a1a1a1` / `#e8e8e8`                                | 10% / 24% / 15% white                                  |
+| `--primary` (deep orange)                            | `#c94200`, hover `#b03800`, active `#9a3100`                     | same                                                   |
+| `--ring` (focus)                                     | `#c94200` (4.9:1)                                                | `#f05100` (5.6:1)                                      |
+| `--ink` (brand mark, selected states)                | `#171717` on `#fafafa`                                           | `#fafafa` on `#0a0a0a`                                 |
+| `--chart-1`…`--chart-5`                              | orange `#f05100`, teal `#009588`, slate `#104e64`, yellow, amber | orange, teal `#2bb3a3`, slate `#5e8fa3`, yellow, amber |
+| `--selection`                                        | `#ffd9c7`                                                        | `#7a2d00`                                              |
+
+- Primary is a deep-orange fill with white text, for the main action on a
+  screen and checked controls; never data, never small text (3.9:1 on the dark
+  canvas). Orange text is the badge `primary-light` variant only, in
+  `--primary-active` light and `--chart-1` dark.
+- Ink is a fill for the brand mark and selected states (active sidebar item,
+  pressed toggle). It inverts in dark. Never decoration.
 - ReUI extended tokens: `--success`, `--info`, `--warning`, `--invert` and
   `--destructive-foreground`, each with a foreground. Use them for real states
   only.
-- `--chart-1`…`--chart-5` are the multi-hue reui.io chart palette (orange,
-  teal, slate, yellow, amber in light; blue, emerald, amber, violet, rose in
-  dark). Data series read chart tokens and never `--primary`.
-- Radius scale is fixed pixels from reui.io: xs 2, sm 4, md 6, lg 8, xl 12,
-  2xl 16.
-- Focus outline uses `--primary`. ReUI's `--ring` grey falls below 3:1 against
-  white, so it styles control rings only.
+- Data series read chart tokens and never `--primary`. Dark chart-3 is
+  lightened so every series clears 3:1 on dark panels.
+- Radius scale is the landing page's: xs 4, sm 6, md 10, lg 14, xl 20, 2xl 28.
+  Frames are 20px; menus and textareas 14px; every control is a pill.
+- Focus is a 2px `--ring` outline, offset 2px.
+- Shadows: only the primary button lifts (`--shadow-primary`, light only).
+  Frames, panels, chips and toggles are flat with hairline borders.
 
 Never hardcode hex values or raw Tailwind palette classes in components.
 
@@ -63,7 +85,11 @@ Never hardcode hex values or raw Tailwind palette classes in components.
 Deviations: `FrameTitle` renders an `h2` by default, with `level` 2/3/4 for nested
 sections (ReUI uses a div), to keep reports in the document outline.
 Badge omits ReUI's `focus` variants because
-ReUI documents no `--focus` token.
+ReUI documents no `--focus` token. For the landing page's shapes, Button,
+Input, NativeSelect, ToggleGroup and Badge are pills (`rounded-full`, wider
+horizontal padding); Button's default variant uses the primary hover/active
+steps and lift; ToggleGroup's pressed state is an ink fill; Frame's surround is
+`--field` and FramePanel casts no shadow. Each recipe carries a comment.
 
 ## Frame composition
 
@@ -87,11 +113,13 @@ through `--frame-radius`, `--frame-px` and `--frame-panel-radius`.
 - Topbar 48px: sidebar trigger, separator, breadcrumb, site switcher.
 - Content max width 96rem; 24px padding on desktop, 16px plus safe-area insets
   on mobile. Frames sit on a `gap-4` grid.
-- `PageHeader` owns every page's h1 (text-2xl semibold), description, optional
+- `PageHeader` owns every page's h1 (text-3xl), description, optional
   eyebrow (back link) and actions. Section titles are `FrameTitle` (text-sm
   semibold). Body text-sm, meta text-xs muted.
-- Self-hosted Inter for the interface; JetBrains Mono for paths and code.
-  Numbers use tabular numerals.
+- Self-hosted Inter for the interface; Inter Tight for display type (every h1,
+  KPI values, chart totals); JetBrains Mono for paths and code. Display type is
+  weight 400 with negative tracking (-0.04em titles, -0.03em figures); nothing
+  is set at 700. Numbers use tabular numerals.
 - Overview sections use 24px gaps; tighter 16px gaps group related KPI tiles.
   Headline metrics precede their period comparison. Comparison values emphasize
   the change, not a second copy of the headline count.
@@ -116,7 +144,7 @@ distinctions, baseline limitations and delivery consequences when shortening.
   names them in its data table.
 - `HourHeatmap`: weekday × hour grid on a stepped `--chart-1` scale with a
   legend; rows start on the user's GoatCounter week start. Dark mode starts
-  the scale at 40% because the dark blue at 25% matched `muted`. The image
+  the scale at 40% because chart orange at 25% sits at 1.2:1 against dark `muted`. The image
   takes focus so arrow keys step through cells; its sr-only table repeats
   every value, as shares of the peak in fewer-numbers mode.
 - `ErrorAlert`: the standard report load failure (destructive Alert with

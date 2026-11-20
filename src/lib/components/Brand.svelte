@@ -5,12 +5,12 @@
 
 <a
   aria-label={t("shell.brandLabel")}
-  class="inline-flex items-center gap-2 rounded-md text-sm font-semibold tracking-tight text-foreground"
+  class="inline-flex items-center gap-2 rounded-md font-display text-[1.05rem] font-semibold tracking-[-0.02em] text-foreground"
   href={resolve("/")}
 >
   <span
     aria-hidden="true"
-    class="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground"
+    class="grid size-7 place-items-center rounded-[8px] bg-ink text-ink-foreground"
   >
     <!-- The horn mark; static/favicon.svg and the PNG icons draw the same path. -->
     <svg class="size-4" fill="none" viewBox="0 0 100 100">

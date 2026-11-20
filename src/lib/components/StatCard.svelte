@@ -58,12 +58,14 @@
       <Skeleton class="h-3 w-32" />
     {:else}
       <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <!-- One line: a long value (a referrer URL) ellipsizes instead of
+             breaking mid-word; the title carries the full text. -->
         <p
           class={cn(
-            "min-w-0 font-semibold tracking-tight break-words text-foreground tabular-nums",
-            compact ? "text-xl" : "text-2xl"
+            "min-w-0 truncate font-display font-normal tracking-[-0.03em] text-foreground tabular-nums",
+            compact ? "text-2xl" : "text-3xl"
           )}
-          title={compact ? String(value) : undefined}
+          title={String(value)}
         >
           {value}
         </p>

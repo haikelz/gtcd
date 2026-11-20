@@ -231,7 +231,9 @@
               <dt class="text-xs text-muted-foreground">
                 {t("exports.rowsIncluded")}
               </dt>
-              <dd class="text-xl font-semibold tabular-nums">
+              <dd
+                class="text-2xl font-display font-normal tracking-[-0.03em] tabular-nums"
+              >
                 {job.num_rows == null ? "—" : formatCount(job.num_rows)}
               </dd>
             </div>
@@ -239,7 +241,9 @@
               <dt class="text-xs text-muted-foreground">
                 {t("exports.fileSize")}
               </dt>
-              <dd class="text-xl font-semibold tabular-nums">
+              <dd
+                class="text-2xl font-display font-normal tracking-[-0.03em] tabular-nums"
+              >
                 {job.size ? `${job.size} MB` : "—"}
               </dd>
             </div>

@@ -448,21 +448,21 @@ export async function buildReport(
       ? rows
           .map(
             (row) =>
-              `<tr><td style="padding:6px 0;border-bottom:1px solid #e5e5e5;word-break:break-all">${escapeHtml(row.name)}</td>${
+              `<tr><td style="padding:6px 0;border-bottom:1px solid #e8e8e8;word-break:break-all">${escapeHtml(row.name)}</td>${
                 hideNumbers
                   ? ""
-                  : `<td style="padding:6px 0 6px 16px;border-bottom:1px solid #e5e5e5;text-align:right;font-variant-numeric:tabular-nums">${count(row.count)}</td>`
+                  : `<td style="padding:6px 0 6px 16px;border-bottom:1px solid #e8e8e8;text-align:right;font-variant-numeric:tabular-nums">${count(row.count)}</td>`
               }</tr>`
           )
           .join("")
-      : `<tr><td style="padding:6px 0;color:#696969">${escapeHtml(noData)}</td></tr>`;
+      : `<tr><td style="padding:6px 0;color:#5c5c66">${escapeHtml(noData)}</td></tr>`;
 
   const html = `<!doctype html>
-<html lang="${locale}"><body style="margin:0;background:#f5f5f5;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#0a0a0a">
+<html lang="${locale}"><body style="margin:0;background:#f5f5f6;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#111111">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e5e5;border-radius:12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e8e8e8;border-radius:20px">
 <tr><td style="padding:24px">
-<p style="margin:0;font-size:12px;color:#696969">${escapeHtml(reportTitle)} · ${escapeHtml(periodLabel)}</p>
+<p style="margin:0;font-size:12px;color:#5c5c66">${escapeHtml(reportTitle)} · ${escapeHtml(periodLabel)}</p>
 <h1 style="margin:4px 0 0;font-size:18px">${escapeHtml(siteName)}</h1>
 <p style="margin:16px 0 0;font-size:24px;font-weight:600">${escapeHtml(headline)}</p>
 ${
@@ -470,7 +470,7 @@ ${
     ? `<h2 style="margin:24px 0 4px;font-size:14px">${escapeHtml(tr("email.notes"))}</h2><ul style="margin:0;padding-left:18px;font-size:14px">${noteLines
         .map(
           (note) =>
-            `<li style="padding:2px 0"><span style="color:#696969">${escapeHtml(note.date)}</span> ${escapeHtml(note.text)}</li>`
+            `<li style="padding:2px 0"><span style="color:#5c5c66">${escapeHtml(note.date)}</span> ${escapeHtml(note.text)}</li>`
         )
         .join("")}</ul>`
     : ""
@@ -481,10 +481,10 @@ ${sections
       `<h2 style="margin:24px 0 4px;font-size:14px">${escapeHtml(section.title)}</h2><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px">${tableRows(section.rows)}</table>`
   )
   .join("")}
-${dashboardUrl ? `<p style="margin:24px 0 0"><a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:#171717;color:#fafafa;text-decoration:none;padding:8px 14px;border-radius:8px;font-size:14px">${escapeHtml(tr("email.openDashboard"))}</a></p>` : ""}
-<p style="margin:24px 0 0;font-size:12px;color:#696969">${
+${dashboardUrl ? `<p style="margin:24px 0 0"><a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;background:#c94200;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:500">${escapeHtml(tr("email.openDashboard"))}</a></p>` : ""}
+<p style="margin:24px 0 0;font-size:12px;color:#5c5c66">${
     settingsUrl
-      ? `<a href="${escapeHtml(settingsUrl)}" style="color:#696969">${escapeHtml(manage)}</a>`
+      ? `<a href="${escapeHtml(settingsUrl)}" style="color:#5c5c66">${escapeHtml(manage)}</a>`
       : escapeHtml(manageFallback)
   }</p>
 </td></tr></table></td></tr></table>

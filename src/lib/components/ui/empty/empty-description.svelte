@@ -13,7 +13,7 @@
 <p
   bind:this={ref}
   class={cn(
-    "text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
+    "text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:decoration-foreground",
     className
   )}
   data-slot="empty-description"

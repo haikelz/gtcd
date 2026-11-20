@@ -134,7 +134,7 @@
       {:else if numbersHidden()}
         {t("overview.kpiHidden")}
       {:else}
-        <span class="block text-lg font-semibold">
+        <span class="block text-xl font-display font-normal tracking-[-0.03em]">
           {#if delta.percent !== null}
             {decimal(delta.percent, true)}%
           {:else}

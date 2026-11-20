@@ -152,7 +152,7 @@
     <div class="flex w-full max-w-sm flex-col gap-4">
       <Frame spacing="lg">
         <FrameHeader class="gap-1 pt-3">
-          <h1 class="text-lg font-semibold tracking-tight">
+          <h1 class="text-2xl">
             {data.mfaEmail ? t("auth.mfaTitle") : t("auth.welcome")}
           </h1>
           <FrameDescription>

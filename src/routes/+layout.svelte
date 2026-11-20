@@ -324,7 +324,7 @@
 </script>
 
 <a
-  class="fixed top-3 left-3 z-50 inline-flex h-8 -translate-y-[200%] items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground focus:translate-y-0"
+  class="fixed top-3 left-3 z-50 inline-flex h-8 -translate-y-[200%] items-center rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground focus:translate-y-0"
   href="#main-content">{t("shell.skipToContent")}</a
 >
 
@@ -395,7 +395,7 @@
                 <li class="relative">
                   <a
                     aria-current={isActive(item.href) ? "page" : undefined}
-                    class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:font-medium aria-[current=page]:text-sidebar-accent-foreground max-lg:h-10 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate"
+                    class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-full px-3 py-2 text-left text-sm text-muted-foreground ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:font-medium aria-[current=page]:text-sidebar-primary-foreground max-lg:h-10 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate"
                     href={dashboardHref(resolve(item.href), {
                       view: group.view,
                     })}

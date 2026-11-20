@@ -49,7 +49,7 @@
 
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div class="min-w-0">
-      <h1 class="text-xl font-semibold tracking-tight break-words">
+      <h1 class="text-2xl break-words">
         {data.siteName}
       </h1>
       <p class="mt-1 text-sm text-muted-foreground">

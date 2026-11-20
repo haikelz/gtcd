@@ -91,7 +91,8 @@
             >{t("charts.shares")}</span
           >
         {:else}
-          <span class="text-2xl font-semibold tracking-tight tabular-nums"
+          <span
+            class="text-3xl font-display font-normal tracking-[-0.03em] tabular-nums"
             >{formatCount(total)}</span
           >
           <span class="mt-1 text-xs text-muted-foreground"

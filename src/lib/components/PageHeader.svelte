@@ -20,12 +20,7 @@
     {#if eyebrow}
       <div class="mb-2">{@render eyebrow()}</div>
     {/if}
-    <h1
-      class={cn(
-        "text-2xl font-semibold tracking-tight break-words text-foreground",
-        titleClass
-      )}
-    >
+    <h1 class={cn("text-3xl break-words text-foreground", titleClass)}>
       {title}
     </h1>
     {#if description}

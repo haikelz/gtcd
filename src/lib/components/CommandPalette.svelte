@@ -197,7 +197,7 @@
       >
         <div class="p-1 pb-0" data-slot="command-input-wrapper">
           <div
-            class="flex h-8 items-center gap-2 rounded-lg border border-input/30 bg-input/30 pl-2 has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50"
+            class="flex h-8 items-center gap-2 rounded-full border border-input/30 bg-input/30 pl-3 has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50"
           >
             <Search aria-hidden="true" class="size-4 shrink-0 opacity-50" />
             <Command.Input

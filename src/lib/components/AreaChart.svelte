@@ -232,7 +232,9 @@
           <p class="mb-0.5 text-xs font-medium text-muted-foreground">
             {t("charts.total")}
           </p>
-          <p class="text-lg font-semibold tabular-nums text-foreground">
+          <p
+            class="text-xl font-display font-normal tracking-[-0.03em] tabular-nums text-foreground"
+          >
             {formatCount(totalSum)}
           </p>
         </div>
@@ -241,7 +243,9 @@
           <p class="mb-0.5 text-xs font-medium text-muted-foreground">
             {t("charts.dailyAverage")}
           </p>
-          <p class="text-lg font-semibold tabular-nums text-foreground">
+          <p
+            class="text-xl font-display font-normal tracking-[-0.03em] tabular-nums text-foreground"
+          >
             {formatCount(avgDaily)}
           </p>
         </div>
@@ -252,7 +256,9 @@
           <p class="mb-0.5 text-xs font-medium text-muted-foreground">
             {hoveredLabel ?? t("charts.exploreChart")}
           </p>
-          <p class="text-lg font-semibold tabular-nums text-foreground">
+          <p
+            class="text-xl font-display font-normal tracking-[-0.03em] tabular-nums text-foreground"
+          >
             {hoveredValue == null ? "—" : formatCount(hoveredValue)}
           </p>
         </div>

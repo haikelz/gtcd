@@ -48,7 +48,7 @@
   <div class="flex flex-1 items-center justify-center py-16">
     <div class="flex w-full max-w-lg flex-col items-start gap-4">
       <Badge variant="outline">{t("shell.errorStatus", { status })}</Badge>
-      <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">
+      <h1 class="text-4xl sm:text-5xl">
         {title}
       </h1>
       <p class="max-w-md text-sm leading-relaxed text-muted-foreground">

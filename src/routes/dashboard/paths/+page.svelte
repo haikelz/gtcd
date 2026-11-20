@@ -85,7 +85,7 @@
               >
                 <div class="min-w-0 flex-1">
                   <span
-                    class="block min-w-0 truncate font-mono text-sm font-medium transition-colors group-hover:text-primary"
+                    class="block min-w-0 truncate font-mono text-sm font-medium underline-offset-4 group-hover:underline"
                     >{item.path}</span
                   >
                   {#if item.title && item.title !== item.path}
