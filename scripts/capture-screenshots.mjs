@@ -205,6 +205,17 @@ async function seed() {
     throw new Error(
       "Set GOATCOUNTER_URL, GOATCOUNTER_API_KEY and GOATCOUNTER_VHOST."
     );
+  // Thousands of synthetic hits cannot be taken back: refuse a remote
+  // GoatCounter (a shell that sourced k8s/.env) unless explicitly allowed.
+  const { hostname } = new URL(base);
+  if (
+    !["localhost", "127.0.0.1", "[::1]"].includes(hostname) &&
+    process.env.SEED_ALLOW_REMOTE !== "1"
+  ) {
+    throw new Error(
+      `Refusing to seed ${hostname}: point GOATCOUNTER_URL at a local GoatCounter, or set SEED_ALLOW_REMOTE=1.`
+    );
+  }
 
   const hits = [];
   const now = Date.now();
