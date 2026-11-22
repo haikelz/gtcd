@@ -1,3 +1,6 @@
+import { getRequestEvent } from "$app/server";
+import type { Locale } from "$lib/dashboard-layout.js";
+import { translate } from "$lib/i18n/index.js";
 import {
   fromDayString,
   MAX_RANGE_DAYS,
@@ -6,6 +9,9 @@ import {
 } from "$lib/period.js";
 import { toUtcRFC3339, wallClockNow } from "$lib/preferences.js";
 import { error } from "@sveltejs/kit";
+
+// Callers pass locals.locale; a caller that does not gets the request's.
+const requestLocale = (): Locale => getRequestEvent().locals.locale;
 
 export type DateRange = {
   /** RFC 3339 UTC boundaries for the GoatCounter API. */
@@ -22,7 +28,11 @@ export type DateRange = {
  * Presets follow GoatCounter's period semantics (start of day one period back
  * through the end of today), shared with the client toolbar via $lib/period.
  */
-export function getDateRangeFromUrl(url: URL, timezone = "UTC"): DateRange {
+export function getDateRangeFromUrl(
+  url: URL,
+  timezone = "UTC",
+  locale: Locale = requestLocale()
+): DateRange {
   const startDate = url.searchParams.get("start");
   const endDate = url.searchParams.get("end");
 
@@ -35,13 +45,15 @@ export function getDateRangeFromUrl(url: URL, timezone = "UTC"): DateRange {
 
   const start = startDate ? fromDayString(startDate) : null;
   const end = endDate ? fromDayString(endDate) : null;
-  if (!start || !end) throw error(400, "Choose a valid start and end date.");
+  if (!start || !end) {
+    throw error(400, translate(locale, "common.invalidDates"));
+  }
   if (start > end) {
-    throw error(400, "The end date must be on or after the start date.");
+    throw error(400, translate(locale, "common.endBeforeStart"));
   }
   // A longer range can take more memory than gtcd's pod has.
   if (rangeDays(start, end) > MAX_RANGE_DAYS) {
-    throw error(400, "Choose a range of at most one year.");
+    throw error(400, translate(locale, "shell.rangeTooLong"));
   }
 
   end.setHours(23, 59, 59, 999);
@@ -73,16 +85,16 @@ export function toDateRange(
   };
 }
 
-export function getOffsetFromUrl(url: URL): number {
+export function getOffsetFromUrl(
+  url: URL,
+  locale: Locale = requestLocale()
+): number {
   const value = url.searchParams.get("offset");
   if (!value) return 0;
-  if (!/^\d+$/.test(value)) {
-    throw error(400, "Choose a valid report page.");
-  }
 
   const offset = Number(value);
-  if (!Number.isSafeInteger(offset) || offset < 0) {
-    throw error(400, "Choose a valid report page.");
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(offset)) {
+    throw error(400, translate(locale, "common.invalidPage"));
   }
 
   return offset;

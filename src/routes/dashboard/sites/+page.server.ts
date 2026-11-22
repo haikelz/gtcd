@@ -8,7 +8,8 @@ export async function load({ locals, parent, url }) {
   const { preferences, sites } = await parent();
   const { end, endWall, range, start, startWall } = getDateRangeFromUrl(
     url,
-    preferences.timezone
+    preferences.timezone,
+    locals.locale
   );
   const prevWall = previousRange(startWall, endWall);
   const previous = toDateRange(

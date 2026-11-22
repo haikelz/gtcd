@@ -18,7 +18,8 @@ export async function load({ locals, url, parent }) {
   const { preferences, site, vhost } = await parent();
   const { end, endWall, range, start, startWall } = getDateRangeFromUrl(
     url,
-    preferences.timezone
+    preferences.timezone,
+    locals.locale
   );
   const token = url.searchParams.get("cursor") ?? "";
   const filter = getFilterFromUrl(url);

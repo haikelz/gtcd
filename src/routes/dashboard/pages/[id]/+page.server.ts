@@ -7,8 +7,12 @@ import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 
 export async function load({ locals, params, url, parent }) {
   const { preferences, vhost } = await parent();
-  const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
-  const offset = getOffsetFromUrl(url);
+  const { range, start, end } = getDateRangeFromUrl(
+    url,
+    preferences.timezone,
+    locals.locale
+  );
+  const offset = getOffsetFromUrl(url, locals.locale);
   const pathId = Number(params.id);
 
   // Streamed: referrers render into a skeleton. Hits only supply the path

@@ -74,11 +74,12 @@ async function periodAnnotations(
  * A failed widget rejects with a translated message so it can show an error
  * with Retry instead of looking empty.
  */
-export const load: PageServerLoad = async ({ url, parent }) => {
+export const load: PageServerLoad = async ({ locals, url, parent }) => {
   const { dashboardLayout, preferences, site, vhost } = await parent();
   const { end, endWall, range, start, startWall } = getDateRangeFromUrl(
     url,
-    preferences.timezone
+    preferences.timezone,
+    locals.locale
   );
   // Notes sit under the traffic chart; read them while the filter resolves.
   const annotations: Promise<PeriodAnnotations> = isWidgetVisible(

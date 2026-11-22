@@ -7,8 +7,12 @@ import { getDateRangeFromUrl, getOffsetFromUrl } from "$lib/server/helpers.js";
 
 export async function load({ locals, url, parent }) {
   const { preferences, vhost } = await parent();
-  const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
-  const offset = getOffsetFromUrl(url);
+  const { range, start, end } = getDateRangeFromUrl(
+    url,
+    preferences.timezone,
+    locals.locale
+  );
+  const offset = getOffsetFromUrl(url, locals.locale);
 
   // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = stats.streamReport(

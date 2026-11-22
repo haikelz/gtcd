@@ -189,7 +189,8 @@ export async function load({ locals, parent, url }) {
   const { preferences, site, vhost } = await parent();
   const { end, endWall, range, start, startWall } = getDateRangeFromUrl(
     url,
-    preferences.timezone
+    preferences.timezone,
+    locals.locale
   );
 
   let goals: Goal[];

@@ -2,8 +2,11 @@
 export default {
   "common.bodyTooLarge": "This request is too large. Send at most 512 KiB.",
   "common.copy": "Copy",
+  "common.endBeforeStart": "The end date must be on or after the start date.",
   "common.filterLimit":
     "This site has more than {limit} paths, the limit for path filtering. Remove the filter to view this report.",
+  "common.invalidDates": "Choose a valid start and end date.",
+  "common.invalidPage": "Choose a valid report page.",
   "common.rateLimited":
     "GoatCounter is limiting requests right now. Wait a few seconds, then retry.",
   "common.reportLoadFailed": "This report could not load",
