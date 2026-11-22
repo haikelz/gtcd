@@ -197,5 +197,16 @@ fi
 echo "  Restarting deployment/gtcd to pick up current Secret..."
 kubectl rollout restart deployment/gtcd
 
+# Fail the run instead of printing Done over a broken rollout (a bad IMAGE, a
+# GoatCounter migration that never finishes). GoatCounter's startup probe
+# allows 10 minutes for migrations.
+echo "  Waiting for the rollouts..."
+for target in goatcounter:600s redis:180s gtcd:300s; do
+  if ! kubectl rollout status "deployment/${target%%:*}" --timeout="${target#*:}"; then
+    echo "deployment/${target%%:*} did not become ready; see kubectl describe and kubectl logs." >&2
+    exit 1
+  fi
+done
+
 echo ""
 echo "  Done: gtcd deployed."
