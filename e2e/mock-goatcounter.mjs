@@ -296,7 +296,12 @@ http
         const named = hits.filter((h) => names.includes(h.path.toLowerCase()));
         return json(res, { hits: named, more: false, total: 2080 });
       }
-      return json(res, { hits, more: false, total: 2080 });
+      const ids = url.searchParams.get("include_paths")?.split(",");
+      return json(res, {
+        hits: ids ? hits.filter((h) => ids.includes(String(h.path_id))) : hits,
+        more: false,
+        total: 2080,
+      });
     }
     if (path.includes("/paths")) {
       const after = Number(url.searchParams.get("after") ?? 0);

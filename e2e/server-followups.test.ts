@@ -207,6 +207,20 @@ test("the account check keeps the GoatCounter login's expiry", async ({
   }
 });
 
+test("a path's own row names it even when the filter excludes it", async ({
+  page,
+}) => {
+  await signIn(page, `path-title-${randomUUID()}@example.invalid`);
+
+  // "blog" matches /blog only; the detail page is for /docs (path 3).
+  await page.goto("/dashboard/pages/3?site=1&range=7d&filter=blog");
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("/docs");
+  await expect(page.locator('a[href="https://example.com/docs"]')).toHaveText(
+    /example\.com\/docs/
+  );
+});
+
 test("a Redis outage is logged once, not once per failed request", async () => {
   const vite = await createServer({ server: { middlewareMode: true } });
   const original = console.error;
