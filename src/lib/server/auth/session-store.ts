@@ -49,11 +49,17 @@ export function getRedis(): Redis {
 /**
  * Record a failed Redis command so later callers fail fast for the cooldown.
  * Error replies (for example OOM under `noeviction`) prove Redis is reachable
- * and fail only that command.
+ * and fail only that command. Logs once per outage, so callers need not.
  */
 export function reportRedisFailure(cause: unknown): void {
   if (cause instanceof ReplyError) return;
 
+  if (lastRedisFailureAt === 0) {
+    console.error(
+      "redis unavailable:",
+      cause instanceof Error ? cause.message : "no answer"
+    );
+  }
   redisConfirmed = false;
   lastRedisFailureAt = Date.now();
 }
@@ -64,6 +70,7 @@ async function probeRedis(client: Redis): Promise<boolean> {
     // fails instantly, which would mark Redis down for the cooldown.
     if (client.status === "wait") await client.connect();
     if ((await client.ping()) === "PONG") {
+      if (lastRedisFailureAt !== 0) console.info("redis available again");
       redisConfirmed = true;
       lastRedisFailureAt = 0;
       return true;

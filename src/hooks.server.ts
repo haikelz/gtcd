@@ -25,8 +25,9 @@ import type {
 } from "@sveltejs/kit";
 
 export const handleError: HandleServerError = ({ error, event, status }) => {
-  // Replacing SvelteKit's default handler also replaced its log line.
-  if (status !== 404) {
+  // Replacing SvelteKit's default handler also replaced its log line. A Redis
+  // outage fails every durable request; reportRedisFailure logs it once.
+  if (status !== 404 && !(error instanceof DurableStateUnavailable)) {
     console.error(
       `unexpected error on ${event.route.id ?? event.url.pathname}:`,
       error

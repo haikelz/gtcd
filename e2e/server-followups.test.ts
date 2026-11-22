@@ -141,3 +141,38 @@ test("bodies over 512 KiB are refused except a signed-in native import", async (
     await once(app, "exit");
   }
 });
+
+test("a Redis outage is logged once, not once per failed request", async () => {
+  const vite = await createServer({ server: { middlewareMode: true } });
+  const original = console.error;
+  const logged: unknown[][] = [];
+  try {
+    const hooks = await vite.ssrLoadModule("/src/hooks.server.ts");
+    const durable = await vite.ssrLoadModule(
+      "/src/lib/server/durable-state.ts"
+    );
+    const sessions = await vite.ssrLoadModule(
+      "/src/lib/server/auth/session-store.ts"
+    );
+    const event = { route: { id: "/dashboard" }, url: new URL("http://x/") };
+    console.error = (...args: unknown[]) => logged.push(args);
+
+    sessions.reportRedisFailure(new Error("connection refused"));
+    sessions.reportRedisFailure(new Error("connection refused"));
+    for (const error of [
+      new durable.DurableStateUnavailable(),
+      new durable.DurableStateUnavailable(),
+      new Error("boom"),
+    ]) {
+      hooks.handleError({ error, event, message: "", status: 500 });
+    }
+  } finally {
+    console.error = original;
+    await vite.close();
+  }
+
+  expect(logged.map((args) => String(args[0]))).toEqual([
+    "redis unavailable:",
+    "unexpected error on /dashboard:",
+  ]);
+});
