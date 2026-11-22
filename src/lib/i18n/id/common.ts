@@ -2,6 +2,8 @@ import type en from "../en/common";
 
 // Bahasa Indonesia: common. Must define every key of the English catalog.
 export default {
+  "common.bodyTooLarge":
+    "Permintaan ini terlalu besar. Kirim paling banyak 512 KiB.",
   "common.copy": "Salin",
   "common.filterLimit":
     "Situs ini memiliki lebih dari {limit} path, batas untuk penyaringan path. Hapus filter untuk melihat laporan ini.",

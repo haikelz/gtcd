@@ -142,8 +142,10 @@ step migrates Redis or rolls back a failed rollout.
   defaults it to `DOMAIN`. Requests go through `node:http`, because Node's
   `fetch` drops a custom Host.
 - Native imports accept files up to 8 MiB. The image sets `BODY_SIZE_LIMIT=10M`
-  (adapter-node defaults to 512 KiB); outside the image, set it yourself, and
-  allow the same request size at the reverse proxy.
+  (adapter-node defaults to 512 KiB) for that one route: gtcd answers 413 to
+  any other request over 512 KiB, signed in or not, so the sign-in form cannot
+  be used to fill the pod's memory. Outside the image, set the variable
+  yourself, and allow the same request size at the reverse proxy.
 
 These settings are not wired into every deployment template; check the
 container environment before relying on them.
