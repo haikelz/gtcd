@@ -29,7 +29,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: redis
-          image: redis:7-alpine
+          # Pinned (multi-arch index digest): a re-pull must not change the Redis
+          # that reads the AOF. Bump the tag and digest together.
+          image: redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
           imagePullPolicy: IfNotPresent
           # requirepass, persistence and maxmemory 64mb (noeviction) come from
           # the redis-config Secret created by deploy-k8s.sh. Keep maxmemory

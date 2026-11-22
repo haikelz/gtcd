@@ -88,7 +88,8 @@ spec:
             # A snapshot over the replication protocol: no Redis volume mount,
             # and REDISCLI_AUTH keeps the password off the command line.
             - name: redis
-              image: redis:7-alpine
+              # Same pin as redis.yaml, so redis-cli matches the server.
+              image: redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
               imagePullPolicy: IfNotPresent
               command:
                 ["redis-cli", "-h", "redis", "--rdb", "/backup/redis.rdb"]
