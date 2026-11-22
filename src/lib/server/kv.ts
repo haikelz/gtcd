@@ -96,6 +96,29 @@ export async function setJson(
   );
 }
 
+/**
+ * Overwrite a JSON value that still exists, keeping its expiry. A key that
+ * expired or was deleted meanwhile stays gone.
+ */
+export async function replaceJson(key: string, value: unknown): Promise<void> {
+  const raw = JSON.stringify(value);
+
+  if (await pingRedis()) {
+    try {
+      await getRedis().set(key, raw, "KEEPTTL", "XX");
+      memory.delete(key);
+      return;
+    } catch (cause) {
+      reportRedisFailure(cause);
+    }
+  }
+
+  // Only an outage copy is replaced here; its expiry is the one known.
+  if (readMemory(key) !== undefined) {
+    writeMemory(key, raw, memory.get(key)?.expiresAt);
+  }
+}
+
 export async function deleteKey(key: string): Promise<void> {
   memory.delete(key);
 

@@ -173,6 +173,40 @@ test("test emails are rate limited and hide the SMTP error", async ({
   );
 });
 
+test("the account check keeps the GoatCounter login's expiry", async ({
+  page,
+}) => {
+  const email = `active-${randomUUID()}@native.example`;
+  const redis = new Redis(testRedisUrl());
+  try {
+    await signIn(page, email);
+    const session = (await page.context().cookies()).find(
+      (cookie) => cookie.name === "dashboard_session"
+    );
+    if (!session) throw new Error("Missing gtcd session cookie");
+    const hash = createHash("sha256").update(session.value).digest("hex");
+    const key = `native-session:${hash}`;
+    expect(await redis.ttl(key)).toBeGreaterThan(100);
+
+    // Stand in for a session near its end, and make the next request ask
+    // GoatCounter again instead of waiting five minutes.
+    await redis.expire(key, 100);
+    await redis.del(`session-checked:${hash}`);
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    const checks = await fetch(
+      `${MOCK_URL}/__login-security?email=${encodeURIComponent(email)}`
+    ).then((response) => response.json());
+    expect(checks.prefChecks).toBe(2);
+    const ttl = await redis.ttl(key);
+    expect(ttl).toBeGreaterThan(0);
+    expect(ttl).toBeLessThanOrEqual(100);
+  } finally {
+    await redis.quit();
+  }
+});
+
 test("a Redis outage is logged once, not once per failed request", async () => {
   const vite = await createServer({ server: { middlewareMode: true } });
   const original = console.error;

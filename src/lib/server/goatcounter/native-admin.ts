@@ -9,7 +9,7 @@ import { getApiKey, getBaseUrl } from "./client.js";
 import { parseNativeAdmin } from "./native-admin-html.js";
 import {
   getNativeSession,
-  saveNativeSession,
+  updateNativeSession,
   nativeRequest,
   verifyNativeIdentity,
   NativeAdminError,
@@ -121,7 +121,7 @@ export async function loadNativeAdmin(
     await verifyNativeIdentity(session, vhost);
     return (await readPage(nativePagePath(section, url), session, vhost)).page;
   } finally {
-    await saveNativeSession(cookies, session);
+    await updateNativeSession(cookies, session);
   }
 }
 
@@ -256,7 +256,7 @@ export async function submitNativeAdmin(
     const result = await readPage(current.path, session, vhost, response);
     return { page: result.page, path: result.path };
   } finally {
-    await saveNativeSession(cookies, session);
+    await updateNativeSession(cookies, session);
   }
 }
 
@@ -315,6 +315,6 @@ export async function revealNativeToken(
     }
     throw new NativeAdminError(403, "denied");
   } finally {
-    await saveNativeSession(cookies, session);
+    await updateNativeSession(cookies, session);
   }
 }

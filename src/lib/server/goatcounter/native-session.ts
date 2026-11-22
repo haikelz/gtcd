@@ -4,7 +4,7 @@ import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 import { parse, type DefaultTreeAdapterMap } from "parse5";
 import type { Cookies } from "@sveltejs/kit";
-import { getJson, setJson, deleteKey } from "$lib/server/kv.js";
+import { getJson, setJson, deleteKey, replaceJson } from "$lib/server/kv.js";
 import { getBaseUrl, getVhost } from "./client.js";
 import { getGoatCounterAdminUrl } from "$lib/server/auth/admin.js";
 
@@ -28,13 +28,25 @@ function storageKey(cookies: Cookies): string | null {
     : null;
 }
 
-/** Native credentials never become locals, load data, browser cookies, or logs. */
+/**
+ * Store the GoatCounter login at sign-in, expiring with the 7-day gtcd session.
+ * Native credentials never become locals, load data, browser cookies, or logs.
+ */
 export async function saveNativeSession(
   cookies: Cookies,
   session: NativeSession
 ): Promise<void> {
   const key = storageKey(cookies);
   if (key) await setJson(key, session, 7 * 24 * 60 * 60);
+}
+
+/** Store refreshed cookies without extending the login past the gtcd session. */
+export async function updateNativeSession(
+  cookies: Cookies,
+  session: NativeSession
+): Promise<void> {
+  const key = storageKey(cookies);
+  if (key) await replaceJson(key, session);
 }
 
 export async function getNativeSession(
@@ -263,7 +275,7 @@ export async function isNativeAccountRevoked(
   } catch (cause) {
     return cause instanceof NativeAdminError && cause.code === "reauthenticate";
   } finally {
-    await saveNativeSession(cookies, session);
+    await updateNativeSession(cookies, session);
   }
 }
 
