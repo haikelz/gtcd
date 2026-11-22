@@ -29,7 +29,7 @@
 <ToggleGroupPrimitive.Item
   bind:ref
   class={cn(
-    "shrink-0 group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-2 focus:z-10 focus-visible:z-10 group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:first:rounded-l-full group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:last:rounded-r-full group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l",
+    "shrink-0 group-data-[spacing=0]/toggle-group:rounded-none group-data-[spacing=0]/toggle-group:px-2 focus:z-10 focus-visible:z-10 data-[spacing=0]:focus-visible:ring-2 data-[spacing=0]:focus-visible:ring-background group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:first:rounded-l-full group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:last:rounded-r-full group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:data-[variant=outline]:border-l-0 group-data-[orientation=horizontal]/toggle-group:data-[spacing=0]:data-[variant=outline]:first:border-l",
     toggleVariants({
       size: resolvedSize,
       variant: resolvedVariant,

@@ -1,8 +1,9 @@
 <script lang="ts">
   // Port of the shadcn base-nova CommandDialog (command + dialog recipes) on
   // Bits UI. Deviations: items reach 40px below 1024px for touch, like the
-  // sidebar, and the selected item uses accent, as DropdownMenu items do,
-  // because the reui.io dark popover and muted tokens are the same grey.
+  // sidebar, the selected item uses accent, as DropdownMenu items do,
+  // because the reui.io dark popover and muted tokens are the same grey, and
+  // the input's focus ring is solid --ring (a 50% ring fell below 3:1).
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import { Button } from "$lib/components/ui/button";
@@ -197,7 +198,7 @@
       >
         <div class="p-1 pb-0" data-slot="command-input-wrapper">
           <div
-            class="flex h-8 items-center gap-2 rounded-full border border-input/30 bg-input/30 pl-3 has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50"
+            class="flex h-8 items-center gap-2 rounded-full border border-input/30 bg-input/30 pl-3 has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-1 has-[input:focus-visible]:ring-ring"
           >
             <Search aria-hidden="true" class="size-4 shrink-0 opacity-50" />
             <Command.Input

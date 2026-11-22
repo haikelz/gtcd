@@ -20,6 +20,7 @@
   }: NativeSelectProps = $props();
 </script>
 
+<!-- Deviation (DESIGN.md): focus is the global ring outline in app.css, not base-nova's 50% ring. -->
 <div
   class={cn(
     "group/native-select relative w-fit has-[select:disabled]:opacity-50",
@@ -31,7 +32,7 @@
   <select
     bind:this={ref}
     bind:value
-    class="h-8 w-full min-w-0 appearance-none rounded-full border border-input bg-transparent py-1 pr-9 pl-3.5 text-sm transition-colors outline-none select-none selection:bg-ink selection:text-ink-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-[size=sm]:py-0.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
+    class="h-8 w-full min-w-0 appearance-none rounded-full border border-input bg-transparent py-1 pr-9 pl-3.5 text-sm transition-colors select-none selection:bg-ink selection:text-ink-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-[size=sm]:py-0.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
     data-size={size}
     data-slot="native-select"
     {...restProps}

@@ -82,12 +82,12 @@
 </script>
 
 <li class="border-b border-border last:border-0">
+  <!-- The focus ring sits inside: rows reach the panel edge, which clips. -->
   <svelte:element
     this={href ? "a" : "div"}
     class={cn(
       "group flex min-h-11 items-center justify-between gap-3 rounded-md px-2 py-2.5 no-underline",
-      href &&
-        "transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      href && "transition-colors hover:bg-muted focus-visible:-outline-offset-2"
     )}
     {href}
   >

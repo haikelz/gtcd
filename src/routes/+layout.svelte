@@ -395,7 +395,7 @@
                 <li class="relative">
                   <a
                     aria-current={isActive(item.href) ? "page" : undefined}
-                    class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-full px-3 py-2 text-left text-sm text-muted-foreground ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:font-medium aria-[current=page]:text-sidebar-primary-foreground max-lg:h-10 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate"
+                    class="flex h-8 w-full items-center gap-2 overflow-hidden rounded-full px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-primary aria-[current=page]:font-medium aria-[current=page]:text-sidebar-primary-foreground max-lg:h-10 [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate"
                     href={dashboardHref(resolve(item.href), {
                       view: group.view,
                     })}

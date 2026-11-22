@@ -2,11 +2,12 @@
   import { type VariantProps, tv } from "tailwind-variants";
 
   // Port of ReUI Badge (base-nova). The `focus` variants are omitted because
-  // ReUI documents no `--focus` token to back them.
+  // ReUI documents no `--focus` token to back them; a focusable badge takes
+  // the global ring outline (app.css) like every other control.
   export const badgeVariants = tv({
     base: [
-      "relative inline-flex w-fit shrink-0 items-center justify-center border border-transparent font-medium whitespace-nowrap outline-none transition-shadow",
-      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+      "relative inline-flex w-fit shrink-0 items-center justify-center border border-transparent font-medium whitespace-nowrap transition-shadow",
+      "disabled:pointer-events-none disabled:opacity-50",
       "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-3",
     ],
     variants: {

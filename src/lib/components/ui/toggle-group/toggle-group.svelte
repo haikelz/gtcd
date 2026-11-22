@@ -3,8 +3,11 @@
   import { type VariantProps, tv } from "tailwind-variants";
 
   // Port of shadcn base-nova Toggle variants, shared by ToggleGroupItem.
+  // Deviation (DESIGN.md): focus is the global ring outline in app.css; in
+  // joined groups (spacing 0) the item paints a background gap so the ring
+  // never sits against a neighbour's ink fill.
   export const toggleVariants = tv({
-    base: "group/toggle inline-flex items-center justify-center gap-1 rounded-full text-sm font-medium whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-ink aria-pressed:text-ink-foreground aria-pressed:hover:bg-ink-hover data-[state=on]:bg-ink data-[state=on]:text-ink-foreground data-[state=on]:hover:bg-ink-hover dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+    base: "group/toggle inline-flex items-center justify-center gap-1 rounded-full text-sm font-medium whitespace-nowrap transition-all hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-ink aria-pressed:text-ink-foreground aria-pressed:hover:bg-ink-hover data-[state=on]:bg-ink data-[state=on]:text-ink-foreground data-[state=on]:hover:bg-ink-hover dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
     variants: {
       variant: {
         default: "bg-transparent",

@@ -59,7 +59,7 @@
           class="flex min-h-11 items-center justify-between gap-3 border-b border-border px-2 py-2.5 last:border-0"
         >
           <a
-            class="min-w-0 flex-1 truncate rounded-sm font-mono text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            class="min-w-0 flex-1 truncate rounded-sm font-mono text-sm font-medium underline-offset-4 hover:underline"
             href={dashboardHref(`${resolve("/dashboard")}?site=${row.id}`, {
               view: true,
             })}>{row.name}</a
