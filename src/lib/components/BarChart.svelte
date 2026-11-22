@@ -36,7 +36,9 @@
   {#each items as item, index (index)}
     {@const label = item.name?.trim() || t("charts.unknown")}
     {@const pct = Math.max(0, Math.min((item.count / maxCount) * 100, 100))}
-    {@const share = total > 0 ? ((item.count / total) * 100).toFixed(1) : "0"}
+    {@const shareValue =
+      total > 0 ? Math.round((item.count / total) * 1000) / 10 : 0}
+    {@const share = formatCount(shareValue)}
     {#snippet row()}
       <div class="flex items-center justify-between gap-3 mb-2">
         <span class="text-sm truncate text-foreground" title={label}
@@ -52,7 +54,7 @@
       <!-- The meter reports the share, so fewer-numbers mode exposes no counts. -->
       <div
         role="meter"
-        aria-valuenow={Number(share)}
+        aria-valuenow={shareValue}
         aria-valuemin="0"
         aria-valuemax="100"
         aria-valuetext="{share}%"

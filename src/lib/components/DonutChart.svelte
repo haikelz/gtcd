@@ -32,6 +32,8 @@
       const segment = {
         ...category,
         share,
+        // One decimal with the user's separators, as BarChart shows it.
+        shareLabel: formatCount(Math.round(share * 10) / 10),
         offset,
         color: `var(--chart-${index + 1})`,
       };
@@ -119,7 +121,7 @@
               >{formatCount(segment.count)}</span
             >{/if}
           <span class="w-12 text-right tabular-nums font-medium"
-            >{segment.share.toFixed(1)}%</span
+            >{segment.shareLabel}%</span
           >
         </li>
       {/each}
@@ -136,7 +138,7 @@
         >{#each segments as segment, index (index)}<tr
             ><th scope="row">{segment.name}</th>{#if !numbersHidden()}<td
                 >{formatCount(segment.count)}</td
-              >{/if}<td>{segment.share.toFixed(1)}%</td></tr
+              >{/if}<td>{segment.shareLabel}%</td></tr
           >{/each}</tbody
       >
     </table>

@@ -23,13 +23,7 @@
     NativeSelectOption,
   } from "$lib/components/ui/native-select";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import {
-    dashboardHref,
-    displayPreferences,
-    formatCount,
-    numbersHidden,
-    t,
-  } from "$lib/display";
+  import { dashboardHref, formatCount, numbersHidden, t } from "$lib/display";
   import { GOAL_NAME_MAX_LENGTH, GOAL_PATH_MAX_LENGTH } from "$lib/goals";
   import { Target } from "@lucide/svelte";
   import type { SubmitFunction } from "@sveltejs/kit";
@@ -38,10 +32,9 @@
   let { data, form } = $props();
   let manageHeading = $state<HTMLElement | null>(null);
 
+  /** One decimal, with the user's separators. */
   function percent(value: number): string {
-    return new Intl.NumberFormat(displayPreferences().locale, {
-      maximumFractionDigits: 1,
-    }).format(value);
+    return formatCount(Math.round(value * 10) / 10);
   }
 
   // The deleted goal takes its button along; the heading keeps focus in

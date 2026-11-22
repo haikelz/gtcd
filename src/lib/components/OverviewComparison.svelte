@@ -7,12 +7,7 @@
     FramePanel,
   } from "$lib/components/ui/frame";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import {
-    displayPreferences,
-    formatCount,
-    numbersHidden,
-    t,
-  } from "$lib/display";
+  import { formatCount, numbersHidden, t } from "$lib/display";
   import {
     compareCount,
     compareLeader,
@@ -61,11 +56,11 @@
     return request.catch(() => null);
   }
 
+  /** One decimal with the user's separators; `signed` marks gains with +. */
   function decimal(value: number, signed = false): string {
-    return new Intl.NumberFormat(displayPreferences().locale, {
-      maximumFractionDigits: 1,
-      signDisplay: signed ? "exceptZero" : "auto",
-    }).format(value);
+    const rounded = Math.round(value * 10) / 10;
+
+    return `${signed && rounded > 0 ? "+" : ""}${formatCount(rounded)}`;
   }
 </script>
 
