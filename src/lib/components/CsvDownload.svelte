@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { statName } from "$lib/components/BarChart.svelte";
   import { displayPreferences, numbersHidden, t } from "$lib/display";
   import type { CsvCell, CsvRow } from "$lib/csv";
   import type { HitList, HitStat } from "$lib/types";
@@ -31,7 +32,7 @@
     return [
       header,
       ...stats.map((stat) => {
-        const name = stat.name?.trim() || t("charts.unknown");
+        const name = statName(stat.name);
         const share = sharePercent(stat.count, total);
 
         return counts ? [name, stat.count, share] : [name, share];

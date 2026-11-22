@@ -1,6 +1,19 @@
+<script lang="ts" module>
+  import { formatCount, numbersHidden, t } from "$lib/display";
+
+  /**
+   * A row name for display. The service layer sends missing names as the
+   * literal "Unknown" (AGENTS.md §3); the interface translates it.
+   */
+  export function statName(name: string | null | undefined): string {
+    const trimmed = name?.trim();
+
+    return !trimmed || trimmed === "Unknown" ? t("charts.unknown") : trimmed;
+  }
+</script>
+
 <script lang="ts">
   import type { HitStat } from "$lib/types";
-  import { formatCount, numbersHidden, t } from "$lib/display";
 
   let {
     data,
@@ -34,7 +47,7 @@
 </div>
 <ul class="list-none p-0 m-0" aria-label={t("charts.breakdownChart")}>
   {#each items as item, index (index)}
-    {@const label = item.name?.trim() || t("charts.unknown")}
+    {@const label = statName(item.name)}
     {@const pct = Math.max(0, Math.min((item.count / maxCount) * 100, 100))}
     {@const shareValue =
       total > 0 ? Math.round((item.count / total) * 1000) / 10 : 0}

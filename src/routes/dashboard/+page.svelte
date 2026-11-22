@@ -3,7 +3,7 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import AreaChart from "$lib/components/AreaChart.svelte";
-  import BarChart from "$lib/components/BarChart.svelte";
+  import BarChart, { statName } from "$lib/components/BarChart.svelte";
   import DashboardToolbar from "$lib/components/DashboardToolbar.svelte";
   import DonutChart from "$lib/components/DonutChart.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -404,7 +404,7 @@
             : t("overview.kpiVisitCount", {
                 count: formatCount(browsers.stats[0].count),
               })}
-        value={browsers?.stats?.[0]?.name?.trim() || "—"}
+        value={browsers?.stats?.[0] ? statName(browsers.stats[0].name) : "—"}
       />
     {:catch}
       {@render failedStat(Globe, t("overview.kpiTopBrowser"))}
@@ -423,7 +423,7 @@
             : t("overview.kpiVisitCount", {
                 count: formatCount(locations.stats[0].count),
               })}
-        value={locations?.stats?.[0]?.name?.trim() || "—"}
+        value={locations?.stats?.[0] ? statName(locations.stats[0].name) : "—"}
       />
     {:catch}
       {@render failedStat(MapPin, t("overview.kpiTopCountry"))}

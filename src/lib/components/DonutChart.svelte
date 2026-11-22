@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { statName } from "$lib/components/BarChart.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
   import { formatCount, numbersHidden, t } from "$lib/display";
   import type { HitStat } from "$lib/types";
@@ -15,7 +16,9 @@
     const ranked = [...data]
       .filter((category) => category.count > 0)
       .sort((a, b) => b.count - a.count);
-    const visible = ranked.slice(0, 4);
+    const visible = ranked
+      .slice(0, 4)
+      .map((category) => ({ ...category, name: statName(category.name) }));
     const remaining = ranked
       .slice(4)
       .reduce((sum, category) => sum + category.count, 0);

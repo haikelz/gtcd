@@ -7,6 +7,7 @@
     FramePanel,
   } from "$lib/components/ui/frame";
   import { Skeleton } from "$lib/components/ui/skeleton";
+  import { statName } from "$lib/components/BarChart.svelte";
   import { formatCount, numbersHidden, t } from "$lib/display";
   import {
     compareCount,
@@ -155,7 +156,7 @@
     <dt class="text-xs text-muted-foreground">{label}</dt>
     <dd class="mt-1 text-sm tabular-nums">
       {#if leader}
-        <span class="font-medium break-words">{leader.name}</span>
+        <span class="font-medium break-words">{statName(leader.name)}</span>
         <span class="block text-xs text-muted-foreground"
           >{t("overview.shareShift", {
             shift: decimal(leader.shift, true),

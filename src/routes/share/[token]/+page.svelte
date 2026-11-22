@@ -1,6 +1,6 @@
 <script lang="ts">
   import AreaChart from "$lib/components/AreaChart.svelte";
-  import BarChart from "$lib/components/BarChart.svelte";
+  import BarChart, { statName } from "$lib/components/BarChart.svelte";
   import Brand from "$lib/components/Brand.svelte";
   import DonutChart from "$lib/components/DonutChart.svelte";
   import EmptyState from "$lib/components/EmptyState.svelte";
@@ -112,7 +112,7 @@
           icon={Link2}
           label={t("share.topReferrer")}
           subtext={t("share.mostVisits")}
-          value={referrers?.stats[0]?.name?.trim() || "—"}
+          value={referrers?.stats[0] ? statName(referrers.stats[0].name) : "—"}
         />
       {/await}
     {/if}
@@ -125,7 +125,7 @@
           icon={MapPin}
           label={t("share.topCountry")}
           subtext={t("share.mostVisits")}
-          value={locations?.stats[0]?.name?.trim() || "—"}
+          value={locations?.stats[0] ? statName(locations.stats[0].name) : "—"}
         />
       {/await}
     {/if}
