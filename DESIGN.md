@@ -52,7 +52,8 @@ working. Light values are the landing page's; dark values are shared with it.
 - Primary is a deep-orange fill with white text, for the main action on a
   screen and checked controls; never data, never small text (3.9:1 on the dark
   canvas). Orange text is the badge `primary-light` variant only, in
-  `--primary-active` light and `--chart-1` dark.
+  `--primary-active` light and `--chart-1` dark; the dark tint stays at 10%
+  so that text clears 4.5:1 on cards.
 - Ink is a fill for the brand mark and selected states (active sidebar item,
   pressed toggle). It inverts in dark. Never decoration.
 - ReUI extended tokens: `--success`, `--info`, `--warning`, `--invert` and
@@ -62,7 +63,13 @@ working. Light values are the landing page's; dark values are shared with it.
   lightened so every series clears 3:1 on dark panels.
 - Radius scale is the landing page's: xs 4, sm 6, md 10, lg 14, xl 20, 2xl 28.
   Frames are 20px; menus and textareas 14px; every control is a pill.
-- Focus is a 2px `--ring` outline, offset 2px.
+- Focus is a 2px `--ring` outline, offset 2px, from the global
+  `:focus-visible` rule in `src/app.css`. The offset gap shows the surface,
+  so the ring clears 3:1 against both the surface and the control's own fill
+  (the orange primary, the ink pressed toggle). Recipes never replace it with
+  a translucent ring. Joined toggle groups (`spacing={0}`) paint a 2px
+  background gap under it so a neighbour's ink fill never touches the ring;
+  rows that run to a clipping panel edge (`PageRow`) draw it inset.
 - Shadows: only the primary button lifts (`--shadow-primary`, light only).
   Frames, panels, chips and toggles are flat with hairline borders.
 
@@ -87,9 +94,13 @@ sections (ReUI uses a div), to keep reports in the document outline.
 Badge omits ReUI's `focus` variants because
 ReUI documents no `--focus` token. For the landing page's shapes, Button,
 Input, NativeSelect, ToggleGroup and Badge are pills (`rounded-full`, wider
-horizontal padding); Button's default variant uses the primary hover/active
+horizontal padding); Badge leaves its `radius` prop unset so the `full`
+default applies. Button's default variant uses the primary hover/active
 steps and lift; ToggleGroup's pressed state is an ink fill; Frame's surround is
-`--field` and FramePanel casts no shadow. Each recipe carries a comment.
+`--field` and FramePanel casts no shadow. Button, Input, Textarea,
+NativeSelect, Checkbox, RadioGroup, Switch, ToggleGroup and Badge drop
+base-nova's `focus-visible:ring-ring/50` for the global focus outline. Each
+recipe carries a comment.
 
 ## Frame composition
 
@@ -141,7 +152,11 @@ distinctions, baseline limitations and delivery consequences when shortening.
 - `AreaChart`, `DonutChart`, `BarChart`, `SparkLine`: chart tokens, SVG
   title/desc and sr-only tables. DonutChart caps at five segments to stay
   within the palette. AreaChart marks dated notes with neutral markers and
-  names them in its data table.
+  names them in its data table, which lists shares of the peak in
+  fewer-numbers mode. BarChart rows with a detail page are links (they open
+  in a new tab) that carry the row's display name as `?name=` for the
+  detail heading. Rows named "Unknown" by the service layer display
+  `charts.unknown` (`statName`).
 - `HourHeatmap`: weekday × hour grid on a stepped `--chart-1` scale with a
   legend; rows start on the user's GoatCounter week start. Dark mode starts
   the scale at 40% because chart orange at 25% sits at 1.2:1 against dark `muted`. The image
@@ -161,9 +176,14 @@ distinctions, baseline limitations and delivery consequences when shortening.
 - `/dashboard/customize`: saved views and overview widget order; the overview
   lays widgets on a 12-column dense grid where wide widgets span 8 and narrow
   ones 4, so any order tiles into full rows.
-- Dates, hours and counts go through `$lib/preferences` / `$lib/display`
-  (`formatCount`) so they follow the user's GoatCounter settings; never call
-  `toLocaleString()` for report numbers.
+- Dates, hours, counts and percentages go through `$lib/preferences` /
+  `$lib/display` (`formatCount`, after rounding shares to one decimal) so they
+  follow the user's GoatCounter separators, date format and timezone; never
+  call `toLocaleString()`, `toFixed()` or `Intl.NumberFormat` for displayed
+  numbers.
+- A control that removes itself on success (delete, revoke, clear filter)
+  hands focus to its list's heading (`tabindex="-1"`), the add form's first
+  field or the related input.
 - `ThemeToggle`: DropdownMenu radio items; persists light, dark or system.
 - `ToastStack`: Alert on an opaque popover surface with a semantic icon color.
 - `CsvDownload`: outline Button in a report's FrameHeader; saves the rows on
@@ -172,7 +192,8 @@ distinctions, baseline limitations and delivery consequences when shortening.
   Mac and Ctrl+K elsewhere, text fields included, or by the header button;
   Ctrl+K keeps its text-editing meaning on a Mac. Destinations come from the
   sidebar groups. Selected items use `accent`, because the dark popover and
-  `muted` share one grey.
+  `muted` share one grey. The sidebar toggle follows the same platform rule
+  with Cmd+B / Ctrl+B, inside the signed-in dashboard shell only.
 - `CampaignLinkBuilder`: Frame disclosed from the Campaigns header; ends in a
   `CopyField`.
 
@@ -182,7 +203,10 @@ distinctions, baseline limitations and delivery consequences when shortening.
   success feedback must follow a durable write, not a memory-only fallback.
 - Sharing distinguishes GTCD audience links from GoatCounter site visibility.
   Explain expiry, allowed metrics, fixed ranges and revocation without promising
-  that a non-expiring link survives lost Redis state.
+  that a non-expiring link survives lost Redis state. Replacing, rotating or
+  revoking a live link asks for confirmation first and toasts the result;
+  a failure shows in the card that sent it, with Retry only when storage is
+  unavailable (503).
 - Diagnostics is admin-only. Dependency observations carry timestamps and
   process-local counters are not cluster-wide totals.
 - Native administration renders allowlisted form models, not upstream HTML.
