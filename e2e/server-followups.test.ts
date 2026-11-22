@@ -221,6 +221,47 @@ test("a path's own row names it even when the filter excludes it", async ({
   );
 });
 
+test("email reports translate rows GoatCounter could not attribute", async () => {
+  const settings = {
+    GOATCOUNTER_API_KEY: "e2e",
+    GOATCOUNTER_URL: MOCK_URL,
+    REDIS_URL: testRedisUrl(),
+  };
+  const previous = Object.fromEntries(
+    Object.keys(settings).map((key) => [key, process.env[key]])
+  );
+  Object.assign(process.env, settings);
+  const vite = await createServer({ server: { middlewareMode: true } });
+  try {
+    const reports = await vite.ssrLoadModule(
+      "/src/lib/server/email-reports.ts"
+    );
+    const periods = await vite.ssrLoadModule("/src/lib/report-period.ts");
+
+    // The mock's referrers include direct visits, which have no name.
+    const report = await reports.buildReport(
+      "weekly",
+      periods.latestCompletedPeriod("weekly", new Date()),
+      { cname: "demo.example", code: "demo", id: 1 },
+      {},
+      "id"
+    );
+
+    expect(report.text).toContain("Tidak diketahui");
+    expect(report.text).not.toContain("Unknown");
+  } finally {
+    const sessions = await vite.ssrLoadModule(
+      "/src/lib/server/auth/session-store.ts"
+    );
+    sessions.getRedis().disconnect();
+    await vite.close();
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 test("a Redis outage is logged once, not once per failed request", async () => {
   const vite = await createServer({ server: { middlewareMode: true } });
   const original = console.error;

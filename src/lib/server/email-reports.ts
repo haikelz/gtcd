@@ -26,7 +26,11 @@ import { lastLoginKey } from "$lib/server/auth/session.js";
 import { getDashboardLayout } from "$lib/server/dashboard-layout-store.js";
 import { getSites } from "$lib/server/goatcounter/admin.js";
 import { getVhost } from "$lib/server/goatcounter/client.js";
-import { getMe, getTotal } from "$lib/server/goatcounter/stats.js";
+import {
+  getMe,
+  getTotal,
+  UNKNOWN_NAME,
+} from "$lib/server/goatcounter/stats.js";
 import type { Site } from "$lib/server/goatcounter/types.js";
 import {
   acquireDeliveryLease,
@@ -396,14 +400,14 @@ export async function buildReport(
     {
       rows: (referrers?.stats ?? []).map((stat) => ({
         count: stat.count,
-        name: stat.name?.trim() || unknownName,
+        name: stat.name === UNKNOWN_NAME ? unknownName : stat.name,
       })),
       title: tr("email.topReferrers"),
     },
     {
       rows: (locations?.stats ?? []).map((stat) => ({
         count: stat.count,
-        name: stat.name?.trim() || unknownName,
+        name: stat.name === UNKNOWN_NAME ? unknownName : stat.name,
       })),
       title: tr("email.topCountries"),
     },

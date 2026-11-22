@@ -15,9 +15,12 @@ import type {
   StatsResponse,
 } from "./types.js";
 
+/** The name given to rows GoatCounter could not attribute. */
+export const UNKNOWN_NAME = "Unknown";
+
 function normalizeName(name: string | null | undefined): string {
   if (!name || name.trim() === "") {
-    return "Unknown";
+    return UNKNOWN_NAME;
   }
   return name.trim();
 }
@@ -27,7 +30,7 @@ const SIZE_CATEGORY_NAMES: Readonly<Record<string, string>> = {
   tablet: "Tablets and large phones",
   desktop: "Computer monitors",
   desktophd: "Computer monitors larger than HD",
-  unknown: "Unknown",
+  unknown: UNKNOWN_NAME,
 };
 
 function normalizeStatName(
@@ -36,7 +39,7 @@ function normalizeStatName(
   name: string | null | undefined
 ): string {
   if (page === "sizes" && (!name || name.trim() === "")) {
-    return SIZE_CATEGORY_NAMES[id] ?? "Unknown";
+    return SIZE_CATEGORY_NAMES[id] ?? UNKNOWN_NAME;
   }
 
   return normalizeName(name);
