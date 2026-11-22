@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
   import BarChart from "$lib/components/BarChart.svelte";
@@ -33,11 +32,13 @@
     return query ? `${page.url.pathname}?${query}` : page.url.pathname;
   }
 
-  function handleDetail(id: string) {
-    goto(
-      resolve(
-        `/dashboard/reports/sizes/${encodeURIComponent(id)}?${page.url.searchParams}`
-      )
+  // The row's name rides along so the detail page can title itself.
+  function detailHref(id: string, name: string): string {
+    const params = new SvelteURLSearchParams(page.url.searchParams);
+    params.set("name", name);
+
+    return resolve(
+      `/dashboard/reports/sizes/${encodeURIComponent(id)}?${params}`
     );
   }
 </script>
@@ -84,7 +85,7 @@
           data={report.stats}
           label={t("reports.screenSizeLabel")}
           maxItems={50}
-          onItemClick={handleDetail}
+          itemHref={detailHref}
           tone="chart-2"
         />
         <ReportPagination

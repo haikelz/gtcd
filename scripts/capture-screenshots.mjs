@@ -421,7 +421,7 @@ async function capture() {
   await page.goto(`${base}/dashboard/browsers?${week}`);
   await settle(page);
   await page
-    .getByRole("button", { name: /^Explore Chrome:/ })
+    .getByRole("link", { name: /^Explore Chrome:/ })
     .first()
     .click();
   await page.waitForURL(/\/dashboard\/reports\//);

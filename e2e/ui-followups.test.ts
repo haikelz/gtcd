@@ -282,6 +282,33 @@ test("clearing the path filter returns focus to the filter input", async ({
   await expect(page.locator("#filter-paths")).toBeFocused();
 });
 
+test("drill-down rows are links that carry the row name to the detail heading", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto(`/dashboard/browsers?site=1&${PERIOD}`);
+  const chrome = page
+    .getByRole("list", { name: "Breakdown chart" })
+    .getByRole("link", { name: /^Explore Chrome:/ });
+  const href = await chrome.getAttribute("href");
+  expect(href).toMatch(/^\/dashboard\/reports\/browsers\/1\?/);
+  expect(new URL(href ?? "", page.url()).searchParams.get("name")).toBe(
+    "Chrome"
+  );
+
+  await chrome.click();
+  await expect(page).toHaveURL(/\/dashboard\/reports\/browsers\/1\?/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Chrome");
+
+  // Without a name the id stays the fallback; markup in it stays text.
+  await page.goto(
+    `/dashboard/reports/browsers/1?site=1&name=%3Cb%3Ex%3C%2Fb%3E`
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("<b>x</b>");
+  await page.goto("/dashboard/reports/browsers/1?site=1");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("1");
+});
+
 test("Indonesian names the unknown row, and fewer numbers keeps the traffic table as shares", async ({
   page,
 }) => {

@@ -74,12 +74,12 @@ test("referrers merge GoatCounter's per-scheme rows and leave direct visits unli
   // The mock splits google.com into plain (600) and campaign (380) rows.
   await expect(chart.getByText("google.com", { exact: true })).toHaveCount(1);
   await expect(
-    chart.getByRole("button", { name: /^Explore google\.com: 980 visits/ })
+    chart.getByRole("link", { name: /^Explore google\.com: 980 visits/ })
   ).toBeVisible();
   // Direct visits come without an id, so there is no detail page to open.
   await expect(chart.getByText("Unknown", { exact: true })).toBeVisible();
   await expect(
-    chart.getByRole("button", { name: /^Explore Unknown/ })
+    chart.getByRole("link", { name: /^Explore Unknown/ })
   ).toHaveCount(0);
 });
 

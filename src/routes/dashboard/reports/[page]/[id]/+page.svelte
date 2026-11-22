@@ -45,7 +45,7 @@
 
 <PageHeader
   description={t("reports.detailDescription", { label })}
-  title={data.detailId}
+  title={data.detailName ?? data.detailId}
 >
   {#snippet eyebrow()}
     <a

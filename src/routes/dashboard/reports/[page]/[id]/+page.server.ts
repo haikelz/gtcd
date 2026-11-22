@@ -11,6 +11,8 @@ import {
   streamReport,
 } from "$lib/server/goatcounter/stats.js";
 
+const NAME_MAX_LENGTH = 200;
+
 const REPORTS = {
   browsers: {
     labelKey: "reports.detailBrowsers",
@@ -80,5 +82,26 @@ export async function load({ locals, params, url, parent }) {
     "reports.detailLoadFailed"
   );
 
-  return { detail, detailId: params.id, offset, range, report };
+  return {
+    detail,
+    detailId: params.id,
+    detailName: detailName(url.searchParams.get("name")),
+    offset,
+    range,
+    report,
+  };
+}
+
+/**
+ * The display name the report list links with (`?name=`), so the heading
+ * reads "Mobile" rather than the id "phone". Untrusted input: control
+ * characters go and the length is capped; Svelte escapes the rest.
+ */
+function detailName(value: string | null): string | null {
+  const name = value
+    ?.replace(/\p{Cc}/gu, "")
+    .trim()
+    .slice(0, NAME_MAX_LENGTH);
+
+  return name || null;
 }

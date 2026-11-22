@@ -20,13 +20,14 @@
     maxItems = 15,
     label = t("charts.defaultBreakdownLabel"),
     tone = "chart-1",
-    onItemClick,
+    itemHref,
   }: {
     data: HitStat[];
     maxItems?: number;
     label?: string;
     tone?: "chart-1" | "chart-2" | "chart-3" | "chart-4" | "chart-5";
-    onItemClick?: (id: string, name: string) => void;
+    /** The row's detail page, rendered as a link so it can open in a tab. */
+    itemHref?: (id: string, name: string) => string;
   } = $props();
 
   const items = $derived(data.slice(0, maxItems));
@@ -89,11 +90,10 @@
     {/snippet}
     <li class="border-b border-border last:border-0">
       <!-- Rows GoatCounter sends without an id, such as direct visits, have no detail page. -->
-      {#if onItemClick && item.id}
-        <button
-          type="button"
-          class="w-full min-w-0 cursor-pointer text-left px-1.5 py-3 rounded-lg hover:bg-muted transition-colors"
-          onclick={() => onItemClick(item.id, label)}
+      {#if itemHref && item.id}
+        <a
+          class="block w-full min-w-0 px-1.5 py-3 rounded-lg hover:bg-muted transition-colors"
+          href={itemHref(item.id, label)}
           aria-label={numbersHidden()
             ? t("charts.exploreItemHidden", { label, share })
             : t("charts.exploreItem", {
@@ -102,8 +102,9 @@
                 share,
               })}
         >
-          {@render row()}
-        </button>
+          <!-- The link's name already carries the row. -->
+          <div aria-hidden="true">{@render row()}</div>
+        </a>
       {:else}
         <div class="min-w-0 px-1.5 py-3">{@render row()}</div>
       {/if}
