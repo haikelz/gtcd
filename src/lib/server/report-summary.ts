@@ -12,7 +12,6 @@ export function orNull<T>(request: Promise<T> | null): Promise<T | null> {
 }
 
 export type ReportSummaryRequests = {
-  readonly browsers: Promise<StatsResponse | null>;
   readonly hits: Promise<HitsResponse | null>;
   readonly locations: Promise<StatsResponse | null>;
   readonly referrers: Promise<StatsResponse | null>;
@@ -20,8 +19,8 @@ export type ReportSummaryRequests = {
 };
 
 /**
- * Start the requests behind a read-only summary (public dashboard, email
- * reports). Returns unawaited promises so pages can stream them.
+ * Start the requests behind an email report's summary. Returns unawaited
+ * promises so callers can start other requests alongside.
  */
 export function loadReportSummary(
   range: { readonly end: string; readonly start: string },
@@ -31,9 +30,6 @@ export function loadReportSummary(
   const { end, start } = range;
 
   return {
-    browsers: orNull(
-      stats.getStats("browsers", start, end, 15, undefined, undefined, options)
-    ),
     hits: orNull(
       stats.getHits(start, end, limit, undefined, undefined, undefined, options)
     ),
