@@ -98,14 +98,11 @@ if [ ${#GC_PASS} -lt 8 ]; then
   exit 1
 fi
 
-# ─── Generate SESSION_SECRET if empty ─────────────────────────────────────────
-
 source "$ENV_FILE" 2>/dev/null || true
 
 # ─── For local development, use stats.localhost as GoatCounter vhost ──────────
 
 # GoatCounter requires a domain with 2+ labels. For localhost, we use stats.localhost.
-# Caddy will route all traffic to gtcd anyway, so GoatCounter's vhost doesn't matter.
 if [ "$GC_DOMAIN" = "localhost" ]; then
   GC_VHOST="stats.localhost"
 else
@@ -287,7 +284,6 @@ API_KEY=$(fetch_api_token)
 if [ -n "$API_KEY" ]; then
   ok "Using existing API token"
 else
-  # Create new API token with all permissions
   docker compose exec -T goatcounter goatcounter db create apitoken \
     -name "gtcd-dashboard" \
     -user "$USER_ID" \

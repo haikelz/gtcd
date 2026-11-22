@@ -3,7 +3,7 @@
 // drains in-flight requests and emits "sveltekit:shutdown"; hooks.server.ts
 // then stops the report scheduler, waits for a run in progress, closes Redis
 // and exits 0. The timer below is only the backstop for a stuck shutdown and
-// must stay under terminationGracePeriodSeconds (30s in k8s/gtcd/deployment.yaml).
+// must stay under terminationGracePeriodSeconds (35s in k8s/gtcd/deployment.yaml).
 const HARD_TIMEOUT_MS = 25_000;
 
 // adapter-node force-closes connections still open after this many seconds,
