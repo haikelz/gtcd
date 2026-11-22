@@ -1,0 +1,30 @@
+# Redis holds sessions, share grants and durable settings behind only a
+# password; let only gtcd and the backup job reach it. The kubelet's probes
+# come from the node, which a NetworkPolicy always allows.
+#
+# ponytail: GoatCounter and gtcd stay open to the cluster; restricting them
+# needs the ingress controller's namespace and labels (Traefik on k3s runs in
+# kube-system), which differ per cluster. Add those policies per cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: gtcd
+        - podSelector:
+            matchLabels:
+              app: gtcd-backup
+      ports:
+        - port: 6379
+          protocol: TCP

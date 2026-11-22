@@ -152,7 +152,7 @@ fi
 export REDIS_CONFIG_SHA
 
 # Apply in dependency order.
-apply_order=(services goatcounter redis deployment ingress)
+apply_order=(services goatcounter redis networkpolicy deployment ingress)
 for resource in "${apply_order[@]}"; do
   file="$APP_DIR/${resource}.yaml"
   [[ -f "$file" ]] && render_apply "$file"
