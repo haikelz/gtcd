@@ -45,6 +45,8 @@
   let sidebarOpen = $state(false);
   let desktopSidebarOpen = $state(true);
   let wideViewport = $state(false);
+  // Read in the browser only, as in CommandPalette.
+  let isMac = $state(false);
   let sidebarElement: HTMLElement | undefined = $state();
   let toggleElement: HTMLElement | null = $state(null);
   const navigationOpen = $derived(
@@ -246,8 +248,12 @@
     if (event.key === "Escape" && sidebarOpen) {
       dismissSidebar();
     } else if (
-      (event.metaKey || event.ctrlKey) &&
-      event.key.toLowerCase() === "b"
+      // Like Cmd+K: a Mac takes only Cmd+B, so Ctrl+B keeps its text-editing
+      // meaning there, and only the dashboard shell has a sidebar to toggle.
+      (isMac ? event.metaKey : event.ctrlKey) &&
+      event.key.toLowerCase() === "b" &&
+      isDashboard &&
+      data.authenticated
     ) {
       event.preventDefault();
       toggleSidebar();
@@ -280,6 +286,7 @@
   });
 
   onMount(() => {
+    isMac = /Mac|iPhone|iPad/.test(navigator.userAgent);
     desktopSidebarOpen =
       localStorage.getItem("gtcd_desktop_sidebar") !== "false";
     const media = window.matchMedia("(min-width: 1024px)");
@@ -437,6 +444,7 @@
           bind:ref={toggleElement}
           aria-controls="sidebar-nav"
           aria-expanded={navigationOpen}
+          aria-keyshortcuts={isMac ? "Meta+B" : "Control+B"}
           aria-label={navigationOpen
             ? t("shell.closeSidebar")
             : t("shell.openSidebar")}

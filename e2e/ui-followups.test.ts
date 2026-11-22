@@ -345,3 +345,33 @@ test("Indonesian names the unknown row, and fewer numbers keeps the traffic tabl
     });
   }
 });
+
+test("the sidebar shortcut follows the platform and stays in the dashboard", async ({
+  page,
+}) => {
+  // Below 1024px the shortcut would open the drawer and lock page scroll.
+  await page.setViewportSize({ width: 800, height: 900 });
+  await page.goto("/login");
+  for (const chord of ["Control+b", "Meta+b"]) {
+    await page.keyboard.press(chord);
+    expect(await page.evaluate(() => document.body.style.overflow)).not.toBe(
+      "hidden"
+    );
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signIn(page);
+  const isMac = await page.evaluate(() =>
+    /Mac|iPhone|iPad/.test(navigator.userAgent)
+  );
+  const toggle = page.locator('[aria-controls="sidebar-nav"]');
+  await expect(toggle).toHaveAttribute(
+    "aria-keyshortcuts",
+    isMac ? "Meta+B" : "Control+B"
+  );
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press(isMac ? "Control+b" : "Meta+b");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press(isMac ? "Meta+b" : "Control+b");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
