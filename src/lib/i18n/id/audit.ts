@@ -4,7 +4,7 @@ import type en from "../en/audit";
 export default {
   "audit.title": "Log audit",
   "audit.description":
-    "Tindakan administrator di gtcd, terbaru lebih dulu. gtcd menyimpan 90 hari, hingga 2.000 entri.",
+    "Proses masuk, keluar dan tindakan administrator di gtcd, terbaru lebih dulu. gtcd menyimpan 90 hari, hingga 2.000 entri.",
   "audit.entries": "Tindakan",
   "audit.pageOf": "Halaman {page} dari {pages}",
   "audit.caption": "Tindakan administrator; waktu dalam {timezone}",
@@ -18,10 +18,12 @@ export default {
   "audit.failure": "Gagal",
   "audit.empty": "Belum ada tindakan tercatat",
   "audit.emptyDescription":
-    "Perubahan situs, berbagi, ekspor, notifikasi, laporan dan administrasi bawaan muncul di sini.",
+    "Proses masuk, keluar serta perubahan situs, berbagi, ekspor, notifikasi, laporan dan administrasi bawaan muncul di sini.",
   "audit.unavailableTitle": "Log audit tidak tersedia",
   "audit.unavailable":
     "Penyimpanan tidak tersedia, jadi log audit tidak dapat dibaca. Coba lagi sebentar lagi.",
+  "audit.actionAuthLogin": "Masuk",
+  "audit.actionAuthLogout": "Keluar",
   "audit.actionChannelAdd": "Menambah kanal notifikasi",
   "audit.actionChannelDelete": "Menghapus kanal notifikasi",
   "audit.actionExportCreate": "Memulai ekspor",

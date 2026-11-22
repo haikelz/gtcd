@@ -1,4 +1,5 @@
 import { translate } from "$lib/i18n";
+import { recordAudit } from "$lib/server/audit-log.js";
 import { destroyDashboardSession } from "$lib/server/auth/session.js";
 import { logoutNativeSession } from "$lib/server/goatcounter/native-session.js";
 import { error, redirect } from "@sveltejs/kit";
@@ -10,6 +11,16 @@ export const POST: RequestHandler = async ({ cookies, locals }) => {
   // The session may still be valid server-side; say so and let the user retry.
   if (!(await destroyDashboardSession(cookies))) {
     throw error(503, translate(locals.locale, "auth.signOutFailed"));
+  }
+
+  if (locals.user) {
+    await recordAudit({
+      action: "auth.logout",
+      actor: locals.user.email,
+      outcome: "success",
+      site: null,
+      target: "",
+    });
   }
 
   throw redirect(302, "/login");

@@ -221,6 +221,48 @@ test("a path's own row names it even when the filter excludes it", async ({
   );
 });
 
+test("sign-ins and sign-outs are audited", async ({ page }) => {
+  const email = `audited-${randomUUID()}@example.invalid`;
+  const since = Date.now();
+  const redis = new Redis(testRedisUrl());
+  try {
+    await signIn(page, email);
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await expect(page).toHaveURL(/\/login$/);
+
+    expect(await auditEntries(redis, email, since)).toEqual([
+      expect.objectContaining({
+        action: "auth.login",
+        outcome: "success",
+        site: null,
+        target: "password",
+      }),
+      expect.objectContaining({ action: "auth.logout", outcome: "success" }),
+    ]);
+
+    // A wrong password leaves no entry.
+    const stranger = `stranger-${randomUUID()}@example.invalid`;
+    await page.getByLabel("Email").fill(stranger);
+    await page.getByLabel("Password", { exact: true }).fill("wrong");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page.getByText("Invalid email or password")).toBeVisible();
+    expect(await auditEntries(redis, stranger, since)).toEqual([]);
+
+    // The second factor is a sign-in of its own kind.
+    await page.getByLabel("Email").fill("mfa@example.com");
+    await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.getByLabel("Authentication code").fill("123456");
+    await page.getByRole("button", { name: "Verify" }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    expect(await auditEntries(redis, "mfa@example.com", since)).toContainEqual(
+      expect.objectContaining({ action: "auth.login", target: "totp" })
+    );
+  } finally {
+    await redis.quit();
+  }
+});
+
 test("email reports translate rows GoatCounter could not attribute", async () => {
   const settings = {
     GOATCOUNTER_API_KEY: "e2e",

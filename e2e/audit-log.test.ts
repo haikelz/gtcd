@@ -134,7 +134,9 @@ test("a viewer's Preferences stay out of the audit log; Security changes do not"
 
     const entries = (await redis.zrangebyscore("audit-log", since, "+inf"))
       .map((member) => JSON.parse(member))
-      .filter((entry) => entry.actor === email);
+      .filter(
+        (entry) => entry.actor === email && entry.action.startsWith("native.")
+      );
     expect(entries).toEqual([
       expect.objectContaining({
         action: "native.submit",
@@ -249,7 +251,9 @@ test("audit recording is bounded and never fails the action when Redis is down",
       await redis.zcount("audit-log", "-inf", originalNow() - 90 * DAY_MS)
     ).toBe(0);
     const kept = await redis.zrangebyscore("audit-log", base, base + 2_005);
-    expect(kept.length).toBeGreaterThan(1_900);
+    // Sign-ins and actions from parallel tests displace the oldest entries.
+    const newer = await redis.zcount("audit-log", `(${base + 2_005}`, "+inf");
+    expect(kept.length + newer).toBeGreaterThan(1_900);
     const oldest = JSON.parse(kept[0]);
     expect(oldest.target).toMatch(/^entry \d+ with a newline$/);
     expect(Number(oldest.target.split(" ")[1])).toBeGreaterThanOrEqual(5);

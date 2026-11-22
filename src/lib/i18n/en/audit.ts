@@ -2,7 +2,7 @@
 export default {
   "audit.title": "Audit log",
   "audit.description":
-    "Administrator actions in gtcd, newest first. gtcd keeps 90 days, up to 2,000 entries.",
+    "Sign-ins, sign-outs and administrator actions in gtcd, newest first. gtcd keeps 90 days, up to 2,000 entries.",
   "audit.entries": "Actions",
   "audit.pageOf": "Page {page} of {pages}",
   "audit.caption": "Administrator actions; times in {timezone}",
@@ -16,10 +16,12 @@ export default {
   "audit.failure": "Failed",
   "audit.empty": "No actions recorded",
   "audit.emptyDescription":
-    "Changes to sites, sharing, exports, notifications, reports and native administration appear here.",
+    "Sign-ins, sign-outs and changes to sites, sharing, exports, notifications, reports and native administration appear here.",
   "audit.unavailableTitle": "Audit log unavailable",
   "audit.unavailable":
     "Storage is unavailable, so the audit log cannot be read. Retry in a moment.",
+  "audit.actionAuthLogin": "Signed in",
+  "audit.actionAuthLogout": "Signed out",
   "audit.actionChannelAdd": "Added notification channel",
   "audit.actionChannelDelete": "Deleted notification channel",
   "audit.actionExportCreate": "Started export",

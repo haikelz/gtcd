@@ -23,6 +23,8 @@
 
   // Actions recorded elsewhere without a label here show their raw id.
   const ACTION_LABELS: Partial<Record<string, MessageKey>> = {
+    "auth.login": "audit.actionAuthLogin",
+    "auth.logout": "audit.actionAuthLogout",
     "channel.add": "audit.actionChannelAdd",
     "channel.delete": "audit.actionChannelDelete",
     "export.create": "audit.actionExportCreate",

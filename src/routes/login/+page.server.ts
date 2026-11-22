@@ -1,3 +1,4 @@
+import { recordAudit } from "$lib/server/audit-log.js";
 import { getGoatCounterAdminUrl } from "$lib/server/auth/admin.js";
 import {
   claimLoginAttempt,
@@ -90,7 +91,8 @@ export const actions: Actions = {
     if (!result.success) {
       switch (result.reason) {
         case "invalid_credentials":
-          // The claimed attempt stays counted as this failure.
+          // The claimed attempt stays counted as this failure. It stays out
+          // of the audit log: anyone could flood its 2,000 entries.
           return fail(400, {
             error: translate(locals.locale, "auth.invalidCredentials"),
           });
@@ -113,6 +115,13 @@ export const actions: Actions = {
     await saveNativeSession(cookies, {
       email: result.user.email,
       cookies: result.nativeCookies,
+    });
+    await recordAudit({
+      action: "auth.login",
+      actor: result.user.email,
+      outcome: "success",
+      site: null,
+      target: "password",
     });
 
     throw redirect(302, "/dashboard");
@@ -194,6 +203,13 @@ export const actions: Actions = {
     await saveNativeSession(cookies, {
       email,
       cookies: result.nativeCookies,
+    });
+    await recordAudit({
+      action: "auth.login",
+      actor: email,
+      outcome: "success",
+      site: null,
+      target: "totp",
     });
 
     throw redirect(302, "/dashboard");
