@@ -71,15 +71,9 @@ overlapping SQLite writers during deployment and automatic migration. This cause
 a brief outage while the old pod stops and its replacement starts. ReadWriteOnce
 storage alone does not enforce a single pod writer. Keep replicas at one.
 
-**Existing Compose installations need a storage audit before recreation.** The
-recipe mounts `goatcounter-data` at `/var/lib/goatcounter` without an explicit DB
-path. The upstream image uses a different working/data directory. Do not assume
-that named volume contains the active database. Identify the running DB path and
-all mounted volumes without dumping environment secrets. Take a consistent SQLite
-backup using its backup API or an offline copy of the complete database state,
-and test restoring it separately. Copying only the main file while WAL writes
-continue is not a consistent backup. Only then change the DB path or volume mount
-in a separately reviewed migration. Never use `docker compose down -v` here.
+Compose keeps GoatCounter's data in the `goatcounter-data` volume at the image's
+own data directory; installs from before that change need the one-time move in
+[Compose storage](#compose-storage).
 
 The current Kubernetes PVC is 1 GiB. Watch free capacity and growth; expand using
 the storage class's supported procedure before it fills. PostgreSQL migration is
@@ -259,6 +253,43 @@ loads `goatcounter-data/*.mmdb` from its working directory, falls back to the
 built-in Countries database without one, and refuses to start on a 0-byte
 `.mmdb`, which the init container therefore deletes. The real GeoLite2 City
 download needs a MaxMind key and was not run.
+
+## Compose storage
+
+The image keeps its database in `/home/goatcounter/goatcounter-data/db.sqlite3`.
+Earlier versions of `docker-compose.yaml` mounted the named `goatcounter-data`
+volume at `/var/lib/goatcounter` instead, so the database lived in an anonymous
+volume that `docker compose down -v` would delete. The recipe now mounts the
+named volume at the data directory.
+
+`serve` creates a missing database, so an upgrade would otherwise start on an
+empty one. The Compose command refuses to start while the volume has no
+`db.sqlite3`, unless `.env` has `GTCD_NEW_INSTALL=1`, which `scripts/setup.sh`
+adds only when it creates `.env`. On an existing install the log says
+`No database in the goatcounter-data volume`; move the data once:
+
+```bash
+# Before pulling the new docker-compose.yaml: name the volume holding the data.
+old=$(docker inspect "$(docker compose ps -aq goatcounter)" \
+  --format '{{range .Mounts}}{{if eq .Destination "/home/goatcounter/goatcounter-data"}}{{.Name}}{{end}}{{end}}')
+echo "$old"   # keep this name
+
+# After pulling it:
+docker compose stop goatcounter
+docker run --rm --user root --entrypoint /bin/sh \
+  -v "$old":/from:ro -v "$(basename "$PWD")_goatcounter-data":/to \
+  arp242/goatcounter:2.7.0 -c 'cp -a /from/. /to/ && chown -R 1000:1000 /to'
+docker compose up -d goatcounter
+```
+
+The copy is consistent because GoatCounter is stopped. Check the dashboard shows
+your history, then remove the old volume with `docker volume rm "$old"`. If you
+pulled the new file before naming the volume, `docker volume ls` lists it as an
+unnamed volume; inspect candidates with
+`docker run --rm -v <name>:/v alpine ls /v` and look for `db.sqlite3`.
+Rehearsed with the pinned image: the upgrade refused to start, the copy brought
+the site back, and a new install with the flag created its database in the
+named volume.
 
 ## Backups and restore
 

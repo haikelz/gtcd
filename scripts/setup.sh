@@ -64,6 +64,9 @@ SESSION_SECRET=
 EOF
     info "Created .env with defaults"
   fi
+  # Lets GoatCounter create its database on first start; an upgrade keeps its
+  # old .env, so the compose check still stops it on an empty volume.
+  printf '\n# Set by setup.sh for a new install; see docker-compose.yaml.\nGTCD_NEW_INSTALL=1\n' >> "$ENV_FILE"
 fi
 
 # ─── Prompt for setup ────────────────────────────────────────────────────────

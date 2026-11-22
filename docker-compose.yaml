@@ -24,24 +24,31 @@ services:
     restart: unless-stopped
     # The image's default command plus the API limit; gtcd below paces itself
     # to the same GOATCOUNTER_API_RATE (GoatCounter's own default is 4).
+    # serve creates a missing database, so an upgrade from the old volume
+    # layout would start empty; the check refuses that unless setup.sh marked
+    # a new install. See docs/GOATCOUNTER_OPERATIONS.md#compose-storage.
+    entrypoint: ["/bin/sh", "-c"]
     command:
-      [
-        "serve",
-        "-automigrate",
-        "-ratelimit",
-        "api:${GOATCOUNTER_API_RATE:-20}/1",
-      ]
+      - |
+        if [ ! -f goatcounter-data/db.sqlite3 ] && [ "$$GTCD_NEW_INSTALL" != 1 ]; then
+          echo "No database in the goatcounter-data volume. Upgrading? Move the old data first: docs/GOATCOUNTER_OPERATIONS.md#compose-storage" >&2
+          exit 1
+        fi
+        exec goatcounter serve -automigrate -ratelimit "api:${GOATCOUNTER_API_RATE:-20}/1"
     environment:
       # maxmind:<account_id>:<license_key> downloads the GeoLite2 City database
       # for regional reporting; empty keeps the built-in Countries database.
       # A failed download stops GoatCounter. See .env.example.
       GOATCOUNTER_GEODB: ${GOATCOUNTER_GEODB:-}
+      # Not GOATCOUNTER_*: serve exits on variables it does not know.
+      GTCD_NEW_INSTALL: ${GTCD_NEW_INSTALL:-}
     expose:
       - "8080"
     networks:
       - analytics
     volumes:
-      - goatcounter-data:/var/lib/goatcounter
+      # The image's data directory (db.sqlite3, GeoIP files).
+      - goatcounter-data:/home/goatcounter/goatcounter-data
 
   redis:
     image: redis:7-alpine
