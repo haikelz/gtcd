@@ -237,5 +237,5 @@ with a test Redis as shown above, then open a pull request.
 
 ## License
 
-This repository has no `LICENSE` file yet. Ask the owner before redistributing
-it. Bundled font licenses are in `static/fonts/`.
+gtcd is released under the [MIT License](LICENSE). Bundled fonts keep their own
+licenses (SIL Open Font License 1.1), in `static/fonts/`.
