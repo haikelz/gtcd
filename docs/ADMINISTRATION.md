@@ -23,6 +23,8 @@ behind these features lives in [PRODUCT.md](../PRODUCT.md).
 - trusted embed origins, one per line;
 - dashboard visibility, the public visitor counter and Bosmang options.
 
+![Site settings with retention, data collection, visibility and the visitor counter](screenshots/settings.png)
+
 **Send test visit** records a labelled pageview through the API to confirm gtcd
 can write to GoatCounter. The visitor counter is served by GoatCounter at
 `/counter/<path>.svg|png|html|json`.
@@ -63,9 +65,13 @@ preferences and native email reports, which need GoatCounter's own SMTP setup.
   that expire after 1, 7 (default) or 30 days, or never. Each link can limit the
   date range and metric categories, and can be replaced or revoked on its own.
   Anyone holding an active link can read the report.
+
+  ![A read-only public dashboard opened from a share link](screenshots/share.png)
+
 - **Email summaries and traffic alerts:** configure SMTP, then opt in from
   **Customize**. Summaries go out daily, weekly, every two weeks or monthly
-  after 07:00 in your GoatCounter timezone. Alerts compare the last completed
+  after 07:00 in your GoatCounter timezone. **Customize** also orders and hides
+  the overview's widgets and holds saved views. Alerts compare the last completed
   day's pageviews with the day before, using your direction, threshold and
   minimum baseline; checks start the day after you save a rule, and a zero or
   too-small baseline never alerts. Both go only to the signed-in account's
@@ -80,6 +86,8 @@ preferences and native email reports, which need GoatCounter's own SMTP setup.
   multicast or cloud metadata addresses are refused, redirects count as
   failures, and each request has 10 seconds. List internal receivers in
   `GTCD_ALLOWED_WEBHOOKS` to allow them, over `http://` too.
+
+![Customize with saved views, email summaries and the overview widget order](screenshots/customize.png)
 
 The server checks schedules every 15 minutes while it runs. Failed sends retry
 with backoff up to five times, for email and channels alike. A crash after the SMTP server accepts a message

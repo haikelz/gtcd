@@ -11,6 +11,12 @@ through its API and gives you a faster, modern interface, built with Svelte 5,
 Tailwind CSS v4 and the [ReUI](https://reui.io/) design system. GoatCounter
 itself runs unchanged.
 
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/demo-poster.webp" alt="gtcd demo video: the traffic overview, sign-in, pages, referrers, a share link, light and dark themes, and the phone layout" width="800"></a>
+  <br>
+  <a href="docs/demo.mp4">Watch the 24-second demo (MP4)</a>
+</p>
+
 <table>
   <tr>
     <td><img src="docs/screenshots/traffic.png" alt="Traffic overview in light mode with KPI tiles, hourly traffic chart, and browser mix"></td>
@@ -86,6 +92,24 @@ itself runs unchanged.
   <tr>
     <td><img src="docs/screenshots/traffic-mobile.png" alt="Traffic overview on a phone with the stacked toolbar and KPI tiles" width="320"></td>
     <td><img src="docs/screenshots/not-found.png" alt="Not found error page with Continue and Previous page actions"></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <th colspan="2">Dark theme</th>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/pages-dark.png" alt="Pages report in dark mode"></td>
+    <td><img src="docs/screenshots/locations-dark.png" alt="Locations report in dark mode"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/customize-dark.png" alt="Customize page in dark mode"></td>
+    <td><img src="docs/screenshots/share-dark.png" alt="Read-only public dashboard in dark mode"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/login-dark.png" alt="gtcd sign-in page in dark mode"></td>
+    <td><img src="docs/screenshots/traffic-mobile-dark.png" alt="Traffic overview on a phone in dark mode" width="320"></td>
   </tr>
 </table>
 

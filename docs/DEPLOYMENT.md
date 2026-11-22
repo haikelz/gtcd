@@ -27,6 +27,10 @@ Services after setup:
 - **GoatCounter itself:** internal only, at `http://goatcounter:8080` inside the
   Compose network.
 
+Sign in with the GoatCounter admin account the script created:
+
+![gtcd sign-in page with the GoatCounter account form](screenshots/login.png)
+
 ### Manual configuration
 
 These commands do not create the GoatCounter site, user or API token. Use them
