@@ -82,3 +82,36 @@ test("badges render as pills", async ({ page }) => {
   }));
   expect(radius).toBeGreaterThanOrEqual(height / 2);
 });
+
+test("a taken hostname is described under its field", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/dashboard/settings?site=1");
+  // The mock accepts every hostname, so the update answers as GoatCounter
+  // would for one in use.
+  await page.route(
+    (url) =>
+      url.pathname === "/dashboard/settings" && url.search.includes("update"),
+    (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({
+            contentType: "application/json",
+            json: {
+              type: "failure",
+              status: 400,
+              data: JSON.stringify([
+                { field: 1, message: 2 },
+                "cname",
+                "Hostname: already in use by another site",
+              ]),
+            },
+          })
+        : route.continue()
+  );
+  await page.getByRole("button", { name: "Save changes" }).first().click();
+
+  const hostname = page.locator("#settings-cname");
+  await expect(hostname).toHaveAttribute("aria-invalid", "true");
+  await expect(hostname).toHaveAccessibleDescription(
+    "Hostname: already in use by another site"
+  );
+});

@@ -250,6 +250,9 @@
         <div class="grid gap-2">
           <Label for="settings-cname">{t("settings.analyticsHostname")}</Label>
           <Input
+            aria-describedby={form?.field === "cname"
+              ? "settings-cname-error"
+              : undefined}
             aria-invalid={form?.field === "cname" ? "true" : undefined}
             id="settings-cname"
             name="cname"
@@ -257,6 +260,11 @@
             type="text"
             value={settingsValues?.cname ?? data.site.cname ?? ""}
           />
+          {#if form?.field === "cname"}
+            <p class="text-xs text-destructive" id="settings-cname-error">
+              {form.message}
+            </p>
+          {/if}
         </div>
         <div class="grid gap-2">
           <Label for="settings-link-domain"
