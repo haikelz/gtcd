@@ -281,3 +281,40 @@ test("clearing the path filter returns focus to the filter input", async ({
   await expect(page).not.toHaveURL(/filter=/);
   await expect(page.locator("#filter-paths")).toBeFocused();
 });
+
+test("Indonesian names the unknown row, and fewer numbers keeps the traffic table as shares", async ({
+  page,
+}) => {
+  // A user of its own: display preferences are stored per email.
+  const email = `followups-${randomUUID().slice(0, 8)}@example.com`;
+  await signIn(page, email);
+  const saved = await page.request.post("/dashboard/customize?/saveDisplay", {
+    form: { fewerNumbers: "on", locale: "id" },
+    headers: actionHeaders(page),
+  });
+  expect(await saved.json()).toMatchObject({ type: "success" });
+
+  try {
+    await page.goto(`/dashboard/referrers?site=1&${PERIOD}`);
+    const chart = page.getByRole("list", { name: "Grafik rincian" });
+    await expect(
+      chart.getByText("Tidak diketahui", { exact: true })
+    ).toBeVisible();
+    await expect(chart.getByText("Unknown", { exact: true })).toHaveCount(0);
+
+    await page.goto(`/dashboard?site=1&${PERIOD}&group=day`);
+    const table = page.getByRole("table", {
+      name: /persentase dari periode tersibuk/,
+    });
+    // 3 Oct has 180 visits of the 430 peak.
+    await expect(
+      table.getByRole("row").nth(1).getByRole("cell").nth(1)
+    ).toHaveText("42%");
+    await expect(table.getByRole("cell", { name: "100%" })).toHaveCount(1);
+  } finally {
+    await page.request.post("/dashboard/customize?/saveDisplay", {
+      form: { locale: "follow" },
+      headers: actionHeaders(page),
+    });
+  }
+});

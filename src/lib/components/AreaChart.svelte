@@ -458,54 +458,59 @@
       />
     </svg>
 
-    <!-- Accessible summary table for assistive tech (WCAG 1.1.1 Non-text Content) -->
-    {#if !hideNumbers}
-      <div
-        class={view === "table"
-          ? "max-h-80 overflow-auto rounded-lg border border-border"
-          : "sr-only"}
-      >
-        <table class="w-full text-sm">
-          <caption class={view === "table" ? "sr-only" : undefined}>
-            {t("charts.tableCaption", groupParams)}
-          </caption>
-          <thead class="sticky top-0 bg-card">
-            <tr class="border-b border-border">
+    <!-- Accessible summary table for assistive tech (WCAG 1.1.1 Non-text
+         Content); fewer-numbers mode lists shares of the peak, as
+         HourHeatmap does. -->
+    <div
+      class={view === "table"
+        ? "max-h-80 overflow-auto rounded-lg border border-border"
+        : "sr-only"}
+    >
+      <table class="w-full text-sm">
+        <caption class={view === "table" ? "sr-only" : undefined}>
+          {t(
+            hideNumbers ? "charts.tableCaptionShare" : "charts.tableCaption",
+            groupParams
+          )}
+        </caption>
+        <thead class="sticky top-0 bg-card">
+          <tr class="border-b border-border">
+            <th class="h-9 px-3 text-left font-medium" scope="col">
+              {t("charts.period")}
+            </th>
+            <th class="h-9 px-3 text-right font-medium" scope="col">
+              {t(hideNumbers ? "charts.shareOfPeak" : "charts.visits")}
+            </th>
+            {#if noteTexts.length > 0}
               <th class="h-9 px-3 text-left font-medium" scope="col">
-                {t("charts.period")}
+                {t("insights.chartNote")}
               </th>
-              <th class="h-9 px-3 text-right font-medium" scope="col">
-                {t("charts.visits")}
-              </th>
+            {/if}
+          </tr>
+        </thead>
+        <tbody>
+          {#each series as point, i (i)}
+            <tr
+              class={cn(
+                "border-b border-border last:border-0",
+                point.value === 0 && "text-muted-foreground"
+              )}
+            >
+              <td class="px-3 py-1.5">{point.title}</td>
+              <td class="px-3 py-1.5 text-right tabular-nums">
+                {hideNumbers
+                  ? `${Math.round((point.value / maxY) * 100)}%`
+                  : formatCount(point.value)}
+              </td>
               {#if noteTexts.length > 0}
-                <th class="h-9 px-3 text-left font-medium" scope="col">
-                  {t("insights.chartNote")}
-                </th>
+                <td class="px-3 py-1.5">
+                  {noteTexts[i]?.join("; ") ?? ""}
+                </td>
               {/if}
             </tr>
-          </thead>
-          <tbody>
-            {#each series as point, i (i)}
-              <tr
-                class={cn(
-                  "border-b border-border last:border-0",
-                  point.value === 0 && "text-muted-foreground"
-                )}
-              >
-                <td class="px-3 py-1.5">{point.title}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums">
-                  {formatCount(point.value)}
-                </td>
-                {#if noteTexts.length > 0}
-                  <td class="px-3 py-1.5">
-                    {noteTexts[i]?.join("; ") ?? ""}
-                  </td>
-                {/if}
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
-    {/if}
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {/if}
 </div>
