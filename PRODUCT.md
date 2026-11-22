@@ -39,8 +39,8 @@ Do not fabricate statistics or add decorative operational claims.
 ## Sharing and delivery
 
 Administrators can create named public links with independent rotation,
-revocation, expiration (1, 7 or 30 days, or never), metric categories and fixed
-date ranges. Link holders need no account. Grants are checked server-side before
+revocation, expiration (1, 7 or 30 days, or never), metric categories and a
+maximum date range the holder chooses within. Link holders need no account. Grants are checked server-side before
 fetching public data; noindex and no-store headers are not substitutes for those
 checks. GoatCounter's own site visibility and counter embeds are separate from
 GTCD public-report grants.
