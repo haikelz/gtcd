@@ -142,6 +142,12 @@ test("bodies over 512 KiB are refused except a signed-in native import", async (
   }
 });
 
+test("the retired stats API route is gone", async ({ page }) => {
+  await signIn(page, `stats-api-${randomUUID()}@example.invalid`);
+
+  expect((await page.request.get("/api/stats/browsers/1")).status()).toBe(404);
+});
+
 test("a Redis outage is logged once, not once per failed request", async () => {
   const vite = await createServer({ server: { middlewareMode: true } });
   const original = console.error;

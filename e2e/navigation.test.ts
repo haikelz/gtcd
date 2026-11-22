@@ -5,7 +5,10 @@ test("report navigation preserves authentication and logout avoids dashboard rel
   page,
   request,
 }) => {
-  expect((await request.get("/api/stats/browsers/1")).status()).toBe(401);
+  const report = { maxRedirects: 0 };
+  expect(
+    (await request.get("/dashboard/browsers?range=7d", report)).status()
+  ).toBe(302);
   const fixture = readFileSync("e2e/mock-goatcounter.mjs", "utf8");
   const password = fixture.match(/const PASSWORD = ("[^"]+");/);
   if (!password) throw new Error("Missing mock login fixture");
@@ -24,8 +27,9 @@ test("report navigation preserves authentication and logout avoids dashboard rel
     "data-sveltekit-preload-code",
     "hover"
   );
-  expect((await page.request.get("/api/stats/browsers/1")).status()).toBe(200);
-  expect((await page.request.get("/api/stats/unknown/1")).status()).toBe(400);
+  expect(
+    (await page.request.get("/dashboard/browsers?range=7d", report)).status()
+  ).toBe(200);
   await page.waitForLoadState("networkidle");
 
   await page.route("**/logout", (route) => route.fulfill({ status: 503 }));
@@ -53,5 +57,7 @@ test("report navigation preserves authentication and logout avoids dashboard rel
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   expect(dashboardReloads).toEqual([]);
-  expect((await page.request.get("/api/stats/browsers/1")).status()).toBe(401);
+  expect(
+    (await page.request.get("/dashboard/browsers?range=7d", report)).status()
+  ).toBe(302);
 });

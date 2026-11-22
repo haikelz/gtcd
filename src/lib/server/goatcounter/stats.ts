@@ -76,24 +76,6 @@ function normalizeStats(
   return rows.sort((a, b) => b.count - a.count);
 }
 
-const STATS_PAGES: readonly StatsPage[] = [
-  "browsers",
-  "systems",
-  "locations",
-  "languages",
-  "sizes",
-  "campaigns",
-  "toprefs",
-];
-
-/**
- * Validate an untrusted stats page name before it is ever interpolated into
- * an upstream URL. Prevents path traversal into other GoatCounter endpoints.
- */
-export function isStatsPage(value: string): value is StatsPage {
-  return (STATS_PAGES as readonly string[]).includes(value);
-}
-
 const DETAIL_STATS_PAGES: readonly StatsDetailPage[] = [
   "browsers",
   "systems",

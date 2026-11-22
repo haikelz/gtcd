@@ -18,7 +18,7 @@ test("private routes and shared reports stay out of search metadata", async ({
     "/login",
     "/dashboard",
     "/dashboard/admin/users",
-    "/api/stats/browsers/1",
+    "/api/health",
     "/share/not-a-valid-token",
   ]) {
     const response = await request.get(path + sensitiveQuery, {

@@ -31,7 +31,8 @@ test("service worker retires private report caching and retains app assets", asy
       (await caches.keys()).some((key) => key.startsWith("workbox-precache"))
     )
   ).toBe(true);
-  expect((await page.request.get("/api/stats/browsers/1")).status()).toBe(401);
+  // The route behind the old cache entry no longer exists.
+  expect((await page.request.get("/api/stats/browsers/1")).status()).toBe(404);
 
   // A cold nested URL must register the root worker, not /dashboard/sw.js.
   await page.evaluate(async () => {
