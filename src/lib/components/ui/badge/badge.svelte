@@ -20,8 +20,9 @@
         warning: "bg-warning text-white",
         destructive: "bg-destructive text-white",
         invert: "bg-invert text-invert-foreground",
+        // Dark tint at 10%, not 15%: chart-1 text then clears 4.5:1 on cards.
         "primary-light":
-          "border-primary/10 bg-primary/10 text-primary-active dark:border-primary/25 dark:bg-primary/15 dark:text-chart-1",
+          "border-primary/10 bg-primary/10 text-primary-active dark:border-primary/25 dark:bg-primary/10 dark:text-chart-1",
         "warning-light":
           "border-warning/15 bg-warning/10 text-warning-foreground dark:border-warning/25 dark:bg-warning/15 dark:text-warning",
         "success-light":
@@ -83,7 +84,8 @@
   let {
     children,
     class: className,
-    radius = "default",
+    // No default here: undefined lets defaultVariants make badges pills.
+    radius,
     ref = $bindable(null),
     size = "default",
     variant = "default",

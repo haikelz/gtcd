@@ -69,3 +69,16 @@ test("a focused primary button shows a solid ring clear of its fill in both them
     expect(style.fill).not.toBe(style.surface);
   }
 });
+
+test("badges render as pills", async ({ page }) => {
+  await signIn(page);
+  await page.goto("/dashboard/settings?site=1");
+  const badge = page.locator('[data-slot="badge"]').first();
+  await expect(badge).toBeVisible();
+
+  const { height, radius } = await badge.evaluate((element) => ({
+    height: element.getBoundingClientRect().height,
+    radius: parseFloat(getComputedStyle(element).borderTopLeftRadius),
+  }));
+  expect(radius).toBeGreaterThanOrEqual(height / 2);
+});
