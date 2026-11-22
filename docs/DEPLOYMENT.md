@@ -80,7 +80,14 @@ includes:
 - health and readiness probes on `/api/health`;
 - a Traefik Ingress with Let's Encrypt TLS that routes `/count`, `/count.js` and
   `/counter/` to GoatCounter and everything else to gtcd;
-- PersistentVolumeClaims for the GoatCounter database and Redis AOF state.
+- PersistentVolumeClaims for the GoatCounter database and Redis AOF state;
+- a NetworkPolicy that lets only gtcd and the backup job reach Redis;
+- a 5-second `preStop` on gtcd, so a rollout does not answer 502s while Traefik
+  drops the old pod;
+- digest-pinned GoatCounter, Redis and backup images.
+
+The script then waits for each rollout (GoatCounter up to 10 minutes, for
+migrations) and exits non-zero if one does not become ready.
 
 The Ingress serves HTTP and HTTPS, because a proxy in front (Cloudflare in
 "Flexible" SSL mode) may reach the origin over HTTP. Redirect HTTP to HTTPS at
