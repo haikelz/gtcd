@@ -148,6 +148,31 @@ test("the retired stats API route is gone", async ({ page }) => {
   expect((await page.request.get("/api/stats/browsers/1")).status()).toBe(404);
 });
 
+test("test emails are rate limited and hide the SMTP error", async ({
+  page,
+}) => {
+  await signIn(page, `test-email-${randomUUID()}@example.invalid`);
+  await page.goto("/dashboard/customize");
+  const send = () =>
+    page.request.post("/dashboard/customize?/sendTestEmail", {
+      form: {},
+      headers: actionHeaders(page),
+    });
+
+  // The suite's SMTP server is 127.0.0.1:1, where nothing listens.
+  const failed = await send();
+  const failure = await failed.json();
+  expect(failure).toMatchObject({ status: 502, type: "failure" });
+  expect(failure.data).toContain("The test email could not be sent.");
+  expect(failure.data).not.toMatch(/ECONNREFUSED|127\.0\.0\.1/);
+
+  const repeated = await (await send()).json();
+  expect(repeated).toMatchObject({ status: 429, type: "failure" });
+  expect(repeated.data).toContain(
+    "Wait a minute before sending another test email."
+  );
+});
+
 test("a Redis outage is logged once, not once per failed request", async () => {
   const vite = await createServer({ server: { middlewareMode: true } });
   const original = console.error;

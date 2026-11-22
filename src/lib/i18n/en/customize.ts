@@ -96,9 +96,10 @@ export default {
   "customize.styleBar": "Bars",
   "customize.styleLine": "Line",
   "customize.styleText": "Numbers only",
-  "customize.testEmailFailed": "The test email could not be sent.",
-  "customize.testEmailFailedReason":
-    "The test email could not be sent: {reason}",
+  "customize.testEmailCooldown":
+    "Wait a minute before sending another test email.",
+  "customize.testEmailFailed":
+    "The test email could not be sent. The server log has the cause.",
   "customize.testEmailSent": "Test report sent to {email}.",
   "customize.title": "Customize dashboard",
   "customize.tooManyViews": "You can keep up to {max} views. Delete one first.",

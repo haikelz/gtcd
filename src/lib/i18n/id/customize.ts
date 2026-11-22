@@ -98,8 +98,10 @@ export default {
   "customize.styleBar": "Batang",
   "customize.styleLine": "Garis",
   "customize.styleText": "Hanya angka",
-  "customize.testEmailFailed": "Email uji tidak dapat dikirim.",
-  "customize.testEmailFailedReason": "Email uji tidak dapat dikirim: {reason}",
+  "customize.testEmailCooldown":
+    "Tunggu satu menit sebelum mengirim email uji lagi.",
+  "customize.testEmailFailed":
+    "Email uji tidak dapat dikirim. Penyebabnya tercatat di log server.",
   "customize.testEmailSent": "Laporan uji dikirim ke {email}.",
   "customize.title": "Sesuaikan dasbor",
   "customize.tooManyViews":

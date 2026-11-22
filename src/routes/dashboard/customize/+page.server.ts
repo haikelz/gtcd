@@ -22,8 +22,11 @@ import {
   updateTrafficAlert,
 } from "$lib/server/email-reports.js";
 import { getDashboardSiteContext } from "$lib/server/goatcounter/site-context.js";
+import { incrementCounter } from "$lib/server/kv.js";
 import { isMailConfigured } from "$lib/server/mailer.js";
 import { parseTrafficAlertRule } from "$lib/traffic-alert.js";
+
+const TEST_EMAIL_COOLDOWN_SECONDS = 60;
 
 /** Only return to dashboard report routes after saving a view. */
 function safeReturnPath(value: FormDataEntryValue | null): string | null {
@@ -328,17 +331,27 @@ export const actions = {
       });
     }
 
+    // ponytail: one per minute per user, counted per process while Redis is
+    // down. A failed send still uses the minute, so retries cannot hammer SMTP.
+    const key = `test-email:${email.trim().toLowerCase()}`;
+    if ((await incrementCounter(key, TEST_EMAIL_COOLDOWN_SECONDS)) > 1) {
+      return fail(429, {
+        action: "sendTestEmail",
+        message: translate(locals.locale, "customize.testEmailCooldown"),
+      });
+    }
+
     try {
       await sendTestReport(email);
     } catch (cause: unknown) {
+      // SMTP errors can name internal hosts; keep them in the server log.
+      console.error(
+        "test email:",
+        cause instanceof Error ? cause.message : cause
+      );
       return fail(502, {
         action: "sendTestEmail",
-        message:
-          cause instanceof Error
-            ? translate(locals.locale, "customize.testEmailFailedReason", {
-                reason: cause.message,
-              })
-            : translate(locals.locale, "customize.testEmailFailed"),
+        message: translate(locals.locale, "customize.testEmailFailed"),
       });
     }
 
