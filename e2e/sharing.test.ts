@@ -104,6 +104,9 @@ test("sharing controls default to seven days and preserve rotation and revocatio
   page,
   playwright,
 }) => {
+  // Replacing and revoking a live link ask first (ui-followups covers both
+  // answers); here every confirmation is accepted.
+  page.on("dialog", (dialog) => dialog.accept());
   await page.goto("/login");
   await page.getByLabel("Email").fill("qa@example.com");
   const fixture = readFileSync("e2e/mock-goatcounter.mjs", "utf8");

@@ -107,6 +107,8 @@ test("named links enforce metric and range grants in public HTML and data", asyn
 }) => {
   // A separate named identity on site 2 never rotates SEO's default link or site 1.
   const label = `Partners ${randomUUID()}`;
+  // Rotating and revoking ask first; accept every confirmation.
+  page.on("dialog", (dialog) => dialog.accept());
   await page.goto("/login");
   await page.getByLabel("Email").fill("qa@example.com");
   const fixture = readFileSync("e2e/mock-goatcounter.mjs", "utf8");

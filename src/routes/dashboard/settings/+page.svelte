@@ -1,12 +1,14 @@
 <script lang="ts">
   import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
+  import { page } from "$app/state";
   import CopyField from "$lib/components/CopyField.svelte";
   import PageHeader from "$lib/components/PageHeader.svelte";
   import SEO from "$lib/components/SEO.svelte";
   import { showToast } from "$lib/components/toast.js";
-  import { dashboardHref, t } from "$lib/display";
+  import { dashboardHref, displayPreferences, t } from "$lib/display";
   import type { MessageKey } from "$lib/i18n";
+  import { formatDate, wallClockNow } from "$lib/preferences";
   import {
     Alert,
     AlertAction,
@@ -30,6 +32,8 @@
   import { Switch } from "$lib/components/ui/switch";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Link2, RefreshCw, Save, Send, TriangleAlert } from "@lucide/svelte";
+  import type { SubmitFunction } from "@sveltejs/kit";
+  import { tick } from "svelte";
 
   const collectionOptions = [
     {
@@ -102,9 +106,32 @@
 
   const COUNTER_FORMATS = ["html", "svg", "png", "json"] as const;
 
+  const EXPIRY_OPTIONS = [
+    { key: "share.oneDay", value: "1" },
+    { key: "share.sevenDays", value: "7" },
+    { key: "share.thirtyDays", value: "30" },
+    { key: "share.neverExpires", value: "never" },
+  ] as const satisfies readonly { key: MessageKey; value: string }[];
+
   let { data, form } = $props();
 
   let lastUpdateId = $state<string | null>(null);
+  let publicExpiry = $state("7");
+  let publicHeading = $state<HTMLElement | null>(null);
+  let audienceHeading = $state<HTMLElement | null>(null);
+
+  const preferences = $derived(displayPreferences());
+  // Share failures name the card that sent them; 503 means storage is down,
+  // the one failure a retry can fix.
+  const shareFailure = $derived(
+    form?.field === "share" || form?.field === "expiryDays" ? form : null
+  );
+  const publicShareFailure = $derived(
+    shareFailure?.scope === "public" ? shareFailure : null
+  );
+  const audienceShareFailure = $derived(
+    shareFailure?.scope === "audience" ? shareFailure : null
+  );
 
   const adminUrl = $derived(data.goatCounterAdminUrl);
   const settingsValues = $derived(
@@ -182,6 +209,55 @@
   function hasCollection(flag: number): boolean {
     return (data.site.settings.collect & flag) === flag;
   }
+
+  // ponytail: the audit page's timeOf; move both to $lib/preferences once a
+  // third page shows a timestamp.
+  function expiryLabel(iso: string): string {
+    const wall = wallClockNow(preferences.timezone, new Date(iso));
+    const hours = wall.getHours();
+    const minutes = String(wall.getMinutes()).padStart(2, "0");
+    const time = preferences.twentyFourHours
+      ? `${String(hours).padStart(2, "0")}:${minutes}`
+      : `${hours % 12 || 12}:${minutes} ${hours < 12 ? "AM" : "PM"}`;
+    const date = formatDate(
+      wall,
+      preferences.dateFormat,
+      "full",
+      preferences.locale
+    );
+
+    return t("share.expiresAt", {
+      date: `${date} ${time} ${preferences.timezone}`,
+    });
+  }
+
+  /**
+   * Share-link mutations: ask before one that breaks a live URL, toast the
+   * durable result, and move focus off a button the update removes.
+   */
+  function shareSubmit(
+    done: MessageKey,
+    options: {
+      readonly confirmText?: string;
+      readonly focus?: () => HTMLElement | null;
+    } = {}
+  ): SubmitFunction {
+    return ({ cancel }) => {
+      if (options.confirmText && !confirm(options.confirmText)) {
+        cancel();
+        return;
+      }
+
+      return async ({ result, update }) => {
+        await update();
+        if (result.type !== "success") return;
+
+        showToast(t(done), "success");
+        await tick();
+        options.focus?.()?.focus();
+      };
+    };
+  }
 </script>
 
 <SEO
@@ -199,7 +275,7 @@
   {/snippet}
 </PageHeader>
 
-{#if form?.message && !createSiteValues}
+{#if form?.message && !createSiteValues && !shareFailure}
   <Alert class="mb-4" variant="destructive">
     <TriangleAlert />
     <AlertTitle>{t("settings.notSaved")}</AlertTitle>
@@ -681,56 +757,55 @@
     </Frame>
     <Frame>
       <FrameHeader>
-        <FrameTitle id="public-link-heading"
-          >{t("settings.publicDashboard")}</FrameTitle
+        <FrameTitle
+          bind:ref={publicHeading}
+          id="public-link-heading"
+          tabindex={-1}>{t("settings.publicDashboard")}</FrameTitle
         >
         <FrameDescription>
           {t("settings.publicDashboardDescription")}
         </FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="public-link-heading" class="grid gap-3">
-        {#if data.shareUnavailable || form?.field === "share"}
+        {#if data.shareUnavailable || publicShareFailure?.field === "share"}
           <p role="alert" class="text-sm">
-            {data.shareUnavailable ? t("share.unavailable") : form?.message}
+            {data.shareUnavailable
+              ? t("share.unavailable")
+              : publicShareFailure?.message}
           </p>
-          <Button href="?site={data.site.id}" size="sm" variant="outline"
-            >{t("share.retry")}</Button
-          >
+          {#if data.shareUnavailable || page.status === 503}
+            <Button href="?site={data.site.id}" size="sm" variant="outline"
+              >{t("share.retry")}</Button
+            >
+          {/if}
         {/if}
         <fieldset class="grid gap-2">
           <legend class="mb-2 text-sm font-medium">{t("share.expiry")}</legend>
-          <div class="flex flex-wrap gap-4">
-            {#each [1, 7, 30] as days (days)}
-              <label class="flex min-h-9 items-center gap-2 text-sm">
-                <input
-                  checked={days === 7}
-                  form="share-create"
-                  name="expiryDays"
-                  type="radio"
-                  value={days}
-                />
-                {t(
-                  days === 1
-                    ? "share.oneDay"
-                    : days === 7
-                      ? "share.sevenDays"
-                      : "share.thirtyDays"
-                )}
-              </label>
+          <!-- The create forms sit apart, so the value reaches them through
+               a hidden input with a form attribute. -->
+          <RadioGroup bind:value={publicExpiry} class="flex flex-wrap gap-4">
+            {#each EXPIRY_OPTIONS as option (option.value)}
+              <div class="flex min-h-9 items-center gap-2">
+                <RadioGroupItem
+                  id="public-expiry-{option.value}"
+                  value={option.value}
+                /><Label for="public-expiry-{option.value}"
+                  >{t(option.key)}</Label
+                >
+              </div>
             {/each}
-            <label class="flex min-h-9 items-center gap-2 text-sm">
-              <input
-                form="share-create"
-                name="expiryDays"
-                type="radio"
-                value="never"
-              />
-              {t("share.neverExpires")}
-            </label>
-          </div>
+          </RadioGroup>
+          <input
+            form="share-create"
+            name="expiryDays"
+            type="hidden"
+            value={publicExpiry}
+          />
           <p class="text-xs text-muted-foreground">{t("share.expiryHelp")}</p>
-          {#if form?.field === "expiryDays"}
-            <p class="text-sm text-destructive" role="alert">{form.message}</p>
+          {#if publicShareFailure?.field === "expiryDays"}
+            <p class="text-sm text-destructive" role="alert">
+              {publicShareFailure.message}
+            </p>
           {/if}
         </fieldset>
         {#if data.publicLink}
@@ -739,25 +814,19 @@
             label={t("settings.publicDashboardLink")}
             value={data.publicLink}
           />
-          {#if data.publicLinkExpiresAt}
-            <p class="text-xs text-muted-foreground">
-              {t("share.expiresAt", {
-                date: data.publicLinkExpiresAt
-                  .replace("T", " ")
-                  .replace(/\.\d+Z$/, " UTC"),
-              })}
-            </p>
-          {:else}
-            <p class="text-xs text-muted-foreground">
-              {t("share.noExpiryHelp")}
-            </p>
-          {/if}
+          <p class="text-xs text-muted-foreground">
+            {data.publicLinkExpiresAt
+              ? expiryLabel(data.publicLinkExpiresAt)
+              : t("share.noExpiryHelp")}
+          </p>
           <div class="flex flex-wrap gap-2">
             <form
               id="share-create"
               action="?/createShareLink&site={data.site.id}"
               method="POST"
-              use:enhance
+              use:enhance={shareSubmit("share.publicReplaced", {
+                confirmText: t("share.confirmReplacePublic"),
+              })}
             >
               <Button size="sm" type="submit" variant="outline">
                 <RefreshCw />
@@ -767,7 +836,10 @@
             <form
               action="?/revokeShareLink&site={data.site.id}"
               method="POST"
-              use:enhance
+              use:enhance={shareSubmit("share.publicRevoked", {
+                confirmText: t("share.confirmRevokePublic"),
+                focus: () => publicHeading,
+              })}
             >
               <Button size="sm" type="submit" variant="destructive">
                 {t("settings.revoke")}
@@ -782,7 +854,9 @@
             id="share-create"
             action="?/createShareLink&site={data.site.id}"
             method="POST"
-            use:enhance
+            use:enhance={shareSubmit("share.publicCreated", {
+              focus: () => document.getElementById("public-link"),
+            })}
           >
             <Button
               disabled={data.shareUnavailable}
@@ -799,16 +873,33 @@
     </Frame>
     <Frame>
       <FrameHeader>
-        <FrameTitle id="audience-heading">{t("share.audiences")}</FrameTitle>
+        <FrameTitle
+          bind:ref={audienceHeading}
+          id="audience-heading"
+          tabindex={-1}>{t("share.audiences")}</FrameTitle
+        >
         <FrameDescription>{t("share.audienceHelp")}</FrameDescription>
       </FrameHeader>
       <FramePanel aria-labelledby="audience-heading" class="grid gap-4">
         <form
           action="?/createShareLink&site={data.site.id}"
           method="POST"
-          use:enhance
+          use:enhance={shareSubmit("share.audienceCreated")}
           class="grid gap-3"
         >
+          {#if audienceShareFailure}
+            <p class="text-sm text-destructive" role="alert">
+              {audienceShareFailure.message}
+            </p>
+            {#if page.status === 503}
+              <Button
+                class="justify-self-start"
+                href="?site={data.site.id}"
+                size="sm"
+                variant="outline">{t("share.retry")}</Button
+              >
+            {/if}
+          {/if}
           <Label for="audience-label">{t("share.name")}</Label>
           <Input id="audience-label" name="label" maxlength={80} required />
           <fieldset class="grid gap-2" disabled={data.shareUnavailable}>
@@ -862,13 +953,13 @@
               value="7"
               class="flex flex-wrap gap-4"
             >
-              {#each [{ value: "1", key: "share.oneDay" }, { value: "7", key: "share.sevenDays" }, { value: "30", key: "share.thirtyDays" }, { value: "never", key: "share.neverExpires" }] as expiry (expiry.value)}
+              {#each EXPIRY_OPTIONS as expiry (expiry.value)}
                 <div class="flex items-center gap-2">
                   <RadioGroupItem
                     id="audience-expiry-{expiry.value}"
                     value={expiry.value}
                   /><Label for="audience-expiry-{expiry.value}"
-                    >{t(expiry.key as MessageKey)}</Label
+                    >{t(expiry.key)}</Label
                   >
                 </div>
               {/each}
@@ -894,11 +985,7 @@
                       ? "share.rangeQuarter"
                       : "share.rangeYear"
               )} · {link.expiresAt
-                ? t("share.expiresAt", {
-                    date: link.expiresAt
-                      .replace("T", " ")
-                      .replace(/\.\d+Z$/, " UTC"),
-                  })
+                ? expiryLabel(link.expiresAt)
                 : t("share.neverExpires")}
             </p>
             <CopyField
@@ -910,7 +997,9 @@
               <form
                 action="?/createShareLink&site={data.site.id}"
                 method="POST"
-                use:enhance
+                use:enhance={shareSubmit("share.audienceRotated", {
+                  confirmText: t("share.confirmRotate", { label: link.label }),
+                })}
               >
                 <input type="hidden" name="id" value={link.id} /><Button
                   size="sm"
@@ -921,7 +1010,10 @@
               <form
                 action="?/revokeShareLink&site={data.site.id}"
                 method="POST"
-                use:enhance
+                use:enhance={shareSubmit("share.audienceRevoked", {
+                  confirmText: t("share.confirmRevoke", { label: link.label }),
+                  focus: () => audienceHeading,
+                })}
               >
                 <input type="hidden" name="id" value={link.id} /><Button
                   size="sm"

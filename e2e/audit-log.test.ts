@@ -28,6 +28,8 @@ test("admin actions appear in the audit log, newest first", async ({
     .click();
   const link = audience.locator(`div[aria-label="${label}"]`);
   await expect(link).toBeVisible();
+  // Revoking asks for confirmation first.
+  page.once("dialog", (dialog) => dialog.accept());
   await link
     .getByRole("button", { name: "Revoke audience link", exact: true })
     .click();

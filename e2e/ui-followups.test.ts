@@ -83,6 +83,105 @@ test("badges render as pills", async ({ page }) => {
   expect(radius).toBeGreaterThanOrEqual(height / 2);
 });
 
+test("audience links confirm rotation and revocation, toast each result and keep focus", async ({
+  page,
+}) => {
+  const label = `Followup ${randomUUID().slice(0, 8)}`;
+  await signIn(page);
+  await page.goto("/dashboard/settings?site=2");
+  const audience = page.locator('[aria-labelledby="audience-heading"]');
+  await audience.getByLabel("Audience name").fill(label);
+  await audience
+    .getByRole("button", { name: "Create audience link", exact: true })
+    .click();
+  const row = audience.locator(`div[aria-label="${label}"]`);
+  const field = row.getByRole("textbox", { name: label, exact: true });
+  const id = await row.locator('input[name="id"]').first().inputValue();
+  const url = await field.inputValue();
+
+  try {
+    await expect(page.getByText("Audience link created.")).toBeVisible();
+
+    // Declining the confirmation leaves the live URL untouched.
+    const declined = page.waitForEvent("dialog").then(async (dialog) => {
+      expect(dialog.type()).toBe("confirm");
+      expect(dialog.message()).toContain(label);
+      await dialog.dismiss();
+    });
+    await row.getByRole("button", { name: "Rotate audience link" }).click();
+    await declined;
+    await expect(field).toHaveValue(url);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await row.getByRole("button", { name: "Rotate audience link" }).click();
+    await expect(page.getByText("Audience link rotated.")).toBeVisible();
+    await expect(field).not.toHaveValue(url);
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await row.getByRole("button", { name: "Revoke audience link" }).click();
+    await expect(page.getByText("Audience link revoked.")).toBeVisible();
+    await expect(row).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Audience links" })
+    ).toBeFocused();
+  } finally {
+    await page.request.post("/dashboard/settings?/revokeShareLink&site=2", {
+      form: { id },
+      headers: actionHeaders(page),
+    });
+  }
+});
+
+test("share-link failures show in the card that sent them, with Retry only for 503", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/dashboard/settings?site=2");
+  const audience = page.locator('[aria-labelledby="audience-heading"]');
+  const publicCard = page.locator('[aria-labelledby="public-link-heading"]');
+  const createForm = audience.locator("form").first();
+
+  // A real validation failure: no shared metric.
+  await audience.getByLabel("Audience name").fill("No metrics");
+  await audience.getByRole("checkbox", { name: "Visits" }).click();
+  await audience
+    .getByRole("button", { name: "Create audience link", exact: true })
+    .click();
+  await expect(createForm.getByRole("alert")).toContainText(
+    "Choose a valid audience name"
+  );
+  await expect(publicCard.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Retry" })).toHaveCount(0);
+
+  // Storage outages are the one failure Retry can fix.
+  await page.route(
+    (url) => url.search.includes("createShareLink"),
+    (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        json: {
+          type: "failure",
+          status: 503,
+          data: JSON.stringify([
+            { field: 1, message: 2, scope: 3 },
+            "share",
+            "Share storage is unavailable.",
+            "audience",
+          ]),
+        },
+      })
+  );
+  await audience.getByLabel("Audience name").fill("Outage");
+  await audience
+    .getByRole("button", { name: "Create audience link", exact: true })
+    .click();
+  await expect(createForm.getByRole("alert")).toHaveText(
+    "Share storage is unavailable."
+  );
+  await expect(createForm.getByRole("link", { name: "Retry" })).toBeVisible();
+  await expect(publicCard.getByRole("link", { name: "Retry" })).toHaveCount(0);
+});
+
 test("a taken hostname is described under its field", async ({ page }) => {
   await signIn(page);
   await page.goto("/dashboard/settings?site=1");

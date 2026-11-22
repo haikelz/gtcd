@@ -43,10 +43,23 @@ type PublicMode = (typeof PUBLIC_MODES)[number];
 type SettingsField =
   "cname" | "public" | "secret" | "ignoreIps" | "collectRegions" | "allowEmbed";
 
+/** The settings card a share-link failure belongs to. */
+type ShareScope = "audience" | "public";
+
 type SettingsUpdateError = {
   readonly field: SettingsField | null;
   readonly message: string;
 };
+
+/** Audience links send a label (create) or their own id (rotate, revoke). */
+function shareScope(
+  label: FormDataEntryValue | null,
+  id: FormDataEntryValue | null
+): ShareScope {
+  return label !== null || (id !== null && id !== "default")
+    ? "audience"
+    : "public";
+}
 
 function hasPermission(permissions: number, permission: number): boolean {
   return (
@@ -302,6 +315,9 @@ export const actions = {
     const user = requireDashboardAdmin(locals.user);
 
     const form = await request.formData();
+    const label = form.get("label");
+    const id = form.get("id");
+    const scope = shareScope(label, id);
     const expiry = form.get("expiryDays");
     const expiryDays =
       expiry === "never" ? "never" : expiry === null ? 7 : Number(expiry);
@@ -313,12 +329,11 @@ export const actions = {
       return fail(400, {
         field: "expiryDays",
         message: translate(locals.locale, "share.invalidExpiry"),
+        scope,
       });
     }
 
     const siteContext = await getDashboardSiteContext(new URL(request.url));
-    const label = form.get("label");
-    const id = form.get("id");
     const rangeValue = form.get("maxRange");
     const maxRange = SHARE_RANGES.find((range) => range === rangeValue);
     const metricValues = form.getAll("metrics");
@@ -340,6 +355,7 @@ export const actions = {
       return fail(400, {
         field: "share",
         message: translate(locals.locale, "share.invalidGrant"),
+        scope,
       });
     }
     const audit = {
@@ -369,6 +385,7 @@ export const actions = {
             ? "share.invalidGrant"
             : "share.unavailable"
         ),
+        scope,
       });
     }
     await recordAudit({ ...audit, outcome: "success" });
@@ -380,10 +397,12 @@ export const actions = {
     const siteContext = await getDashboardSiteContext(new URL(request.url));
     const form = await request.formData();
     const id = form.get("id") ?? "default";
+    const scope = shareScope(null, id);
     if (typeof id !== "string" || !/^(default|[A-Za-z0-9]{32})$/.test(id))
       return fail(400, {
         field: "share",
         message: translate(locals.locale, "share.invalidGrant"),
+        scope,
       });
     const audit = {
       action: "share.revoke",
@@ -403,6 +422,7 @@ export const actions = {
             ? "share.invalidGrant"
             : "share.unavailable"
         ),
+        scope,
       });
     }
     await recordAudit({ ...audit, outcome: "success" });

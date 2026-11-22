@@ -18,6 +18,20 @@ export default {
   "share.unavailable":
     "Penyimpanan tautan tidak tersedia. Perubahan belum dikonfirmasi. Coba lagi sebelum membagikan tautan.",
   "share.retry": "Coba lagi",
+  "share.confirmReplacePublic":
+    "Ganti tautan publik? URL saat ini langsung berhenti berfungsi.",
+  "share.confirmRevokePublic":
+    "Cabut tautan publik? Siapa pun yang memakainya langsung kehilangan akses.",
+  "share.confirmRotate":
+    "Ganti tautan untuk {label}? URL saat ini langsung berhenti berfungsi.",
+  "share.confirmRevoke":
+    "Cabut tautan untuk {label}? Siapa pun yang memakainya langsung kehilangan akses.",
+  "share.publicCreated": "Tautan publik dibuat.",
+  "share.publicReplaced": "Tautan publik diganti.",
+  "share.publicRevoked": "Tautan publik dicabut.",
+  "share.audienceCreated": "Tautan audiens dibuat.",
+  "share.audienceRotated": "Tautan audiens diganti.",
+  "share.audienceRevoked": "Tautan audiens dicabut.",
   "share.browsers": "Browser",
   "share.country": "Negara",
   "share.expiry": "Masa berlaku tautan",

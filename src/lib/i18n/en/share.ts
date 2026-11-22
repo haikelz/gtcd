@@ -16,6 +16,20 @@ export default {
   "share.unavailable":
     "Share storage is unavailable. No changes were confirmed. Retry before sharing a link.",
   "share.retry": "Retry",
+  "share.confirmReplacePublic":
+    "Replace the public link? The current URL stops working immediately.",
+  "share.confirmRevokePublic":
+    "Revoke the public link? Anyone using it loses access immediately.",
+  "share.confirmRotate":
+    "Rotate the link for {label}? The current URL stops working immediately.",
+  "share.confirmRevoke":
+    "Revoke the link for {label}? Anyone using it loses access immediately.",
+  "share.publicCreated": "Public link created.",
+  "share.publicReplaced": "Public link replaced.",
+  "share.publicRevoked": "Public link revoked.",
+  "share.audienceCreated": "Audience link created.",
+  "share.audienceRotated": "Audience link rotated.",
+  "share.audienceRevoked": "Audience link revoked.",
   "share.browsers": "Browsers",
   "share.country": "Country",
   "share.expiry": "Link expires after",
