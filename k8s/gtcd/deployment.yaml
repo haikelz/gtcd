@@ -14,7 +14,8 @@ spec:
       labels:
         app: gtcd
     spec:
-      terminationGracePeriodSeconds: 30
+      # preStop 5 s + scripts/start.mjs's 25 s hard stop, with room to spare.
+      terminationGracePeriodSeconds: 35
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -27,6 +28,12 @@ spec:
         - name: gtcd
           image: ${IMAGE}
           imagePullPolicy: Always
+          # Keep serving while the endpoint removal reaches Traefik, so a rollout
+          # does not answer 502s; then adapter-node drains and exits.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
           ports:
             - containerPort: 3000
               name: http
