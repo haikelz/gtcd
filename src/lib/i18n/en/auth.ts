@@ -1,4 +1,3 @@
-// English messages: auth. Keys are "auth.<name>"; {param} placeholders.
 export default {
   "auth.challengeError": "The security check could not load.",
   "auth.challengeFailed":

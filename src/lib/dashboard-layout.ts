@@ -22,7 +22,6 @@ export const WIDGET_IDS = [
 
 export type WidgetId = (typeof WIDGET_IDS)[number];
 
-/** Message keys for widget names; translate with `t` or `translate`. */
 export const WIDGET_LABEL_KEYS = {
   browsers: "customize.widgetBrowsers",
   campaigns: "customize.widgetCampaigns",
@@ -275,7 +274,6 @@ export function isWidgetVisible(
   return !layout.widgets.find((widget) => widget.id === id)?.hidden;
 }
 
-/** GoatCounter widget names and the gtcd widget each maps to. */
 const GOATCOUNTER_WIDGETS: Record<string, WidgetId> = {
   browsers: "browsers",
   campaigns: "campaigns",

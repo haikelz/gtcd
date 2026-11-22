@@ -1,6 +1,5 @@
 import type en from "../en/shell";
 
-// Bahasa Indonesia: shell. Must define every key of the English catalog.
 export default {
   "shell.accessDenied": "Akses ditolak",
   "shell.analyticsNavigation": "Navigasi analitik",

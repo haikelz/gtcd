@@ -1,6 +1,5 @@
 import type en from "../en/reports";
 
-// Bahasa Indonesia: reports. Must define every key of the English catalog.
 export default {
   "reports.audienceShare": "Porsi pengunjung",
   "reports.backTo": "Kembali ke {parent}",

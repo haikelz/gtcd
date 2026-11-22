@@ -1,4 +1,3 @@
-// English messages: charts. Keys are "charts.<name>"; {param} placeholders.
 export default {
   "charts.breakdownChart": "Breakdown chart",
   "charts.changeVsPrevious": "Change compared to previous period",

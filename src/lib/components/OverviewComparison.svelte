@@ -57,7 +57,6 @@
     return request.catch(() => null);
   }
 
-  /** One decimal with the user's separators; `signed` marks gains with +. */
   function decimal(value: number, signed = false): string {
     const rounded = Math.round(value * 10) / 10;
 

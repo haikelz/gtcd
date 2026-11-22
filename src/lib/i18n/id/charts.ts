@@ -1,6 +1,5 @@
 import type en from "../en/charts";
 
-// Bahasa Indonesia: charts. Must define every key of the English catalog.
 export default {
   "charts.breakdownChart": "Grafik rincian",
   "charts.changeVsPrevious": "Perubahan dibanding periode sebelumnya",

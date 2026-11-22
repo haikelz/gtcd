@@ -19,8 +19,7 @@ export type ReportSummaryRequests = {
 };
 
 /**
- * Start the requests behind an email report's summary. Returns unawaited
- * promises so callers can start other requests alongside.
+ * Returns unawaited promises so callers can start other requests alongside.
  */
 export function loadReportSummary(
   range: { readonly end: string; readonly start: string },

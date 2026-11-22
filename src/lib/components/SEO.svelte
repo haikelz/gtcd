@@ -51,7 +51,6 @@
   />
   {#if !sharedReport}<link rel="canonical" href={currentUrl} />{/if}
 
-  <!-- Open Graph -->
   <meta property="og:type" content={ogType} />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
@@ -62,7 +61,6 @@
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="gtcd — {description}" />
 
-  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content={fullTitle} />
   <meta name="twitter:description" content={description} />

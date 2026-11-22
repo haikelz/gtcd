@@ -1,7 +1,3 @@
-/**
- * Runnable self-check for display preferences:
- * `node --experimental-strip-types src/lib/preferences.check.ts`
- */
 import assert from "node:assert/strict";
 import {
   formatDate,

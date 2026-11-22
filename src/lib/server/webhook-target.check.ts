@@ -1,4 +1,3 @@
-// Run: node --experimental-strip-types src/lib/server/webhook-target.check.ts
 import assert from "node:assert/strict";
 import {
   channelRequest,

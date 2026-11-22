@@ -9,12 +9,11 @@ import { upstreamFetch } from "./upstream-fetch.js";
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 600;
-const DEFAULT_CACHE_TTL_MS = 30_000; // 30 seconds cache for dashboard read queries
+const DEFAULT_CACHE_TTL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 // One budget per call across pacing, attempts and backoff, so an unreachable
 // GoatCounter cannot stall a page for a minute.
 const REQUEST_DEADLINE_MS = 20_000;
-// gcFetchRaw's ceiling for a body the caller streams on.
 const RAW_BODY_MAX_MS = 10 * 60_000;
 const MAX_RATE_LIMIT_WAIT_MS = 60_000;
 const CACHE_MAX_ENTRIES = 500; // Hard cap so unique query URLs cannot grow without bound.
@@ -251,7 +250,6 @@ function sweepCache(now: number, incoming: number): void {
   for (const [key, entry] of memoryCache) {
     if (entry.expiresAt <= now) cacheDelete(key);
   }
-  // Still full after removing expired entries: drop the oldest.
   for (const key of memoryCache.keys()) {
     if (fits()) return;
     cacheDelete(key);

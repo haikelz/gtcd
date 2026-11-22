@@ -1,4 +1,3 @@
-// Indonesian messages: sites. Keys are "sites.<name>"; {param} placeholders.
 export default {
   "sites.columnSite": "Situs",
   "sites.columnVisits": "Kunjungan",

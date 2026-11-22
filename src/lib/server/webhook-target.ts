@@ -207,7 +207,6 @@ export function isTelegramTarget(token: string, chatId: string): boolean {
   );
 }
 
-/** The URL and JSON body one channel type expects for a message. */
 export function channelRequest(
   channel: {
     readonly chatId: string | null;

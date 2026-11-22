@@ -98,9 +98,9 @@ export function parseFilter(query: string): ParsedFilter {
 }
 
 /**
- * Does this path/title match the filter? Follows the documented behavior:
- * event keywords filter first, the keyword-free text is matched
- * case-insensitively against path and/or title, and `:not` negates the result.
+ * Follows the documented behavior: event keywords filter first, the
+ * keyword-free text is matched case-insensitively against path and/or title,
+ * and `:not` negates the result.
  */
 export function filterMatches(
   parsed: ParsedFilter,

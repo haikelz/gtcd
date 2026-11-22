@@ -1,4 +1,3 @@
-// English messages: admin. Keys are "admin.<name>"; {param} placeholders.
 export default {
   "admin.access": "Access",
   "admin.allUsers": "All users",

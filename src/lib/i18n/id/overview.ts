@@ -1,6 +1,5 @@
 import type en from "../en/overview";
 
-// Bahasa Indonesia: overview. Must define every key of the English catalog.
 export default {
   "overview.comparisonTitle": "Perbandingan periode",
   "overview.countChange": "{change} dari periode sebelumnya",

@@ -95,7 +95,6 @@ function refuseLargeBody({
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-  // Validate session on every request
   event.locals.user = await getDashboardSession(event.cookies);
 
   // The dashboard layout refines this with the user's effective locale and

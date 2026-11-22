@@ -1,7 +1,3 @@
-/**
- * Runnable self-check for email report periods:
- * `node --experimental-strip-types src/lib/report-period.check.ts`
- */
 import assert from "node:assert/strict";
 import { isReportDue, latestCompletedPeriod } from "./report-period.ts";
 

@@ -1,4 +1,3 @@
-// English messages: exports. Keys are "exports.<name>"; {param} placeholders.
 export default {
   "exports.createDescription":
     "GoatCounter prepares a compressed archive in the background.",

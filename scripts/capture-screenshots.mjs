@@ -365,7 +365,6 @@ async function capture() {
     console.log(`  ${name}.png`);
   }
 
-  // Sign-in (both themes) and two-factor screens.
   for (const theme of ["light", "dark"]) {
     const ctx = await context({ theme });
     const page = await ctx.newPage();
@@ -384,7 +383,6 @@ async function capture() {
     await ctx.close();
   }
 
-  // Overview in light, dark, Indonesian and on a phone.
   for (const [name, options] of [
     ["traffic", { height: 1650 }],
     ["traffic-dark", { height: 1650, theme: "dark" }],
@@ -441,7 +439,6 @@ async function capture() {
   await page.goto(`${base}/dashboard/this-page-does-not-exist`);
   await shot(page, "not-found");
 
-  // A public link, opened without an account in both themes.
   await page.goto(`${base}/dashboard/settings`);
   await settle(page);
   const create = page.getByRole("button", { name: "Create public link" });

@@ -1,4 +1,3 @@
-// English messages: common. Keys are "common.<name>"; {param} placeholders.
 export default {
   "common.bodyTooLarge": "This request is too large. Send at most 512 KiB.",
   "common.copy": "Copy",

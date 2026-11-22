@@ -1,4 +1,3 @@
-// Re-export all types from the goatcounter module
 export type {
   CountTotalResponse,
   GoatCounterAuthResult,

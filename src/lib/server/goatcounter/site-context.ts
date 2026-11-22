@@ -11,7 +11,6 @@ export interface DashboardSite {
   readonly id: number;
   readonly cname?: string;
   readonly code: string;
-  /** Whether GoatCounter has received any data for this site yet. */
   readonly receivedData: boolean;
   /** User-configured public domain for "Go to path" links, if any. */
   readonly linkDomain?: string;

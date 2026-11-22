@@ -15,7 +15,7 @@ const REDIS_COMMAND_TIMEOUT_MS = 2_000;
 const memorySessions = new Map<string, { email: string; expiresAt: number }>();
 
 const SESSION_PREFIX = "session:";
-const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 days in seconds
+const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
 export function getRedis(): Redis {
   if (redis) return redis;
@@ -145,7 +145,6 @@ export async function createSession(
     }
   }
 
-  // In-memory fallback
   memorySessions.set(sessionId, {
     email,
     expiresAt: Date.now() + SESSION_MAX_AGE_SEC * 1000,
@@ -174,7 +173,6 @@ export async function getSession(
     }
   }
 
-  // In-memory fallback
   const session = memorySessions.get(sessionId);
   if (!session) return redisAnswered ? null : "unavailable";
 

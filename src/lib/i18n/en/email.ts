@@ -1,4 +1,3 @@
-// English messages: email. Keys are "email.<name>"; {param} placeholders.
 export default {
   "email.trafficSubject": "Traffic alert: {site}",
   "email.trafficHeadline":

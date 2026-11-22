@@ -97,7 +97,6 @@ export async function load({ locals, url, parent }) {
     };
   })();
 
-  // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = stats.streamReport(
     request,
     locals.locale,

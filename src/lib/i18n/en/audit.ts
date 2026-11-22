@@ -1,4 +1,3 @@
-// English messages: audit. Keys are "audit.<name>"; {param} placeholders.
 export default {
   "audit.title": "Audit log",
   "audit.description":

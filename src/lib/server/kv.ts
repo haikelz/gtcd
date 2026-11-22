@@ -67,7 +67,6 @@ export async function getJson(key: string): Promise<unknown> {
   }
 }
 
-/** Store a JSON value, expiring after ttlSeconds when given. */
 export async function setJson(
   key: string,
   value: unknown,
@@ -88,7 +87,6 @@ export async function setJson(
     }
   }
 
-  // Keep the change for this process until Redis is back.
   writeMemory(
     key,
     raw,

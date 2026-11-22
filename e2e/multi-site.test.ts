@@ -21,7 +21,6 @@ async function upstreamRequests(page: Page): Promise<LoggedRequest[]> {
   return (await page.request.get(`${MOCK}/__requests`)).json();
 }
 
-/** Run `act`, then return the upstream requests it caused. */
 async function requestsDuring(
   page: Page,
   act: () => Promise<void>
@@ -31,7 +30,6 @@ async function requestsDuring(
   return (await upstreamRequests(page)).slice(before);
 }
 
-/** Click `button` and return the form action request it sends. */
 async function submitAction(page: Page, button: string) {
   const [request] = await Promise.all([
     page.waitForRequest(

@@ -70,7 +70,6 @@ export async function load({ locals, params, url, parent }) {
   const { range, start, end } = getDateRangeFromUrl(url, preferences.timezone);
   const offset = getOffsetFromUrl(url);
 
-  // Streamed: the page renders its skeleton while GoatCounter answers.
   const page = params.page;
   const detail = streamReport(
     resolveFilter(getFilterFromUrl(url), { vhost }).then((includePaths) =>

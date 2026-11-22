@@ -378,7 +378,6 @@ export const actions = {
 
     return {
       action: "saveDisplay",
-      // Confirm in the newly chosen language when one was picked.
       message: translate(
         isLocale(locale) ? locale : locals.locale,
         "customize.displaySaved"

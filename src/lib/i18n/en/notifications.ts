@@ -1,5 +1,3 @@
-// English messages: notifications. Keys are "notifications.<name>"; {param}
-// placeholders.
 export default {
   "notifications.title": "Notifications",
   "notifications.description":

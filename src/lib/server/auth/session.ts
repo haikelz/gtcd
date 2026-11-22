@@ -18,7 +18,6 @@ export function generateSessionId(): string {
   return randomBytes(32).toString("hex");
 }
 
-/** Durable key for the time of a user's last successful gtcd sign-in. */
 export function lastLoginKey(email: string): string {
   return `last-login:${email.trim().toLowerCase()}`;
 }
@@ -60,7 +59,7 @@ export async function createDashboardSession(
     httpOnly: true,
     secure,
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 }
 

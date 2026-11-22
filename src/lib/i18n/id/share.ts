@@ -1,6 +1,5 @@
 import type en from "../en/share";
 
-// Bahasa Indonesia: share. Must define every key of the English catalog.
 export default {
   "share.audiences": "Tautan audiens",
   "share.audienceHelp":

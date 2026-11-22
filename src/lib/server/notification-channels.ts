@@ -176,9 +176,9 @@ export async function listChannels(siteId: number): Promise<ChannelView[]> {
 }
 
 /**
- * Validate and save a channel. Webhook URLs are checked against the SSRF
- * guard now and again on every send. Like email, a new channel starts from
- * the current period and never sends a catch-up message.
+ * Webhook URLs are checked against the SSRF guard now and again on every
+ * send. Like email, a new channel starts from the current period and never
+ * sends a catch-up message.
  */
 export async function addChannel(
   siteId: number,

@@ -125,7 +125,6 @@ export function latestCompletedPeriod(
   );
 }
 
-/** Whether a report is due now for a subscription's last sent period key. */
 export function isReportDue(
   frequency: ReportFrequency,
   now: Date,

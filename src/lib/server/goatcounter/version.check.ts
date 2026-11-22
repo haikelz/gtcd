@@ -1,8 +1,6 @@
-// Run: node --experimental-strip-types src/lib/server/goatcounter/version.check.ts
 import assert from "node:assert/strict";
 import { isCsvOnlyGoatCounter } from "./version.ts";
 
-// Tagged release builds.
 assert.equal(isCsvOnlyGoatCounter("v2.7.0"), true);
 assert.equal(isCsvOnlyGoatCounter("v2.6.1"), true);
 assert.equal(isCsvOnlyGoatCounter("v1.4.2"), true);

@@ -4,8 +4,6 @@ import { parseTotpForm, type TotpChallenge } from "./totp-form.js";
 import type { GoatCounterAuthResult, GoatCounterTotpResult } from "./types.js";
 
 /**
- * Verify credentials against GoatCounter's login form endpoint.
- *
  * GoatCounter (v2.6 handlers/user.go) signals every login outcome with a
  * redirect destination, never with an error status:
  *   success            → 303 "/"
@@ -62,7 +60,6 @@ export async function authenticateWithGoatCounter(
     };
   }
 
-  // TOTP-enabled accounts receive the token form instead of a redirect.
   const challenge = parseTotpForm(await response.text());
 
   if (challenge) {

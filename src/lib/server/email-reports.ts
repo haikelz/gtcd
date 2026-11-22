@@ -222,8 +222,8 @@ async function writeSubscription(
 }
 
 /**
- * Save a user's choice. A new or changed frequency starts from the current
- * period, so subscribing never triggers an immediate catch-up email.
+ * A new or changed frequency starts from the current period, so subscribing
+ * never triggers an immediate catch-up email.
  */
 export async function updateSubscription(
   email: string,

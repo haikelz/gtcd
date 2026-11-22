@@ -32,7 +32,6 @@
     return query ? `${page.url.pathname}?${query}` : page.url.pathname;
   }
 
-  // The row's name rides along so the detail page can title itself.
   function detailHref(id: string, name: string): string {
     const params = new SvelteURLSearchParams(page.url.searchParams);
     params.set("name", name);

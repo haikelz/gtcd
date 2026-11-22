@@ -35,10 +35,10 @@ function clip(value: string, length: number): string {
 }
 
 /**
- * Record an admin action. Unlike durable settings, the audit trail never
- * blocks or fails the action it describes: an outage loses the entry and logs
- * that it did, because refusing site changes while Redis is down would turn a
- * storage problem into an administration outage.
+ * Unlike durable settings, the audit trail never blocks or fails the action it
+ * describes: an outage loses the entry and logs that it did, because refusing
+ * site changes while Redis is down would turn a storage problem into an
+ * administration outage.
  */
 export async function recordAudit(
   entry: Omit<AuditEntry, "at">

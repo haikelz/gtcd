@@ -21,12 +21,10 @@ export function numbersHidden(): boolean {
   return displayPreferences().fewerNumbers;
 }
 
-/** A count with the user's thousands separator. */
 export function formatCount(value: number): string {
   return formatNumber(value, displayPreferences().numberSeparator);
 }
 
-/** The interface language for the current request. */
 export function currentLocale(): Locale {
   return page.data.preferences?.locale ?? page.data.locale ?? "en";
 }

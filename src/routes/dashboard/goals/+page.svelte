@@ -32,7 +32,6 @@
   let { data, form } = $props();
   let manageHeading = $state<HTMLElement | null>(null);
 
-  /** One decimal, with the user's separators. */
   function percent(value: number): string {
     return formatCount(Math.round(value * 10) / 10);
   }

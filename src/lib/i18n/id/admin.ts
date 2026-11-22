@@ -1,6 +1,5 @@
 import type en from "../en/admin";
 
-// Bahasa Indonesia: admin. Must define every key of the English catalog.
 export default {
   "admin.access": "Akses",
   "admin.allUsers": "Semua pengguna",

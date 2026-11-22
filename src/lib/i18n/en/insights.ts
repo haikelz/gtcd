@@ -1,5 +1,3 @@
-// English messages: overview insights (busiest hours, chart notes). Keys are
-// "insights.<name>"; {param} placeholders.
 export default {
   "insights.addNote": "Add note",
   "insights.chartNote": "Note",

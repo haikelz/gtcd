@@ -14,7 +14,6 @@ export async function load({ locals, url, parent }) {
   );
   const offset = getOffsetFromUrl(url, locals.locale);
 
-  // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = stats.streamReport(
     resolveFilter(getFilterFromUrl(url), { vhost }).then((includePaths) =>
       stats.getStats("browsers", start, end, 50, offset, includePaths, {

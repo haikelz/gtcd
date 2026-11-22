@@ -1,4 +1,3 @@
-// English messages: sites. Keys are "sites.<name>"; {param} placeholders.
 export default {
   "sites.columnSite": "Site",
   "sites.columnVisits": "Visits",

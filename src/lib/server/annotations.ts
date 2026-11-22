@@ -102,8 +102,8 @@ export async function listAnnotations(
 }
 
 /**
- * Add a note. Returns null when the site already holds MAX_ANNOTATIONS;
- * invalid input throws a RangeError.
+ * Returns null when the site already holds MAX_ANNOTATIONS; invalid input
+ * throws a RangeError.
  */
 export async function addAnnotation(
   siteId: number,

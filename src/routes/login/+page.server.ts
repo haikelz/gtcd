@@ -36,7 +36,6 @@ function passwordResetUrl(): string | null {
 }
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
-  // If already logged in, redirect to dashboard
   if (locals.user) {
     throw redirect(302, "/dashboard");
   }
@@ -109,7 +108,6 @@ export const actions: Actions = {
       }
     }
 
-    // Authentication successful — create dashboard session
     await clearLoginFailures(email, ip);
     await createDashboardSession(cookies, result.user.email, secure);
     await saveNativeSession(cookies, {

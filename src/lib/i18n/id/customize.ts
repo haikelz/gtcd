@@ -1,6 +1,5 @@
 import type en from "../en/customize";
 
-// Bahasa Indonesia: customize. Must define every key of the English catalog.
 export default {
   "customize.trafficAlerts": "Peringatan trafik",
   "customize.alertDescription":

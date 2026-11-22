@@ -1,7 +1,3 @@
-/**
- * Runnable self-check for dashboard layout parsing and GoatCounter import:
- * `node --experimental-strip-types src/lib/dashboard-layout.check.ts`
- */
 import assert from "node:assert/strict";
 import {
   DEFAULT_DASHBOARD_LAYOUT,

@@ -81,7 +81,6 @@
     return formatHour(hour, preferences.twentyFourHours);
   }
 
-  /** Averages keep one decimal; fewer-numbers mode shows a share of the peak. */
   function cellValue(value: number): string {
     return hideNumbers
       ? `${max > 0 ? Math.round((value / max) * 100) : 0}%`

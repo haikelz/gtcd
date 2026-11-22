@@ -1,4 +1,3 @@
-// Run: node --experimental-strip-types src/lib/server/rocket-loader.check.ts
 import assert from "node:assert/strict";
 import { markScriptsForRocketLoader } from "./rocket-loader.ts";
 

@@ -1,4 +1,3 @@
-// English messages: shell. Keys are "shell.<name>"; {param} placeholders.
 export default {
   "shell.accessDenied": "Access denied",
   "shell.analyticsNavigation": "Analytics navigation",

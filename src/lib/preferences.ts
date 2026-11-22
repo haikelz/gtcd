@@ -351,7 +351,6 @@ export function toUtcRFC3339(wall: Date, timezone: string): string {
     .replace(/\.\d{3}Z$/, "Z");
 }
 
-/** Group digits with the user's thousands separator. */
 export function formatNumber(value: number, separator: string): string {
   if (!Number.isFinite(value)) return "—";
 

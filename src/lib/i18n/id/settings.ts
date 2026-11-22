@@ -1,6 +1,5 @@
 import type en from "../en/settings";
 
-// Bahasa Indonesia: settings. Must define every key of the English catalog.
 export default {
   "settings.accessToken": "Token akses",
   "settings.addSite": "Tambah situs",

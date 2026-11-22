@@ -254,7 +254,6 @@ export async function load({ locals, parent, url }) {
     };
   });
 
-  // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = stats.streamReport(
     request.then(({ rows, scan, total }) => ({
       rows,

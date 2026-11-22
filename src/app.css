@@ -2,8 +2,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* ── Variants ─────────────────────────────────────────────── */
-
 @custom-variant dark (&:is(.dark *));
 
 /* State variants consumed by the shadcn-svelte primitives (bits-ui). */
@@ -40,7 +38,7 @@
   }
 }
 
-/* ── Theme ──────────────────────────────────────────────────
+/*
  * One design system with the landing page (~/landing-page-gtcd): its light
  * tokens, plus a dark set both products share. ReUI's token names stay, so
  * the recipes keep working; DESIGN.md maps the names to the landing roles.
@@ -278,8 +276,6 @@
     outline-offset: 2px;
   }
 }
-
-/* ── Motion ───────────────────────────────────────────────── */
 
 @keyframes fade-in {
   from {

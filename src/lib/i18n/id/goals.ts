@@ -1,4 +1,3 @@
-// Indonesian messages: goals. Keys are "goals.<name>"; {param} placeholders.
 export default {
   "goals.add": "Tambah sasaran",
   "goals.addTitle": "Tambah sasaran",

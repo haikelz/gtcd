@@ -4,7 +4,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="$SCRIPT_DIR/gtcd"
 
-# Source .env
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
   set -a
   source "$SCRIPT_DIR/.env"
@@ -14,7 +13,6 @@ else
   exit 1
 fi
 
-# Validate required vars
 required_vars=(DOMAIN EMAIL IMAGE GOATCOUNTER_URL GOATCOUNTER_API_KEY REDIS_PASSWORD)
 for var in "${required_vars[@]}"; do
   if [[ -z "${!var:-}" ]]; then
@@ -66,7 +64,6 @@ render_apply() {
   envsubst "$list" < "$1" | kubectl apply -f -
 }
 
-# Cluster prerequisites (skipped gracefully when CRDs are absent).
 if kubectl api-resources --api-group=cert-manager.io 2>/dev/null | grep -q issuers; then
   render_apply "$SCRIPT_DIR/shared/clusterissuer.yaml"
 else
@@ -87,8 +84,6 @@ fi
 # with -vhost $DOMAIN, so calls without a site of their own use that.
 : "${GOATCOUNTER_VHOST:=$DOMAIN}"
 
-# Create/update the Secret from env vars. Secret keys are read by the pod at
-# container start, so the deployment is rolled again after the apply below.
 secret_name="gtcd-env"
 secret_vars=(
   GOATCOUNTER_URL
@@ -158,8 +153,7 @@ for resource in "${apply_order[@]}"; do
   [[ -f "$file" ]] && render_apply "$file"
 done
 
-# Nightly backups (gtcd/backup.yaml), once a bucket is configured. The keys
-# go through a 0600 temp file, so they never appear on a command line.
+# The keys go through a 0600 temp file, so they never appear on a command line.
 backup_vars=(BACKUP_RESTIC_REPOSITORY BACKUP_RESTIC_PASSWORD BACKUP_S3_ACCESS_KEY_ID BACKUP_S3_SECRET_ACCESS_KEY)
 backup_ready=true
 for var in "${backup_vars[@]}" BACKUP_S3_REGION; do

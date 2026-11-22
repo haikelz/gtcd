@@ -1,6 +1,5 @@
 import type en from "../en/exports";
 
-// Bahasa Indonesia: exports. Must define every key of the English catalog.
 export default {
   "exports.createDescription":
     "GoatCounter menyiapkan arsip terkompresi di latar belakang.",

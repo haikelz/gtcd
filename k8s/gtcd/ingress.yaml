@@ -20,7 +20,6 @@ spec:
     - host: ${DOMAIN}
       http:
         paths:
-          # GoatCounter tracking endpoint
           - path: /count
             pathType: Prefix
             backend:
@@ -45,7 +44,6 @@ spec:
                 name: goatcounter
                 port:
                   number: 8080
-          # Everything else → gtcd dashboard
           - path: /
             pathType: Prefix
             backend:

@@ -31,7 +31,6 @@ export function translate(
   return fillMessage(catalog[key] ?? fallback[key] ?? key, params);
 }
 
-/** The best gtcd locale for an Accept-Language header. */
 export function localeFromAcceptLanguage(header: string | null): Locale {
   const preferred = header?.split(",")[0]?.trim().toLowerCase() ?? "";
   return preferred.startsWith("id") ? "id" : "en";

@@ -10,17 +10,14 @@ localhost {
 		reverse_proxy goatcounter:8080
 	}
 
-	# GoatCounter admin UI (optional)
 	handle /admin/* {
 		reverse_proxy goatcounter:8080
 	}
 
-	# Everything else → gtcd dashboard
 	handle {
 		reverse_proxy gtcd:3000
 	}
 
-	# Security headers
 	header {
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY
@@ -28,6 +25,5 @@ localhost {
 		-Server
 	}
 
-	# Enable compression
 	encode gzip zstd
 }

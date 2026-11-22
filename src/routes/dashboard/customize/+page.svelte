@@ -103,7 +103,6 @@
     layout.widgets.map((widget) => ({ ...widget }))
   );
 
-  // Toast the action's result, then refresh the layout from the server.
   const notifyAndUpdate: SubmitFunction = () => {
     return async ({ result, update }) => {
       await update({ reset: false });

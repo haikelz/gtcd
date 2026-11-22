@@ -1,4 +1,3 @@
-// Run: node --experimental-strip-types src/lib/server/goatcounter/api-rate.check.ts
 import assert from "node:assert/strict";
 import { requestIntervalMs } from "./api-rate.ts";
 

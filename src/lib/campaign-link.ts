@@ -1,5 +1,5 @@
 /**
- * Campaign links for GoatCounter. Import-free so
+ * Import-free so
  * `node --experimental-strip-types src/lib/campaign-link.check.ts` can run it.
  */
 

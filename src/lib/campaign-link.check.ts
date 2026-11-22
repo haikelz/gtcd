@@ -1,4 +1,3 @@
-// Run: node --experimental-strip-types src/lib/campaign-link.check.ts
 import assert from "node:assert/strict";
 import { buildCampaignUrl } from "./campaign-link.ts";
 

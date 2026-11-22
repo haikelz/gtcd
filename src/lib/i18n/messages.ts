@@ -4,8 +4,8 @@ import type { MessageKey, MessageParams } from "./index";
 export type Messages = Readonly<Record<MessageKey, string>>;
 
 /**
- * One locale's catalog. The dynamic imports keep each language in its own
- * chunk, so the browser downloads only the active one.
+ * The dynamic imports keep each language in its own chunk, so the browser
+ * downloads only the active one.
  */
 export async function loadMessages(locale: Locale): Promise<Messages> {
   const catalog = locale === "id" ? await import("./id") : await import("./en");

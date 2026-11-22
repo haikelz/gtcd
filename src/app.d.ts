@@ -3,8 +3,6 @@
 import type { DashboardLayout, Locale } from "$lib/dashboard-layout";
 import type { DisplayPreferences } from "$lib/preferences";
 
-// See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
 declare global {
   namespace App {
     interface Error {
@@ -25,8 +23,6 @@ declare global {
       /** Interface language outside the dashboard (login, errors). */
       locale?: Locale;
     }
-    // interface PageState {}
-    // interface Platform {}
   }
 }
 

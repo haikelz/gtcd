@@ -1,4 +1,3 @@
-// Run: node --experimental-strip-types src/lib/server/goatcounter/totp-form.check.ts
 import assert from "node:assert/strict";
 import { parseTotpForm } from "./totp-form.ts";
 

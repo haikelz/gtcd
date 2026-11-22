@@ -1,4 +1,3 @@
-// English messages: reports. Keys are "reports.<name>"; {param} placeholders.
 export default {
   "reports.audienceShare": "Audience share",
   "reports.backTo": "Back to {parent}",

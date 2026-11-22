@@ -221,7 +221,6 @@
       {t("charts.noData")}
     </div>
   {:else}
-    <!-- Summary stats -->
     <div class="mb-4 flex min-h-12 flex-wrap items-center gap-6">
       {#if hideNumbers}
         <p class="text-xs text-muted-foreground">
@@ -282,7 +281,6 @@
       {/if}
     </div>
 
-    <!-- SVG Area Chart with Full A11Y -->
     <svg
       role="img"
       aria-label={hideNumbers
@@ -319,7 +317,6 @@
       </defs>
 
       <g transform="translate({padding.left}, {padding.top})">
-        <!-- Grid lines -->
         {#each yTicks as tick, i (i)}
           <line
             x1="0"
@@ -356,10 +353,8 @@
             />
           {/each}
         {:else}
-          <!-- Area -->
           <path d={areaPath} fill="url(#{chartId}-area)" />
 
-          <!-- Line -->
           <path
             d={linePath}
             fill="none"
@@ -370,7 +365,6 @@
           />
         {/if}
 
-        <!-- Hover crosshair -->
         {#if style === "line" && hoveredIndex !== null && hoveredIndex < points.length}
           {@const hx =
             (hoveredIndex / Math.max(points.length - 1, 1)) * dims.chartWidth}
@@ -421,7 +415,6 @@
           </g>
         {/each}
 
-        <!-- X labels -->
         {#each xLabels as label (label.x)}
           <text
             x={label.x}
@@ -433,7 +426,6 @@
         {/each}
       </g>
 
-      <!-- Hover tracking overlay -->
       <rect
         role="presentation"
         aria-hidden="true"

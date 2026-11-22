@@ -1,27 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 info()  { echo -e "${BLUE}[INFO]${NC}  $1"; }
 ok()    { echo -e "${GREEN}[OK]${NC}    $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# ─── Configuration ────────────────────────────────────────────────────────────
-
 ENV_FILE=".env"
 ENV_EXAMPLE=".env.example"
 COMPOSE_FILE="docker-compose.yaml"
 CADDYFILE="Caddyfile"
 REDIS_CONF="secrets/redis.conf"
-
-# ─── Preflight ────────────────────────────────────────────────────────────────
 
 if [ ! -f "$COMPOSE_FILE" ]; then
   error "docker-compose.yaml not found. Run this script from the project root."
@@ -48,8 +43,6 @@ if [ -n "$redis_container" ]; then
   fi
 fi
 
-# ─── Create .env if missing ───────────────────────────────────────────────────
-
 if [ ! -f "$ENV_FILE" ]; then
   if [ -f "$ENV_EXAMPLE" ]; then
     cp "$ENV_EXAMPLE" "$ENV_FILE"
@@ -68,8 +61,6 @@ EOF
   # old .env, so the compose check still stops it on an empty volume.
   printf '\n# Set by setup.sh for a new install; see docker-compose.yaml.\nGTCD_NEW_INSTALL=1\n' >> "$ENV_FILE"
 fi
-
-# ─── Prompt for setup ────────────────────────────────────────────────────────
 
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════${NC}"
@@ -91,8 +82,6 @@ if [ -z "$GC_EMAIL" ] || [ -z "$GC_PASS" ]; then
   exit 1
 fi
 
-# ─── Validate password length ────────────────────────────────────────────────
-
 if [ ${#GC_PASS} -lt 8 ]; then
   error "Password must be at least 8 characters."
   exit 1
@@ -100,24 +89,18 @@ fi
 
 source "$ENV_FILE" 2>/dev/null || true
 
-# ─── For local development, use stats.localhost as GoatCounter vhost ──────────
-
-# GoatCounter requires a domain with 2+ labels. For localhost, we use stats.localhost.
+# GoatCounter requires a domain with 2+ labels.
 if [ "$GC_DOMAIN" = "localhost" ]; then
   GC_VHOST="stats.localhost"
 else
   GC_VHOST="$GC_DOMAIN"
 fi
 
-# ─── Stop any existing containers ─────────────────────────────────────────────
-
 # Keep named volumes: re-running setup must not wipe GoatCounter's analytics
 # data or the Redis store. Delete volumes only by hand (`docker compose down -v`)
 # when a from-scratch reset is really intended.
 info "Stopping any existing containers (volumes are kept)..."
 docker compose down 2>/dev/null || true
-
-# ─── Generate Caddyfile ──────────────────────────────────────────────────────
 
 info "Generating Caddyfile for domain: $GC_DOMAIN"
 
@@ -134,17 +117,14 @@ ${GC_DOMAIN} {
 		reverse_proxy goatcounter:8080
 	}
 
-	# GoatCounter admin UI (optional)
 	handle /admin/* {
 		reverse_proxy goatcounter:8080
 	}
 
-	# Everything else → gtcd dashboard
 	handle {
 		reverse_proxy gtcd:3000
 	}
 
-	# Security headers
 	header {
 		X-Content-Type-Options nosniff
 		X-Frame-Options DENY
@@ -152,14 +132,11 @@ ${GC_DOMAIN} {
 		-Server
 	}
 
-	# Enable compression
 	encode gzip zstd
 }
 CADDY
 
 ok "Caddyfile generated"
-
-# ─── Redis password (secrets/redis.conf) ─────────────────────────────────────
 
 # Redis loads requirepass from this file; reuse an existing password so
 # re-running setup does not log everyone out.
@@ -192,12 +169,8 @@ chmod 644 "$REDIS_CONF"
 # Compose interpolates REDIS_URL for every command, before .env is rewritten.
 export REDIS_URL="redis://:${REDIS_PASSWORD}@redis:6379"
 
-# ─── Start GoatCounter and Redis ─────────────────────────────────────────────
-
 info "Starting GoatCounter and Redis..."
 docker compose up -d goatcounter redis
-
-# ─── Wait for GoatCounter to be ready ────────────────────────────────────────
 
 info "Waiting for GoatCounter to be ready..."
 MAX_WAIT=60
@@ -221,8 +194,6 @@ fi
 
 echo ""
 
-# ─── Create site ─────────────────────────────────────────────────────────────
-
 info "Creating GoatCounter site and admin user..."
 
 docker compose exec goatcounter goatcounter db create site \
@@ -233,8 +204,6 @@ docker compose exec goatcounter goatcounter db create site \
   2>&1 || warn "Site may already exist (this is okay)"
 
 ok "Site configured at $GC_VHOST"
-
-# ─── Get user ID ─────────────────────────────────────────────────────────────
 
 info "Looking up user ID..."
 
@@ -260,8 +229,6 @@ if [ -z "$USER_ID" ]; then
 fi
 
 ok "User ID: $USER_ID"
-
-# ─── Create API token ────────────────────────────────────────────────────────
 
 info "Creating API token..."
 
@@ -309,8 +276,6 @@ else
   ok "API token created"
 fi
 
-# ─── Write final .env ────────────────────────────────────────────────────────
-
 # Replace or add one key and keep the rest, so a re-run does not drop SMTP,
 # Turnstile or admin settings someone added to .env.
 set_env() {
@@ -330,8 +295,6 @@ set_env GOATCOUNTER_VHOST "$GC_VHOST"
 set_env REDIS_URL "redis://:${REDIS_PASSWORD}@redis:6379"
 
 ok ".env saved (API key, site host and Redis URL included)"
-
-# ─── Start full stack ────────────────────────────────────────────────────────
 
 info "Starting full stack (including Caddy reverse proxy)..."
 docker compose up -d --build

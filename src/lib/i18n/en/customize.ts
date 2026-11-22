@@ -1,4 +1,3 @@
-// English messages: customize. Keys are "customize.<name>"; {param} placeholders.
 export default {
   "customize.trafficAlerts": "Traffic alerts",
   "customize.alertDescription":

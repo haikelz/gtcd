@@ -1,4 +1,3 @@
-// English messages: goals. Keys are "goals.<name>"; {param} placeholders.
 export default {
   "goals.add": "Add goal",
   "goals.addTitle": "Add a goal",

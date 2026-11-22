@@ -1,7 +1,5 @@
 import type en from "../en/notifications";
 
-// Bahasa Indonesia: notifications. Must define every key of the English
-// catalog.
 export default {
   "notifications.title": "Notifikasi",
   "notifications.description":

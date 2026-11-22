@@ -16,7 +16,6 @@
     readonly compact?: boolean;
     readonly icon?: typeof ChartNoAxesCombined;
     readonly label: string;
-    /** Show placeholders while the value streams in. */
     readonly loading?: boolean;
     readonly subtext?: string;
     readonly trend?: { value: string; direction: "up" | "down" };

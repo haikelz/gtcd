@@ -1,4 +1,3 @@
-// English messages: share. Keys are "share.<name>"; {param} placeholders.
 export default {
   "share.audiences": "Audience links",
   "share.audienceHelp":

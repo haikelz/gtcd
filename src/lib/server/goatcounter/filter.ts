@@ -22,7 +22,6 @@ interface PathScanEntry {
 
 const cache = new Map<string, PathScanEntry>();
 
-/** The site has more paths than a filter may scan. */
 export class PathFilterLimitError extends Error {
   readonly limit = MAX_PATH_SCAN;
 
@@ -35,7 +34,6 @@ export class PathFilterLimitError extends Error {
   }
 }
 
-/** Read and normalize the filter query parameter. */
 export function getFilterFromUrl(url: URL): string {
   const raw = url.searchParams.get("filter");
   if (!raw) return "";
@@ -54,8 +52,6 @@ function remember(key: string, ids: number[] | undefined): void {
 }
 
 /**
- * Resolve a filter to the IDs of matching paths.
- *
  * Returns undefined when the filter does not narrow anything (no filter, or a
  * keyword-only filter with no effect), an empty array when nothing matches,
  * and otherwise the matching path IDs. Throws when the site has more paths

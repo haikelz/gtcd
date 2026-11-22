@@ -19,7 +19,6 @@ export async function load({ locals, url, parent }) {
   const after = parseAfter(url.searchParams.get("after"), locals.locale);
   const { vhost } = await parent();
 
-  // Streamed: the page renders its skeleton while GoatCounter answers.
   const report = streamReport(
     getPaths(100, after, { vhost }),
     locals.locale,

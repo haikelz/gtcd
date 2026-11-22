@@ -1,4 +1,3 @@
-// English messages: overview. Keys are "overview.<name>"; {param} placeholders.
 export default {
   "overview.comparisonTitle": "Period comparison",
   "overview.countChange": "{change} vs. previous period",

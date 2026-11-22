@@ -1,6 +1,5 @@
 import type en from "../en/audit";
 
-// Bahasa Indonesia: audit. Must define every key of the English catalog.
 export default {
   "audit.title": "Log audit",
   "audit.description":

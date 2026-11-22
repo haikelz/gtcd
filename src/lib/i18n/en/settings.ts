@@ -1,4 +1,3 @@
-// English messages: settings. Keys are "settings.<name>"; {param} placeholders.
 export default {
   "settings.accessToken": "Access token",
   "settings.addSite": "Add a site",

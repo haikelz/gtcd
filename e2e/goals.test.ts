@@ -17,7 +17,6 @@ async function upstreamRequests(page: Page): Promise<LoggedRequest[]> {
   return (await page.request.get(`${MOCK}/__requests`)).json();
 }
 
-/** Run `act`, then return the upstream requests it caused. */
 async function requestsDuring(
   page: Page,
   act: () => Promise<void>

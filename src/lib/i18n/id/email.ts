@@ -1,6 +1,5 @@
 import type en from "../en/email";
 
-// Bahasa Indonesia: email. Must define every key of the English catalog.
 export default {
   "email.trafficSubject": "Peringatan trafik: {site}",
   "email.trafficHeadline":

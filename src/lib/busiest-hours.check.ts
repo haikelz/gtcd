@@ -1,4 +1,3 @@
-// Run: node --experimental-strip-types src/lib/busiest-hours.check.ts
 import assert from "node:assert/strict";
 import { busiestHours } from "./busiest-hours.ts";
 

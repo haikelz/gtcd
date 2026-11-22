@@ -72,7 +72,6 @@
     }
   });
 
-  // Land on the code field when the two-factor step appears.
   $effect(() => {
     if (data.mfaEmail && codeEl && !form?.error) codeEl.focus();
   });

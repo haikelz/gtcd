@@ -7,8 +7,6 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
 /**
- * Health endpoint for orchestrator probes and monitoring.
- *
  * It always answers 200 as long as this process can serve: GoatCounter and
  * Redis outages degrade the dashboard gracefully (error states, in-memory
  * session fallback), so they must not fail liveness or restart healthy pods.
