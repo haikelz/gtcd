@@ -37,6 +37,7 @@
     Trash2,
   } from "@lucide/svelte";
   import type { SubmitFunction } from "@sveltejs/kit";
+  import { tick } from "svelte";
 
   let { data, form } = $props();
 
@@ -78,6 +79,7 @@
   // Remounting the add form restores its defaults; a native form reset
   // would blank the number inputs and leave the checkboxes as they were.
   let addFormVersion = $state(0);
+  let channelsHeading = $state<HTMLElement | null>(null);
 
   const preferences = $derived(displayPreferences());
   const siteName = $derived(data.site.cname || data.site.code);
@@ -97,7 +99,10 @@
     );
   }
 
-  // Toast successes; failures land in `form` and render inline.
+  // Toast successes; failures land in `form` and render inline. Adding
+  // remounts the form and deleting removes the row, so focus moves to the
+  // new form's first field (the heading once the form locks at the limit)
+  // or the list heading instead of the page body.
   const notify: SubmitFunction = () => {
     pending = true;
     return async ({ result, update }) => {
@@ -115,6 +120,17 @@
         }
       } finally {
         pending = false;
+      }
+
+      if (result.type !== "success") return;
+      await tick();
+      if (result.data?.action === "add" && !full) {
+        document.getElementById("channel-type")?.focus();
+      } else if (
+        result.data?.action === "add" ||
+        result.data?.action === "delete"
+      ) {
+        channelsHeading?.focus();
       }
     };
   };
@@ -158,7 +174,7 @@
 <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
   <Frame>
     <FrameHeader>
-      <FrameTitle id="channels-heading"
+      <FrameTitle bind:ref={channelsHeading} id="channels-heading" tabindex={-1}
         >{t("notifications.listTitle")}</FrameTitle
       >
       <FrameDescription>

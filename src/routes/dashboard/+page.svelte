@@ -71,8 +71,10 @@
     Smartphone,
     Trash2,
   } from "@lucide/svelte";
+  import { tick } from "svelte";
 
   let { data, form } = $props();
+  let notesHeading = $state<HTMLElement | null>(null);
 
   const preferences = $derived(displayPreferences());
   const range = $derived(
@@ -148,15 +150,19 @@
       : null
   );
 
-  // The toast follows the durable write; update() reloads the notes.
+  // The toast follows the durable write; update() reloads the notes. A
+  // deleted note takes its button along, so focus moves to the heading.
   const noteSubmitted: SubmitFunction = () => {
     return async ({ result, update }) => {
       await update();
-      if (
-        result.type === "success" &&
-        typeof result.data?.message === "string"
-      ) {
+      if (result.type !== "success") return;
+
+      if (typeof result.data?.message === "string") {
         showToast(result.data.message, "success");
+      }
+      if (result.data?.action === "deleteNote") {
+        await tick();
+        notesHeading?.focus();
       }
     };
   };
@@ -491,8 +497,11 @@
     aria-labelledby="heading-notes"
     class="mt-4 flex flex-col gap-3 border-t border-border pt-4"
   >
-    <FrameTitle id="heading-notes" level={3}
-      >{t("insights.notesTitle")}</FrameTitle
+    <FrameTitle
+      bind:ref={notesHeading}
+      id="heading-notes"
+      level={3}
+      tabindex={-1}>{t("insights.notesTitle")}</FrameTitle
     >
     {#if data.annotations.error}
       <ErrorAlert message={data.annotations.error} />

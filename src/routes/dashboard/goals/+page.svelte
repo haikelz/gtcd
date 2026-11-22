@@ -32,14 +32,29 @@
   } from "$lib/display";
   import { GOAL_NAME_MAX_LENGTH, GOAL_PATH_MAX_LENGTH } from "$lib/goals";
   import { Target } from "@lucide/svelte";
+  import type { SubmitFunction } from "@sveltejs/kit";
+  import { tick } from "svelte";
 
   let { data, form } = $props();
+  let manageHeading = $state<HTMLElement | null>(null);
 
   function percent(value: number): string {
     return new Intl.NumberFormat(displayPreferences().locale, {
       maximumFractionDigits: 1,
     }).format(value);
   }
+
+  // The deleted goal takes its button along; the heading keeps focus in
+  // the list, and the status message below it reports the result.
+  const goalDeleted: SubmitFunction = () => {
+    return async ({ result, update }) => {
+      await update();
+      if (result.type !== "success") return;
+
+      await tick();
+      manageHeading?.focus();
+    };
+  };
 </script>
 
 <SEO
@@ -203,7 +218,9 @@
     {#if data.isAdmin}
       <Frame aria-labelledby="goals-manage" role="region">
         <FrameHeader>
-          <FrameTitle id="goals-manage">{t("goals.manageTitle")}</FrameTitle>
+          <FrameTitle bind:ref={manageHeading} id="goals-manage" tabindex={-1}
+            >{t("goals.manageTitle")}</FrameTitle
+          >
           <FrameDescription
             >{t("goals.manageDescription", {
               max: data.maxGoals,
@@ -246,7 +263,7 @@
                   <form
                     action={dashboardHref("?/delete")}
                     method="POST"
-                    use:enhance
+                    use:enhance={goalDeleted}
                   >
                     <input name="id" type="hidden" value={goal.id} />
                     <Button

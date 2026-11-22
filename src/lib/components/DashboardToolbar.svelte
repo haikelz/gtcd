@@ -147,6 +147,7 @@
   let startDraft = $derived(toDayString(current.start));
   let endDraft = $derived(toDayString(current.end));
   let filterDraft = $derived(filterValue);
+  let filterInput = $state<HTMLElement | null>(null);
 
   // The server refuses ranges over a year; say so before Apply.
   const rangeTooLong = $derived.by(() => {
@@ -233,8 +234,10 @@
     });
   }
 
+  // The clear button leaves with the filter; the input keeps focus.
   function clearFilter(): void {
     filterDraft = "";
+    filterInput?.focus();
     updateParams((params) => params.delete("filter"));
   }
 </script>
@@ -326,6 +329,7 @@
               />
               <Input
                 autocomplete="off"
+                bind:ref={filterInput}
                 bind:value={filterDraft}
                 class="w-44 pl-9 sm:w-56"
                 id="filter-paths"

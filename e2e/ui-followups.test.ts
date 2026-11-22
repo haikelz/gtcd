@@ -214,3 +214,70 @@ test("a taken hostname is described under its field", async ({ page }) => {
     "Hostname: already in use by another site"
   );
 });
+
+test("deleting a goal, a note or a channel hands focus to its list", async ({
+  page,
+}) => {
+  const suffix = randomUUID().slice(0, 8);
+  await signIn(page);
+
+  await page.goto("/dashboard/goals?site=1");
+  const manage = page.getByRole("region", { name: "Manage goals" });
+  await manage.getByLabel("Name", { exact: true }).fill(`Focus ${suffix}`);
+  await manage.getByLabel("Event name or page path").fill(`focus-${suffix}`);
+  await manage.getByRole("button", { name: "Add goal" }).click();
+  await expect(manage.getByRole("status")).toHaveText("Goal added.");
+  await manage.getByRole("button", { name: `Delete Focus ${suffix}` }).click();
+  await expect(manage.getByRole("status")).toHaveText("Goal deleted.");
+  await expect(
+    page.getByRole("heading", { name: "Manage goals" })
+  ).toBeFocused();
+
+  await page.goto(`/dashboard?site=1&${PERIOD}`);
+  const notes = page
+    .getByRole("region", { name: "Traffic over time" })
+    .getByRole("region", { name: "Notes" });
+  await notes.getByLabel("Date").fill("2026-10-04");
+  await notes.getByLabel("Note", { exact: true }).fill(`Focus ${suffix}`);
+  await notes.getByRole("button", { name: "Add note" }).click();
+  await expect(page.getByText("Note added.")).toBeVisible();
+  await notes
+    .getByRole("button", { name: `Delete note: Focus ${suffix}` })
+    .click();
+  await expect(page.getByText("Note deleted.")).toBeVisible();
+  await expect(notes.getByRole("heading", { name: "Notes" })).toBeFocused();
+
+  await page.goto("/dashboard/settings/notifications?site=1");
+  await page.getByLabel("Channel type").selectOption("webhook");
+  await page.getByLabel("Name", { exact: true }).fill(`Focus ${suffix}`);
+  await page
+    .getByLabel("Webhook URL")
+    .fill(`http://localhost:9/focus-${suffix}`);
+  await page.getByRole("button", { name: "Add channel" }).click();
+  const remove = page
+    .getByRole("listitem")
+    .filter({ hasText: `Focus ${suffix}` })
+    .getByRole("button", { name: /Delete/ });
+  try {
+    await expect(page.getByText("Channel added.")).toBeVisible();
+    // The add form remounts with its defaults; focus starts it again.
+    await expect(page.getByLabel("Channel type")).toBeFocused();
+    await remove.click();
+    await expect(page.getByText("Channel deleted.")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Channels", exact: true })
+    ).toBeFocused();
+  } finally {
+    if (await remove.count()) await remove.click();
+  }
+});
+
+test("clearing the path filter returns focus to the filter input", async ({
+  page,
+}) => {
+  await signIn(page);
+  await page.goto("/dashboard/browsers?site=1&filter=blog");
+  await page.getByRole("button", { name: "Clear filter" }).click();
+  await expect(page).not.toHaveURL(/filter=/);
+  await expect(page.locator("#filter-paths")).toBeFocused();
+});
